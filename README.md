@@ -65,7 +65,7 @@ The Windows script handles DLL placement. On Linux, set `LD_LIBRARY_PATH` to `na
 
 ## Playback validation still required
 
-[librespot](https://github.com/librespot-org/librespot) is pinned to 0.8.0, with its compatible `vergen` 9.0.6 build dependency pinned and Cargo.lock committed. Windows selects Rodio explicitly; another platform never silently substitutes a pipe or null output. No Spotify credentials or audio cache are written by the Rust session. The app disconnects and destroys that session before removing saved credentials.
+[librespot](https://github.com/librespot-org/librespot) is pinned to 0.8.0, with its compatible `vergen` 9.0.6 build dependency pinned and Cargo.lock committed. Windows selects Rodio explicitly; another platform never silently substitutes a pipe or null output. Persistent credential and audio caches are disabled in the Rust session. Librespot uses temporary files for stream buffering. The app disconnects and destroys that session before removing saved credentials.
 
 On a Windows machine, verify launch, browser sign-in, audible playback of several tracks, pause/resume, seek, volume, next, natural queue progression, and disconnect during loading. Also test a missing output device and an expired/rejected token. These checks need an authorized Premium account and are not performed by CI. Internal protocols can change without a supported compatibility contract. Spotify's public Web API supplies metadata and controls rather than native audio streams.
 
