@@ -1,8 +1,23 @@
 namespace ApurvaSpotify.Core;
 
-public sealed record Track(string Id, string Name, string Artist, string ArtistId,
-    string Album, int DurationMs, string Url, bool Explicit)
+public sealed record Track
 {
+    // WinUI's metadata generator treats init-only setters as regular setters.
+    // Read-only properties keep the model immutable and safe for XAML binding.
+    public string Id { get; }
+    public string Name { get; }
+    public string Artist { get; }
+    public string ArtistId { get; }
+    public string Album { get; }
+    public int DurationMs { get; }
+    public string Url { get; }
+    public bool Explicit { get; }
+    public Track(string id, string name, string artist, string artistId,
+        string album, int durationMs, string url, bool explicitContent)
+    {
+        Id = id; Name = name; Artist = artist; ArtistId = artistId;
+        Album = album; DurationMs = durationMs; Url = url; Explicit = explicitContent;
+    }
     public string Duration => TimeSpan.FromMilliseconds(DurationMs).ToString(@"m\:ss");
 }
 public sealed record Playlist(string Id, string Name, int Count);
