@@ -11,9 +11,10 @@ Implemented in source:
 - Asynchronous Spotify requests with paging, canceled stale searches, bounded retries, and rate-limit handling.
 - In-memory queue editing, undo, and an explicit artist-spacing shuffle rule.
 - Rust DLL boundary with bounded queues, request IDs, completion events, shutdown, and cross-language tests.
+- Experimental librespot 0.8 session and Windows Rodio audio output, with native player events, play/pause, seek, volume, stop, and queue progression.
 - Windows build/package workflow and PowerShell build script.
 
-**Standalone Spotify audio is not implemented.** The Rust worker explicitly rejects playback commands. There is no fake playing state, demo library, or dependency on an official Spotify client for this build's functionality. Track links open Spotify only when clicked. Compilation and mocked API tests do not verify live sign-in, streaming, or lower memory usage.
+**Native playback is experimental and not yet verified with a live account.** The Windows build includes librespot; the default Rust build remains a bridge-only build. Player events drive status rather than command acceptance. Compilation and mocked API tests do not verify live sign-in, audible streaming, or lower memory usage. A Web API app's token may be rejected by Spotify's internal playback services; a successful metadata login does not guarantee streaming access.
 
 ## Build on Windows
 
@@ -33,7 +34,8 @@ The publish folder is self-contained. Keep its files together; the exe alone is 
 1. Create a Web API app at [Spotify's developer dashboard](https://developer.spotify.com/dashboard).
 2. Register `http://127.0.0.1:8888/callback` as the redirect URI and allow your Spotify account as a development user where required.
 3. Open Settings in Cadenza and enter the app's Client ID, then select Connect Spotify.
-4. Complete Spotify's consent screen in your system browser. No client secret is used.
+4. Complete Spotify's consent screen in your system browser. No client secret is used. Reconnect after updating from the foundation build to grant the added `streaming` scope.
+5. Select Play on a track. Playback connects on demand; Pause, Next, Stop, volume, and seeking are in the bottom bar. Next consumes the first queued track. Queue progression follows native end-of-track events.
 
 Premium alone does not provide a developer Client ID. Endpoint availability depends on your application's current Spotify access. Forbidden endpoints show an actionable error. Port 8888 must be available during sign-in; the listener is stopped afterward. Sign-in times out after three minutes.
 
@@ -53,7 +55,7 @@ Simple preferences currently use a small JSON file. SQLite is deferred until the
 ## Validation
 
 ```sh
-cargo test --locked --manifest-path native/Cargo.toml
+cargo test --locked --features playback --manifest-path native/Cargo.toml
 dotnet run --project tests/ApurvaSpotify.Tests.csproj -c Release
 # After building the native library, put its directory on the native library search path:
 dotnet run --project tests/ApurvaSpotify.Tests.csproj -c Release -- --native
@@ -61,9 +63,11 @@ dotnet run --project tests/ApurvaSpotify.Tests.csproj -c Release -- --native
 
 The Windows script handles DLL placement. On Linux, set `LD_LIBRARY_PATH` to `native/target/release` for the native checks. The Windows interface cannot be run on Linux.
 
-## Next playback milestone
+## Playback validation still required
 
-Integrate a maintained playback engine such as [librespot](https://github.com/librespot-org/librespot), validate its authorization path, add native audio output and real playback events, then test on Windows with a Premium account. Internal protocols can change without a supported compatibility contract. Spotify's public Web API supplies metadata and controls rather than native audio streams.
+[librespot](https://github.com/librespot-org/librespot) is pinned to 0.8.0, with its compatible `vergen` 9.0.6 build dependency pinned and Cargo.lock committed. Windows selects Rodio explicitly; another platform never silently substitutes a pipe or null output. No Spotify credentials or audio cache are written by the Rust session. The app disconnects and destroys that session before removing saved credentials.
+
+On a Windows machine, verify launch, browser sign-in, audible playback of several tracks, pause/resume, seek, volume, next, natural queue progression, and disconnect during loading. Also test a missing output device and an expired/rejected token. These checks need an authorized Premium account and are not performed by CI. Internal protocols can change without a supported compatibility contract. Spotify's public Web API supplies metadata and controls rather than native audio streams.
 
 Spotify's [developer policy](https://developer.spotify.com/policy) restricts replacement experiences and ML/AI ingestion of Spotify content. This project does not currently train models or analyze audio. The shuffle rule is an explicit queue-ordering preference, not a learned recommendation system.
 

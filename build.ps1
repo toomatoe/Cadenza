@@ -9,8 +9,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Build command failed with exit code $LASTEXITCODE" }
     }
     Invoke-Checked { cargo fmt --manifest-path native/Cargo.toml --check }
-    Invoke-Checked { cargo test --locked --manifest-path native/Cargo.toml }
-    Invoke-Checked { cargo build --locked --release --manifest-path native/Cargo.toml }
+    Invoke-Checked { cargo test --locked --features playback --manifest-path native/Cargo.toml }
+    Invoke-Checked { cargo build --locked --release --features playback --manifest-path native/Cargo.toml }
     Invoke-Checked { dotnet build tests/ApurvaSpotify.Tests.csproj -c Release }
     Copy-Item native/target/release/apurva_audio.dll tests/bin/Release/net10.0/ -Force
     Invoke-Checked { dotnet run --project tests/ApurvaSpotify.Tests.csproj -c Release --no-build -- --native }
