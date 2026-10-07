@@ -4,7 +4,7 @@
     xmlns:core="using:ApurvaSpotify.Core"
     Title="Cadenza">
     <Grid x:Name="Root" RequestedTheme="Dark" Background="#11151C" KeyDown="Root_KeyDown">
-        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="76"/></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="112"/></Grid.RowDefinitions>
         <Grid.ColumnDefinitions><ColumnDefinition Width="218"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
         <Border Grid.RowSpan="2" Background="#171C25" Padding="22,30">
             <Grid>
@@ -33,7 +33,7 @@
                 <TextBlock x:Name="PageTitle" Text="Your library" FontSize="32" FontWeight="SemiBold" Margin="0,6,0,0"/>
             </StackPanel>
             <InfoBar x:Name="Notice" Grid.Row="1" IsOpen="True" Severity="Informational" IsClosable="True"
-                Message="Connect in Settings to browse Spotify. Standalone audio playback is not available in this build."/>
+                Message="Connect in Settings, then play a track. Native playback is experimental and requires Spotify Premium."/>
             <Grid Grid.Row="2" ColumnSpacing="12">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <TextBox x:Name="SearchBox" PlaceholderText="Find a track or artist   ·   Ctrl+K" TextChanged="Search_TextChanged" KeyDown="Search_KeyDown" AutomationProperties.Name="Search Spotify"/>
@@ -45,15 +45,16 @@
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="core:Track">
                             <Grid Padding="4,10" ColumnSpacing="16">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="64"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="56"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="{x:Bind Name}" FontSize="16" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Text="{x:Bind Artist}" Foreground="#A5B1C2" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Text="{x:Bind Album}" Foreground="#778498" FontSize="12" TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                                 <TextBlock Grid.Column="1" Text="{x:Bind Duration}" VerticalAlignment="Center" Foreground="#A5B1C2"/>
-                                <Button Grid.Column="2" Content="+ Queue" Tag="{x:Bind}" Click="Add_Click" VerticalAlignment="Center" AutomationProperties.Name="Add track to listening queue"/>
-                                <HyperlinkButton Grid.Column="3" Content="Spotify ↗" Tag="{x:Bind}" Click="OpenTrack_Click" VerticalAlignment="Center" AutomationProperties.Name="Open track on Spotify"/>
+                                <Button Grid.Column="2" Content="Play" Tag="{x:Bind}" Click="PlayTrack_Click" VerticalAlignment="Center" AutomationProperties.Name="Play track in Cadenza"/>
+                                <Button Grid.Column="3" Content="+ Queue" Tag="{x:Bind}" Click="Add_Click" VerticalAlignment="Center" AutomationProperties.Name="Add track to listening queue"/>
+                                <HyperlinkButton Grid.Column="4" Content="Spotify ↗" Tag="{x:Bind}" Click="OpenTrack_Click" VerticalAlignment="Center" AutomationProperties.Name="Open track on Spotify"/>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
@@ -79,7 +80,7 @@
                         <TextBlock Text="Try to leave this many tracks between the same lead artist. If that is impossible, spacing is relaxed. All tracks remain in the queue." TextWrapping="Wrap" Foreground="#A5B1C2"/>
                         <Button Content="Save preferences" Click="SavePreferences_Click"/>
                         <TextBlock Text="Playback integration" FontSize="22" FontWeight="SemiBold" Margin="0,20,0,0"/>
-                        <TextBlock Text="The Rust worker and command bridge can be tested here. Spotify streaming is not connected yet." TextWrapping="Wrap" Foreground="#A5B1C2"/>
+                        <TextBlock Text="Experimental librespot playback uses Windows audio output. Reconnect Spotify after updating to grant the streaming scope. Live account compatibility still needs validation." TextWrapping="Wrap" Foreground="#A5B1C2"/>
                         <Button Content="Check native bridge" Click="CheckBridge_Click"/>
                         <TextBlock Text="Your sign-in is stored in Windows Credential Manager. Disconnect clears it and this session's Spotify data. Queue contents are kept only in memory." TextWrapping="Wrap" Foreground="#778498" FontSize="12"/>
                     </StackPanel>
@@ -99,13 +100,22 @@
             </StackPanel>
         </Grid>
         <Border Grid.Column="1" Grid.Row="1" Background="#1C2330" Padding="30,16">
-            <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                <FontIcon Glyph="&#xE8D6;" Foreground="{StaticResource Accent}"/>
+            <Grid RowSpacing="8" ColumnSpacing="16">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Your queue, your order" FontWeight="SemiBold"/>
-                    <TextBlock x:Name="QueueLabel" Text="0 tracks · standalone playback pending" Foreground="#9EAABB" FontSize="12"/>
+                    <TextBlock x:Name="NowPlayingLabel" Text="Choose a track to play" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="QueueLabel" Text="0 tracks" Foreground="#9EAABB" FontSize="12"/>
                 </StackPanel>
-            </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="PlayPauseButton" Content="Play" Click="PlayPause_Click"/>
+                    <Button Content="Next" Click="Next_Click"/>
+                    <Button Content="Stop" Click="Stop_Click"/>
+                </StackPanel>
+                <Slider x:Name="VolumeSlider" Grid.Column="2" Minimum="0" Maximum="100" Value="25" StepFrequency="1" Header="Volume" AutomationProperties.Name="Playback volume" PointerReleased="Volume_Released" KeyUp="Volume_KeyUp"/>
+                <Slider x:Name="PositionSlider" Grid.Row="1" Grid.ColumnSpan="2" Minimum="0" Maximum="1" Value="0" IsEnabled="False" AutomationProperties.Name="Playback position" PointerPressed="Position_Pressed" PointerReleased="Position_Released" KeyDown="Position_KeyDown" KeyUp="Position_KeyUp"/>
+                <TextBlock x:Name="PlaybackLabel" Grid.Row="1" Grid.Column="2" Text="Not playing" Foreground="#9EAABB" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            </Grid>
         </Border>
     </Grid>
 </Window>
