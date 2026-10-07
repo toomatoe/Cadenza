@@ -37,6 +37,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store)
     private Tokens? tokens;
     private string clientId = "";
     public bool IsConnected => tokens is not null;
+    public string ClientId => tokens?.ClientId ?? "";
 
     public static string ValidateClientId(string value)
     {
@@ -68,7 +69,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store)
         {
             ["client_id"] = newClientId, ["response_type"] = "code", ["redirect_uri"] = RedirectUri,
             ["code_challenge_method"] = "S256", ["code_challenge"] = Pkce.Challenge(verifier),
-            ["state"] = state, ["scope"] = "user-library-read playlist-read-private playlist-read-collaborative"
+            ["state"] = state, ["scope"] = "user-library-read playlist-read-private playlist-read-collaborative streaming"
         };
         var url = "https://accounts.spotify.com/authorize?" + string.Join('&',
             parameters.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"));
