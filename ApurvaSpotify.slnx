@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/core/">
+    <Project Path="core/ApurvaSpotify.Core.csproj" />
+  </Folder>
+  <Folder Name="/desktop/">
+    <Project Path="desktop/ApurvaSpotify.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ApurvaSpotify.Tests.csproj" />
+  </Folder>
+</Solution>

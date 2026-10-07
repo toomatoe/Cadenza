@@ -1,15 +1,10 @@
-# .NET / Visual Studio
 **/bin/
 **/obj/
 .vs/
 *.user
 *.suo
 TestResults/
-
-# Rust: commit Cargo.lock for the application
 **/target/
-
-# Local credentials and runtime data
 .env
 .env.*
 !.env.example
@@ -23,8 +18,6 @@ tokens.json
 *.db
 *.db-shm
 *.db-wal
-
-# Build outputs
 artifacts/
 *.log
 .DS_Store
