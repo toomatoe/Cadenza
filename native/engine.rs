@@ -1,5 +1,6 @@
-//! Native command/event foundation. No Spotify session or audio backend is wired yet.
-//! Opcode 0 is a bridge diagnostic. All playback commands explicitly return unsupported.
+//! Bounded asynchronous command bridge; optional Windows Spotify playback.
+#[cfg(feature = "playback")]
+mod playback;
 use std::collections::{HashMap, VecDeque};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -25,15 +26,16 @@ pub struct Event {
     pub reserved: u32,
 }
 
-#[derive(Clone, Copy)]
 struct Command {
     request_id: u64,
     opcode: u32,
+    payload: Vec<u8>,
 }
 #[derive(Default)]
 struct State {
     events: VecDeque<Event>,
     outstanding: usize,
+    telemetry: Option<Event>,
 }
 struct Engine {
     tx: mpsc::SyncSender<Command>,
@@ -55,7 +57,7 @@ fn guarded(action: impl FnOnce() -> i32) -> i32 {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn apurva_abi_version() -> u32 {
-    1
+    2
 }
 
 #[unsafe(no_mangle)]
@@ -69,15 +71,34 @@ pub extern "C" fn apurva_create() -> u64 {
         let Ok(worker) = thread::Builder::new()
             .name("apurva-audio".into())
             .spawn(move || {
+                #[cfg(feature = "playback")]
+                let mut player = playback::Playback::new(worker_running.clone());
                 while worker_running.load(Ordering::Acquire) {
                     match rx.recv_timeout(Duration::from_millis(50)) {
                         Ok(command) => {
-                            let event = Event {
-                                request_id: command.request_id,
-                                kind: if command.opcode == 0 { 1 } else { 2 },
-                                status: if command.opcode == 0 { OK } else { UNSUPPORTED },
-                                value: if command.opcode == 0 { 1 } else { 0 },
-                                reserved: 0,
+                            let event = if command.opcode == 0 {
+                                Event {
+                                    request_id: command.request_id,
+                                    kind: 1,
+                                    status: OK,
+                                    value: 2,
+                                    reserved: 0,
+                                }
+                            } else {
+                                #[cfg(feature = "playback")]
+                                let result =
+                                    catch_unwind(AssertUnwindSafe(|| player.command(&command)));
+                                #[cfg(feature = "playback")]
+                                let (status, value) = result.unwrap_or((INTERNAL, 0));
+                                #[cfg(not(feature = "playback"))]
+                                let (status, value) = (UNSUPPORTED, 0);
+                                Event {
+                                    request_id: command.request_id,
+                                    kind: 2,
+                                    status,
+                                    value,
+                                    reserved: 0,
+                                }
                             };
                             let Ok(mut state) = worker_state.lock() else {
                                 break;
@@ -86,6 +107,12 @@ pub extern "C" fn apurva_create() -> u64 {
                         }
                         Err(mpsc::RecvTimeoutError::Timeout) => {}
                         Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                    }
+                    #[cfg(feature = "playback")]
+                    if let Some(event) = player.poll()
+                        && let Ok(mut state) = worker_state.lock()
+                    {
+                        state.telemetry = Some(event);
                     }
                 }
             })
@@ -116,7 +143,50 @@ pub extern "C" fn apurva_create() -> u64 {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn apurva_submit(id: u64, request_id: u64, opcode: u32) -> i32 {
+    submit(id, request_id, opcode, Vec::new())
+}
+
+/// # Safety
+/// `payload` must reference `length` readable bytes until this call returns.
+/// Input is copied before returning; pointers are never retained.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn apurva_submit_text(
+    id: u64,
+    request_id: u64,
+    opcode: u32,
+    payload: *const u8,
+    length: usize,
+) -> i32 {
     guarded(|| {
+        if payload.is_null() || length == 0 || length > 8192 || !(2..=8).contains(&opcode) {
+            return INVALID;
+        }
+        let bytes = unsafe { std::slice::from_raw_parts(payload, length) };
+        if std::str::from_utf8(bytes).is_err() {
+            return INVALID;
+        }
+        submit(id, request_id, opcode, bytes.to_vec())
+    })
+}
+
+// Erase the bridge-owned copy, including rejected and unprocessed commands.
+impl Drop for Command {
+    fn drop(&mut self) {
+        for byte in &mut self.payload {
+            unsafe {
+                std::ptr::write_volatile(byte, 0);
+            }
+        }
+        std::sync::atomic::compiler_fence(Ordering::SeqCst);
+    }
+}
+fn submit(id: u64, request_id: u64, opcode: u32, payload: Vec<u8>) -> i32 {
+    guarded(|| {
+        let command = Command {
+            request_id,
+            opcode,
+            payload,
+        };
         let Some(engine) = find(id) else {
             return INVALID;
         };
@@ -126,11 +196,10 @@ pub extern "C" fn apurva_submit(id: u64, request_id: u64, opcode: u32) -> i32 {
         let Ok(mut state) = engine.state.lock() else {
             return INTERNAL;
         };
-        // Includes queued commands and unconsumed events: no completion is silently dropped.
         if state.outstanding >= CAPACITY {
             return FULL;
         }
-        match engine.tx.try_send(Command { request_id, opcode }) {
+        match engine.tx.try_send(command) {
             Ok(()) => {
                 state.outstanding += 1;
                 OK
@@ -163,7 +232,15 @@ pub unsafe extern "C" fn apurva_poll(id: u64, output: *mut Event) -> i32 {
                 }
                 OK
             }
-            None => EMPTY,
+            None => match state.telemetry.take() {
+                Some(event) => {
+                    unsafe {
+                        output.write(event);
+                    }
+                    OK
+                }
+                None => EMPTY,
+            },
         }
     })
 }
@@ -228,6 +305,24 @@ mod tests {
         }
         assert_eq!(apurva_submit(id, 100, 0), OK);
         assert_eq!(receive(id).request_id, 100);
+        assert_eq!(apurva_destroy(id), OK);
+    }
+    #[test]
+    fn invalid_payloads() {
+        let id = apurva_create();
+        assert_eq!(
+            unsafe { apurva_submit_text(id, 1, 2, std::ptr::null(), 10) },
+            INVALID
+        );
+        let invalid = [0xff];
+        assert_eq!(
+            unsafe { apurva_submit_text(id, 2, 2, invalid.as_ptr(), 1) },
+            INVALID
+        );
+        assert_eq!(
+            unsafe { apurva_submit_text(id, 3, 2, invalid.as_ptr(), 8193) },
+            INVALID
+        );
         assert_eq!(apurva_destroy(id), OK);
     }
     #[test]

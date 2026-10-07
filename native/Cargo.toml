@@ -9,6 +9,24 @@ name = "apurva_audio"
 path = "engine.rs"
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = []
+playback = ["dep:librespot-core", "dep:librespot-playback", "dep:tokio", "dep:zeroize", "dep:vergen"]
+
+[dependencies]
+librespot-core = { version = "=0.8.0", default-features = false, features = ["rustls-tls-webpki-roots"], optional = true }
+librespot-playback = { version = "=0.8.0", default-features = false, features = ["rustls-tls-webpki-roots"], optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "time", "macros"], optional = true }
+zeroize = { version = "1", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+librespot-playback = { version = "=0.8.0", default-features = false, features = ["rodio-backend", "rustls-tls-webpki-roots"], optional = true }
+
+[build-dependencies]
+# Upstream fix #1683: vergen 9.1 uses a different vergen-lib trait.
+# Keep the compatible version unified until librespot ships its next release.
+vergen = { version = "=9.0.6", optional = true }
+
 [profile.release]
 lto = true
 codegen-units = 1

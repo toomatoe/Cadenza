@@ -1,17 +1,24 @@
-# Native bridge contract, ABI 1
+# Native bridge contract, ABI 2
 
-This crate is a tested command/event foundation, not an audio player. There is no Spotify session, audio decoder, or audio device attached yet. Opcode 0 checks the bridge; every playback command completes with status 4 (unsupported). No simulated playback success is emitted.
+The optional `playback` feature adds librespot 0.8 and a Windows Rodio output. The default build is bridge-only. Windows build.ps1 enables playback. Live streaming compatibility is unverified.
 
 | Function | Contract |
 | --- | --- |
-| `apurva_abi_version()` | Returns 1. |
-| `apurva_create()` | Returns a nonzero opaque u64 handle, or 0 on failure. |
-| `apurva_submit(handle, request_id, opcode)` | Copies a command; returns immediately. Request ID must be nonzero and unique among this client's outstanding requests. |
-| `apurva_poll(handle, Event*)` | Writes one event to caller-owned memory; returns 1 if empty. |
+| `apurva_abi_version()` | Returns 2. |
+| `apurva_create()` | Nonzero opaque u64 handle, or 0 on failure. |
+| `apurva_submit(handle, request_id, opcode)` | Enqueues a command immediately. |
+| `apurva_submit_text(handle, request_id, opcode, bytes, length)` | Copies UTF-8 synchronously, 1–8192 bytes; pointer is never retained. |
+| `apurva_poll(handle, Event*)` | Writes one event; returns 1 if empty. |
 | `apurva_destroy(handle)` | Removes the handle, stops and joins its worker. Call off the UI thread. |
 
-Status codes: 0 success; 1 empty; 2 invalid; 3 full; 4 unsupported playback; 5 internal failure. Accepted commands plus unconsumed events are limited to 32, so backpressure cannot cause dropped completions or unlimited memory growth. The event is 24 bytes, C layout: u64 request ID, u32 kind, i32 status, u32 value, u32 reserved. Kind 1 is a diagnostic response; kind 2 is an error. Reserved is zero.
+Request IDs must be nonzero and unique among outstanding requests. Accepted commands plus unconsumed completions are capped at 32. Telemetry occupies one separate coalesced slot; position updates cannot fill the completion queue. The C-layout event is 24 bytes: u64 request ID, u32 kind, i32 status, u32 value, u32 track stamp. Request ID 0 identifies telemetry; the stamp ties it to the load completion's value.
 
-There are no borrowed strings or cross-runtime callbacks. C# owns its Tasks; Rust owns its worker. Cancellation of a C# wait does not cancel native work; its completion is still drained. Disposal rejects new submissions and cancels pending waits. Rust panics are caught at exported boundaries. Poll's output pointer must be valid, aligned, and writable.
+Kinds: 1 diagnostic, 2 command completion, 10 loading, 11 playing, 12 paused, 13 stopped, 14 ended, 15 failed. Values are ABI version for diagnostics, track stamp for load completion, position milliseconds for playback events, otherwise 0.
 
-Before introducing streaming: evaluate current librespot APIs, session authorization requirements, library lifetime and shutdown behavior, native output device handling, and Spotify's permissions. Add a separate streaming integration test on Windows with authorized Premium credentials. A successful ABI test does not establish streaming compatibility.
+Statuses: 0 success, 1 empty, 2 invalid, 3 full, 4 unsupported, 5 internal failure, 6 disconnected, 7 authentication failure/timeout, 8 audio output failure. A command completion means accepted by the player; only a player event establishes its playback state.
+
+Opcodes: 0 diagnostic; 1 legacy unsupported check; 2 authenticate (`clientID` + newline + access token); 3 load Spotify track URI; 4 resume; 5 pause; 6 seek (milliseconds); 7 volume (0–100); 8 stop. Opcodes 2/3/6/7 use text; the others use submit. Authentication has a 30-second timeout and checks shutdown every 50 ms. The session runtime uses two Tokio workers; librespot also owns a player runtime and neither uses a disk cache. Queue-owned payload bytes are erased on drop; no token logging is installed.
+
+C# owns Tasks; Rust owns sessions and player lifetimes. Cancellation stops a managed wait, not native work; its completion is still drained. Destroy interrupts session connection, stops the player, and closes the runtime. All native work is off the UI thread. Exported functions catch panics; sink creation failures yield errors rather than silent output. Poll output must be aligned and writable; text pointers must remain readable throughout the call.
+
+Tests cover bounded completions, invalid payloads, commands without a session, concurrent managed completions, cancellation, and disposal. They do not validate an actual account, audible output, Windows launch, or memory performance.
