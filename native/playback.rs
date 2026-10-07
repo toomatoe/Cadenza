@@ -215,70 +215,12 @@ impl Playback {
         OK
     }
     pub(super) fn poll(&mut self) -> Option<Event> {
-        let events = self.events.as_mut()?;
+        self.events.as_ref()?;
         let mut update = None;
-        while let Ok(event) = events.try_recv() {
-            let (request, uri, kind, position) = match event {
-                PlayerEvent::Loading {
-                    play_request_id,
-                    track_id,
-                    position_ms,
-                } => (play_request_id, track_id, 10, position_ms),
-                PlayerEvent::Playing {
-                    play_request_id,
-                    track_id,
-                    position_ms,
-                } => (play_request_id, track_id, 11, position_ms),
-                PlayerEvent::Paused {
-                    play_request_id,
-                    track_id,
-                    position_ms,
-                } => (play_request_id, track_id, 12, position_ms),
-                PlayerEvent::Stopped {
-                    play_request_id,
-                    track_id,
-                } => (play_request_id, track_id, 13, 0),
-                PlayerEvent::EndOfTrack {
-                    play_request_id,
-                    track_id,
-                } => (play_request_id, track_id, 14, self.last.value),
-                PlayerEvent::Unavailable {
-                    play_request_id,
-                    track_id,
-                } => (play_request_id, track_id, 15, 0),
-                PlayerEvent::PositionChanged {
-                    play_request_id,
-                    track_id,
-                    position_ms,
-                }
-                | PlayerEvent::PositionCorrection {
-                    play_request_id,
-                    track_id,
-                    position_ms,
-                }
-                | PlayerEvent::Seeked {
-                    play_request_id,
-                    track_id,
-                    position_ms,
-                } => (play_request_id, track_id, self.last.kind, position_ms),
-                _ => continue,
-            };
-            if self.current.as_ref() != Some(&uri) {
-                continue;
+        while let Ok(event) = self.events.as_mut()?.try_recv() {
+            if let Some(value) = self.map_event(event) {
+                update = Some(value);
             }
-            if kind == 10 {
-                self.native_request = Some(request);
-            }
-            if self.native_request != Some(request) {
-                continue;
-            }
-            self.last = Event {
-                kind,
-                value: position,
-                reserved: self.stamp,
-                ..Event::default()
-            };
-            update = Some(self.last);
         }
         if self.audio_failed.load(Ordering::Acquire)
             || self.player.as_ref().is_some_and(|p| p.is_invalid())
@@ -300,6 +242,71 @@ impl Playback {
             return None;
         }
         update
+    }
+    fn map_event(&mut self, event: PlayerEvent) -> Option<Event> {
+        // Replaying a fully loaded track can skip Loading, but always changes request ID.
+        if let PlayerEvent::PlayRequestIdChanged { play_request_id } = event {
+            self.native_request = Some(play_request_id);
+            return None;
+        }
+        let (request, uri, kind, position) = match event {
+            PlayerEvent::Loading {
+                play_request_id,
+                track_id,
+                position_ms,
+            } => (play_request_id, track_id, 10, position_ms),
+            PlayerEvent::Playing {
+                play_request_id,
+                track_id,
+                position_ms,
+            } => (play_request_id, track_id, 11, position_ms),
+            PlayerEvent::Paused {
+                play_request_id,
+                track_id,
+                position_ms,
+            } => (play_request_id, track_id, 12, position_ms),
+            PlayerEvent::Stopped {
+                play_request_id,
+                track_id,
+            } => (play_request_id, track_id, 13, 0),
+            PlayerEvent::EndOfTrack {
+                play_request_id,
+                track_id,
+            } => (play_request_id, track_id, 14, self.last.value),
+            PlayerEvent::Unavailable {
+                play_request_id,
+                track_id,
+            } => (play_request_id, track_id, 15, 0),
+            PlayerEvent::PositionChanged {
+                play_request_id,
+                track_id,
+                position_ms,
+            }
+            | PlayerEvent::PositionCorrection {
+                play_request_id,
+                track_id,
+                position_ms,
+            }
+            | PlayerEvent::Seeked {
+                play_request_id,
+                track_id,
+                position_ms,
+            } => (play_request_id, track_id, self.last.kind, position_ms),
+            _ => return None,
+        };
+        if self.current.as_ref() != Some(&uri) {
+            return None;
+        }
+        if self.native_request != Some(request) {
+            return None;
+        }
+        self.last = Event {
+            kind,
+            value: position,
+            reserved: self.stamp,
+            ..Event::default()
+        };
+        Some(self.last)
     }
     fn disconnect(&mut self) {
         self.events = None;
@@ -375,6 +382,38 @@ impl librespot_playback::audio_backend::Sink for CheckedSink {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn repeat_track_without_loading_and_stale_events() {
+        let mut player = Playback::new(Arc::new(AtomicBool::new(true)));
+        let uri = SpotifyUri::from_uri("spotify:track:4uLU6hMCjMI75M1A2tKUQC").unwrap();
+        player.current = Some(uri.clone());
+        player.stamp = 2;
+        player.map_event(PlayerEvent::PlayRequestIdChanged { play_request_id: 1 });
+        assert!(
+            player
+                .map_event(PlayerEvent::Playing {
+                    play_request_id: 0,
+                    track_id: uri.clone(),
+                    position_ms: 0
+                })
+                .is_none()
+        );
+        let event = player
+            .map_event(PlayerEvent::Playing {
+                play_request_id: 1,
+                track_id: uri.clone(),
+                position_ms: 0,
+            })
+            .unwrap();
+        assert_eq!((event.kind, event.reserved), (11, 2));
+        let end = player
+            .map_event(PlayerEvent::EndOfTrack {
+                play_request_id: 1,
+                track_id: uri,
+            })
+            .unwrap();
+        assert_eq!(end.kind, 14);
+    }
     #[test]
     fn rejects_commands_without_a_session() {
         let mut player = Playback::new(Arc::new(AtomicBool::new(true)));
