@@ -58,11 +58,23 @@ Check(tokenStore.Value is null && !auth.IsConnected, "Disconnect deletes saved c
 if (args.Contains("--native"))
 {
     await using var engine = new NativeEngine();
-    Check(await engine.CheckBridgeAsync(CancellationToken.None) == 1, "C#/Rust diagnostic round trip");
+    Check(await engine.CheckBridgeAsync(CancellationToken.None) == 2, "C#/Rust diagnostic round trip");
     try { await engine.RequestPlaybackAsync(CancellationToken.None); throw new Exception("Unavailable playback reported success"); }
     catch (NotSupportedException) { passed++; }
+    try { await engine.ResumeAsync(CancellationToken.None); throw new Exception("Playback without a session accepted"); }
+    catch (InvalidOperationException) { passed++; }
+    try { await engine.LoadTrackAsync("invalid", CancellationToken.None); throw new Exception("Malformed track accepted"); }
+    catch (ArgumentException) { passed++; }
+    try { await engine.SetVolumeAsync(101, CancellationToken.None); throw new Exception("Unbounded volume accepted"); }
+    catch (ArgumentOutOfRangeException) { passed++; }
+    using (var canceled = new CancellationTokenSource())
+    {
+        canceled.Cancel();
+        try { await engine.CheckBridgeAsync(canceled.Token); throw new Exception("Canceled request accepted"); }
+        catch (OperationCanceledException) { passed++; }
+    }
     var tasks = Enumerable.Range(0, 16).Select(_ => engine.CheckBridgeAsync(CancellationToken.None)).ToArray();
-    Check((await Task.WhenAll(tasks)).All(v => v == 1), "Concurrent native completions");
+    Check((await Task.WhenAll(tasks)).All(v => v == 2), "Concurrent native completions");
     await engine.DisposeAsync();
     try { await engine.CheckBridgeAsync(CancellationToken.None); throw new Exception("Disposed engine accepted command"); }
     catch (ObjectDisposedException) { passed++; }
