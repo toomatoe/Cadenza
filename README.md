@@ -1,6 +1,6 @@
-# ApurvaSpotify
+# Cadenza
 
-A native Windows music application with a C#/WinUI 3 interface and a Rust command bridge. No Electron, embedded browser interface, or persistent local web server.
+A personal Windows music application with a C#/WinUI 3 interface and a Rust command bridge. Built around your music, your pace, and your listening preferences. No Electron, embedded browser interface, or persistent local web server.
 
 ## Current build
 
@@ -32,7 +32,7 @@ The publish folder is self-contained. Keep its files together; the exe alone is 
 
 1. Create a Web API app at [Spotify's developer dashboard](https://developer.spotify.com/dashboard).
 2. Register `http://127.0.0.1:8888/callback` as the redirect URI and allow your Spotify account as a development user where required.
-3. Open Settings in ApurvaSpotify and enter the app's Client ID, then select Connect Spotify.
+3. Open Settings in Cadenza and enter the app's Client ID, then select Connect Spotify.
 4. Complete Spotify's consent screen in your system browser. No client secret is used.
 
 Premium alone does not provide a developer Client ID. Endpoint availability depends on your application's current Spotify access. Forbidden endpoints show an actionable error. Port 8888 must be available during sign-in; the listener is stopped afterward. Sign-in times out after three minutes.
