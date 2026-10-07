@@ -1,0 +1,31 @@
+# .NET / Visual Studio
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+TestResults/
+
+# Rust: commit Cargo.lock for the application
+**/target/
+
+# Local credentials and runtime data
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+appsettings.Local.json
+credentials.json
+tokens.json
+**/cache/
+*.db
+*.db-shm
+*.db-wal
+
+# Build outputs
+artifacts/
+*.log
+.DS_Store
+Thumbs.db
