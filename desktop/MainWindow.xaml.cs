@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using ApurvaSpotify.Core;
+using Cadenza.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Windows.System;
 
-namespace ApurvaSpotify.Desktop;
+namespace Cadenza.Desktop;
 
 public sealed partial class MainWindow : Window
 {
@@ -46,6 +46,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1180, 800));
         ClientIdBox.Text = preferences.ClientId;
+        RedirectUriBox.Text = preferences.RedirectUri;
         SpacingBox.Value = preferences.ArtistSpacing;
         PlaylistPicker.ItemsSource = playlists;
         Root.Loaded += async (_, _) =>
@@ -213,8 +214,9 @@ public sealed partial class MainWindow : Window
             var id = SpotifyAuth.ValidateClientId(ClientIdBox.Text);
             // Prevent orphaned credentials when switching developer applications.
             if (preferences.ClientId.Length > 0 && preferences.ClientId != id) await auth.DisconnectAsync(ct);
-            await auth.ConnectAsync(id, ct);
-            preferences = preferences with { ClientId = id }; preferences.Save();
+            var redirect = SpotifyAuth.ValidateRedirectUri(RedirectUriBox.Text).AbsoluteUri;
+            await auth.ConnectAsync(id, ct, redirect);
+            preferences = preferences with { ClientId = id, RedirectUri = redirect }; preferences.Save();
             ConnectionLabel.Text = "Spotify connected";
             Message("Spotify sign-in saved. You can now browse your library.", InfoBarSeverity.Success);
         });

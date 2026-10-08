@@ -18,13 +18,13 @@ Implemented in source:
 
 ## Build on Windows
 
-Prerequisites: Windows 10 build 19041 or newer (Windows 11 recommended), .NET 10 SDK, Rust stable with the MSVC toolchain, and Visual Studio Build Tools with Desktop development with C++ plus a Windows SDK. Use PowerShell 7.
+Prerequisites: Windows 10 build 19041 or newer (Windows 11 recommended), .NET 10 SDK, Rust stable with the MSVC toolchain, and Visual Studio Build Tools with Desktop development with C++ plus a Windows SDK. Windows PowerShell 5.1 or PowerShell 7 works. Reopen PowerShell after installing prerequisites and confirm `dotnet --version` and `cargo --version` work.
 
 ```powershell
-git clone https://github.com/toomatoe/ApurvaSpotify.git
-cd ApurvaSpotify
-./build.ps1 -Publish
-./artifacts/windows-x64/ApurvaSpotify.Desktop.exe
+git clone https://github.com/toomatoe/Cadenza.git
+cd Cadenza
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Publish
+& .\artifacts\windows-x64\Cadenza.Desktop.exe
 ```
 
 The publish folder is self-contained. Keep its files together; the exe alone is not the application. Windows CI uploads a zip if compilation and checks succeed. CI is a build check, not a playback certification.
@@ -32,14 +32,16 @@ The publish folder is self-contained. Keep its files together; the exe alone is 
 ## Connect your account
 
 1. Create a Web API app at [Spotify's developer dashboard](https://developer.spotify.com/dashboard).
-2. Register `http://127.0.0.1:8888/callback` as the redirect URI and allow your Spotify account as a development user where required.
-3. Open Settings in Cadenza and enter the app's Client ID, then select Connect Spotify.
+2. Register your chosen redirect URI (`http://127.0.0.1:8888/callback` is only the default) and allow your Spotify account as a development user where required.
+3. Open Settings in Cadenza and enter the app's Client ID and the same redirect URL, then select Connect Spotify.
 4. Complete Spotify's consent screen in your system browser. No client secret is used. Reconnect after updating from the foundation build to grant the added `streaming` scope.
 5. Select Play on a track. Playback connects on demand; Pause, Next, Stop, volume, and seeking are in the bottom bar. Next consumes the first queued track. Queue progression follows native end-of-track events.
 
-Premium alone does not provide a developer Client ID. Endpoint availability depends on your application's current Spotify access. Forbidden endpoints show an actionable error. Port 8888 must be available during sign-in; the listener is stopped afterward. Sign-in times out after three minutes.
+Premium alone does not provide a developer Client ID. Endpoint availability depends on your application's current Spotify access. Forbidden endpoints show an actionable error. Your chosen port must be available during sign-in; the listener is stopped afterward. Sign-in times out after three minutes.
 
-Tokens are stored in Windows Credential Manager under `ApurvaSpotify/<Client ID>`. Disconnect removes the saved sign-in and clears session data and queue history. Preferences contain only the Client ID and the user-chosen spacing setting. Queue contents are not saved to disk. Remove app access in your Spotify account settings if you also want to revoke authorization at Spotify.
+Tokens are stored in Windows Credential Manager under `Cadenza/<Client ID>`. Disconnect removes the saved sign-in and clears session data and queue history. Preferences contain only the Client ID, redirect URL, and user-chosen spacing setting. Updating from the old project name requires reconnecting because credentials and preferences now use Cadenza. Queue contents are not saved to disk. Remove app access in your Spotify account settings if you also want to revoke authorization at Spotify.
+
+The redirect URL can be chosen freely within [Spotify's redirect URI rules](https://developer.spotify.com/documentation/web-api/concepts/redirect_uri) and must match the registered URL. Spotify requires HTTPS except for explicit loopback IP addresses, and does not allow `localhost`. Cadenza currently receives callbacks through HTTP on `127.0.0.1`; choose any available port and path, for example `http://127.0.0.1:9000/signin`. A remote URL requires a different callback mechanism.
 
 ## Project layout
 
@@ -54,11 +56,13 @@ Simple preferences currently use a small JSON file. SQLite is deferred until the
 
 ## Validation
 
-```sh
+```powershell
 cargo test --locked --features playback --manifest-path native/Cargo.toml
-dotnet run --project tests/ApurvaSpotify.Tests.csproj -c Release
-# After building the native library, put its directory on the native library search path:
-dotnet run --project tests/ApurvaSpotify.Tests.csproj -c Release -- --native
+dotnet run --project tests/Cadenza.Tests.csproj -c Release
+# Build the DLL and expose it to the native checks:
+cargo build --locked --release --features playback --manifest-path native/Cargo.toml
+$env:PATH = (Join-Path $PWD "native\target\release") + ";" + $env:PATH
+dotnet run --project tests/Cadenza.Tests.csproj -c Release -- --native
 ```
 
 The Windows script handles DLL placement. On Linux, set `LD_LIBRARY_PATH` to `native/target/release` for the native checks. The Windows interface cannot be run on Linux.

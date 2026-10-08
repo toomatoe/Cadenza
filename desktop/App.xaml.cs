@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml;
 
-namespace ApurvaSpotify.Desktop;
+namespace Cadenza.Desktop;
 
 public partial class App : Application
 {

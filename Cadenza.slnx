@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/core/">
+    <Project Path="core/Cadenza.Core.csproj" />
+  </Folder>
+  <Folder Name="/desktop/">
+    <Project Path="desktop/Cadenza.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Cadenza.Tests.csproj" />
+  </Folder>
+</Solution>

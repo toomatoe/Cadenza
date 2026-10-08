@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace ApurvaSpotify.Core;
+namespace Cadenza.Core;
 
 public enum PlaybackState { Loading = 10, Playing = 11, Paused = 12, Stopped = 13, Ended = 14, Failed = 15 }
 public sealed record PlaybackUpdate(PlaybackState State, uint PositionMs, uint TrackStamp, int ErrorCode);
@@ -21,12 +21,12 @@ public sealed class NativeEngine : IAsyncDisposable
     }
     private static class Native
     {
-        [DllImport("apurva_audio", CallingConvention = CallingConvention.Cdecl)] public static extern uint apurva_abi_version();
-        [DllImport("apurva_audio", CallingConvention = CallingConvention.Cdecl)] public static extern ulong apurva_create();
-        [DllImport("apurva_audio", CallingConvention = CallingConvention.Cdecl)] public static extern int apurva_submit(ulong id, ulong requestId, uint opcode);
-        [DllImport("apurva_audio", CallingConvention = CallingConvention.Cdecl)] public static extern int apurva_submit_text(ulong id, ulong requestId, uint opcode, [In] byte[] payload, nuint length);
-        [DllImport("apurva_audio", CallingConvention = CallingConvention.Cdecl)] public static extern int apurva_poll(ulong id, out NativeEvent value);
-        [DllImport("apurva_audio", CallingConvention = CallingConvention.Cdecl)] public static extern int apurva_destroy(ulong id);
+        [DllImport("cadenza_audio", CallingConvention = CallingConvention.Cdecl)] public static extern uint cadenza_abi_version();
+        [DllImport("cadenza_audio", CallingConvention = CallingConvention.Cdecl)] public static extern ulong cadenza_create();
+        [DllImport("cadenza_audio", CallingConvention = CallingConvention.Cdecl)] public static extern int cadenza_submit(ulong id, ulong requestId, uint opcode);
+        [DllImport("cadenza_audio", CallingConvention = CallingConvention.Cdecl)] public static extern int cadenza_submit_text(ulong id, ulong requestId, uint opcode, [In] byte[] payload, nuint length);
+        [DllImport("cadenza_audio", CallingConvention = CallingConvention.Cdecl)] public static extern int cadenza_poll(ulong id, out NativeEvent value);
+        [DllImport("cadenza_audio", CallingConvention = CallingConvention.Cdecl)] public static extern int cadenza_destroy(ulong id);
     }
     private readonly object gate = new();
     private readonly ConcurrentDictionary<ulong, TaskCompletionSource<uint>> pending = new();
@@ -38,9 +38,9 @@ public sealed class NativeEngine : IAsyncDisposable
     private Exception? terminalFailure;
     public NativeEngine()
     {
-        if (Marshal.SizeOf<NativeEvent>() != 24 || Native.apurva_abi_version() != 2)
+        if (Marshal.SizeOf<NativeEvent>() != 24 || Native.cadenza_abi_version() != 2)
             throw new InvalidOperationException("The native engine ABI does not match this application.");
-        handle = Native.apurva_create();
+        handle = Native.cadenza_create();
         if (handle == 0) throw new InvalidOperationException("The native worker could not start.");
         pump = Task.Run(PumpAsync);
     }
@@ -83,14 +83,14 @@ public sealed class NativeEngine : IAsyncDisposable
             var source = new TaskCompletionSource<uint>(TaskCreationOptions.RunContinuationsAsynchronously);
             pending[id] = source;
             int status;
-            if (text is null) status = Native.apurva_submit(handle, id, opcode);
+            if (text is null) status = Native.cadenza_submit(handle, id, opcode);
             else
             {
                 var bytes = Encoding.UTF8.GetBytes(text);
                 try
                 {
                     if (bytes.Length is 0 or > 8192) throw new ArgumentException("Native payload exceeds its limit.");
-                    status = Native.apurva_submit_text(handle, id, opcode, bytes, (nuint)bytes.Length);
+                    status = Native.cadenza_submit_text(handle, id, opcode, bytes, (nuint)bytes.Length);
                 }
                 catch { pending.TryRemove(id, out _); throw; }
                 finally { CryptographicOperations.ZeroMemory(bytes); }
@@ -118,7 +118,7 @@ public sealed class NativeEngine : IAsyncDisposable
                     if (handle == 0) return;
                     for (var count = 0; count < 32; count++)
                     {
-                        var status = Native.apurva_poll(handle, out var value);
+                        var status = Native.cadenza_poll(handle, out var value);
                         if (status == 1) break;
                         if (status != 0) throw new InvalidOperationException("Native event channel failed.");
                         if (value.RequestId == 0 && value.Kind is >= 10 and <= 15)
@@ -171,7 +171,7 @@ public sealed class NativeEngine : IAsyncDisposable
         lock (gate) { old = handle; handle = 0; }
         foreach (var item in pending.Values) item.TrySetCanceled();
         pending.Clear();
-        if (old != 0) await Task.Run(() => Native.apurva_destroy(old));
+        if (old != 0) await Task.Run(() => Native.cadenza_destroy(old));
         stopping.Dispose();
         GC.SuppressFinalize(this);
     }

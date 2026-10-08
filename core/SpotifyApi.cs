@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace ApurvaSpotify.Core;
+namespace Cadenza.Core;
 
 public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth)
 {

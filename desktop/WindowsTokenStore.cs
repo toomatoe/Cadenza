@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
-using ApurvaSpotify.Core;
+using Cadenza.Core;
 
-namespace ApurvaSpotify.Desktop;
+namespace Cadenza.Desktop;
 
 /// <summary>Generic credentials protected by Windows Credential Manager. No token files.</summary>
 internal sealed class WindowsTokenStore : ITokenStore
@@ -31,7 +31,7 @@ internal sealed class WindowsTokenStore : ITokenStore
     [DllImport("advapi32.dll", EntryPoint = "CredDeleteW", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)] private static extern bool CredDelete(string target, uint type, uint flags);
     [DllImport("advapi32.dll")] private static extern void CredFree(IntPtr credential);
-    private static string Target(string clientId) => "ApurvaSpotify/" + SpotifyAuth.ValidateClientId(clientId);
+    private static string Target(string clientId) => "Cadenza/" + SpotifyAuth.ValidateClientId(clientId);
 
     public Task<Tokens?> LoadAsync(string clientId, CancellationToken ct)
     {
@@ -82,9 +82,9 @@ internal sealed class WindowsTokenStore : ITokenStore
     }
 }
 
-internal sealed record Preferences(string ClientId = "", int ArtistSpacing = 2)
+internal sealed record Preferences(string ClientId = "", int ArtistSpacing = 2, string RedirectUri = SpotifyAuth.RedirectUri)
 {
-    private static string Path => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ApurvaSpotify", "preferences.json");
+    private static string Path => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cadenza", "preferences.json");
     public static Preferences Load()
     {
         try { return File.Exists(Path) ? JsonSerializer.Deserialize<Preferences>(File.ReadAllText(Path)) ?? new() : new(); }

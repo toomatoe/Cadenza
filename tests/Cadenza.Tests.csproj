@@ -6,5 +6,5 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
-  <ItemGroup><ProjectReference Include="../core/ApurvaSpotify.Core.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../core/Cadenza.Core.csproj" /></ItemGroup>
 </Project>

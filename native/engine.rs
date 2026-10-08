@@ -56,12 +56,12 @@ fn guarded(action: impl FnOnce() -> i32) -> i32 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn apurva_abi_version() -> u32 {
+pub extern "C" fn cadenza_abi_version() -> u32 {
     2
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn apurva_create() -> u64 {
+pub extern "C" fn cadenza_create() -> u64 {
     catch_unwind(|| {
         let (tx, rx) = mpsc::sync_channel::<Command>(CAPACITY);
         let state = Arc::new(Mutex::new(State::default()));
@@ -69,7 +69,7 @@ pub extern "C" fn apurva_create() -> u64 {
         let worker_state = state.clone();
         let worker_running = running.clone();
         let Ok(worker) = thread::Builder::new()
-            .name("apurva-audio".into())
+            .name("cadenza-audio".into())
             .spawn(move || {
                 #[cfg(feature = "playback")]
                 let mut player = playback::Playback::new(worker_running.clone());
@@ -142,7 +142,7 @@ pub extern "C" fn apurva_create() -> u64 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn apurva_submit(id: u64, request_id: u64, opcode: u32) -> i32 {
+pub extern "C" fn cadenza_submit(id: u64, request_id: u64, opcode: u32) -> i32 {
     submit(id, request_id, opcode, Vec::new())
 }
 
@@ -150,7 +150,7 @@ pub extern "C" fn apurva_submit(id: u64, request_id: u64, opcode: u32) -> i32 {
 /// `payload` must reference `length` readable bytes until this call returns.
 /// Input is copied before returning; pointers are never retained.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn apurva_submit_text(
+pub unsafe extern "C" fn cadenza_submit_text(
     id: u64,
     request_id: u64,
     opcode: u32,
@@ -213,7 +213,7 @@ fn submit(id: u64, request_id: u64, opcode: u32, payload: Vec<u8>) -> i32 {
 /// # Safety
 /// `output` must point to one writable, aligned Event for the duration of this call.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn apurva_poll(id: u64, output: *mut Event) -> i32 {
+pub unsafe extern "C" fn cadenza_poll(id: u64, output: *mut Event) -> i32 {
     guarded(|| {
         if output.is_null() {
             return INVALID;
@@ -246,7 +246,7 @@ pub unsafe extern "C" fn apurva_poll(id: u64, output: *mut Event) -> i32 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn apurva_destroy(id: u64) -> i32 {
+pub extern "C" fn cadenza_destroy(id: u64) -> i32 {
     guarded(|| {
         let Some(engine) = registry().lock().ok().and_then(|mut all| all.remove(&id)) else {
             return INVALID;
@@ -271,7 +271,7 @@ mod tests {
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
         loop {
             let mut event = Event::default();
-            let result = unsafe { apurva_poll(id, &mut event) };
+            let result = unsafe { cadenza_poll(id, &mut event) };
             if result == OK {
                 return event;
             }
@@ -283,53 +283,53 @@ mod tests {
     #[test]
     fn diagnostic_and_unsupported_playback() {
         assert_eq!(std::mem::size_of::<Event>(), 24);
-        let id = apurva_create();
+        let id = cadenza_create();
         assert_ne!(id, 0);
-        assert_eq!(apurva_submit(id, 7, 0), OK);
+        assert_eq!(cadenza_submit(id, 7, 0), OK);
         assert_eq!(receive(id).request_id, 7);
-        assert_eq!(apurva_submit(id, 8, 1), OK);
+        assert_eq!(cadenza_submit(id, 8, 1), OK);
         assert_eq!(receive(id).status, UNSUPPORTED);
-        assert_eq!(apurva_destroy(id), OK);
-        assert_eq!(apurva_submit(id, 9, 0), INVALID);
-        assert_eq!(apurva_destroy(id), INVALID);
+        assert_eq!(cadenza_destroy(id), OK);
+        assert_eq!(cadenza_submit(id, 9, 0), INVALID);
+        assert_eq!(cadenza_destroy(id), INVALID);
     }
     #[test]
     fn bounded_backpressure_without_lost_events() {
-        let id = apurva_create();
+        let id = cadenza_create();
         for request in 1..=CAPACITY as u64 {
-            assert_eq!(apurva_submit(id, request, 0), OK);
+            assert_eq!(cadenza_submit(id, request, 0), OK);
         }
-        assert_eq!(apurva_submit(id, 100, 0), FULL);
+        assert_eq!(cadenza_submit(id, 100, 0), FULL);
         for request in 1..=CAPACITY as u64 {
             assert_eq!(receive(id).request_id, request);
         }
-        assert_eq!(apurva_submit(id, 100, 0), OK);
+        assert_eq!(cadenza_submit(id, 100, 0), OK);
         assert_eq!(receive(id).request_id, 100);
-        assert_eq!(apurva_destroy(id), OK);
+        assert_eq!(cadenza_destroy(id), OK);
     }
     #[test]
     fn invalid_payloads() {
-        let id = apurva_create();
+        let id = cadenza_create();
         assert_eq!(
-            unsafe { apurva_submit_text(id, 1, 2, std::ptr::null(), 10) },
+            unsafe { cadenza_submit_text(id, 1, 2, std::ptr::null(), 10) },
             INVALID
         );
         let invalid = [0xff];
         assert_eq!(
-            unsafe { apurva_submit_text(id, 2, 2, invalid.as_ptr(), 1) },
+            unsafe { cadenza_submit_text(id, 2, 2, invalid.as_ptr(), 1) },
             INVALID
         );
         assert_eq!(
-            unsafe { apurva_submit_text(id, 3, 2, invalid.as_ptr(), 8193) },
+            unsafe { cadenza_submit_text(id, 3, 2, invalid.as_ptr(), 8193) },
             INVALID
         );
-        assert_eq!(apurva_destroy(id), OK);
+        assert_eq!(cadenza_destroy(id), OK);
     }
     #[test]
     fn invalid_inputs() {
-        let id = apurva_create();
-        assert_eq!(apurva_submit(id, 0, 0), INVALID);
-        assert_eq!(unsafe { apurva_poll(id, std::ptr::null_mut()) }, INVALID);
-        assert_eq!(apurva_destroy(id), OK);
+        let id = cadenza_create();
+        assert_eq!(cadenza_submit(id, 0, 0), INVALID);
+        assert_eq!(unsafe { cadenza_poll(id, std::ptr::null_mut()) }, INVALID);
+        assert_eq!(cadenza_destroy(id), OK);
     }
 }

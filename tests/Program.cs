@@ -1,13 +1,19 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using ApurvaSpotify.Core;
+using Cadenza.Core;
 
 var passed = 0;
 void Check(bool value, string message) { if (!value) throw new Exception(message); passed++; }
 const string clientId = "0123456789abcdef0123456789abcdef";
 Check(Pkce.Challenge("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk") == "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "RFC 7636 PKCE vector");
 Check(Pkce.RandomValue().Length == 43, "PKCE verifier length");
+Check(SpotifyAuth.ValidateRedirectUri("http://127.0.0.1:9000/signin").Port == 9000, "Custom redirect port and path");
+foreach (var redirect in new[] { "http://localhost:8888/callback", "https://example.com/callback", "http://127.0.0.1/callback?x=1" })
+{
+    try { SpotifyAuth.ValidateRedirectUri(redirect); throw new Exception("Invalid redirect accepted"); }
+    catch (ArgumentException) { passed++; }
+}
 Check(Pkce.ReadCode(new Uri("http://127.0.0.1:8888/callback?state=abc&code=hello"), "abc") == "hello", "OAuth code parsing");
 foreach (var uri in new[] { "?state=wrong&code=x", "?state=abc&error=access_denied", "?state=abc&code=x&code=y", "?code=x" })
 {

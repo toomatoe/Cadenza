@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace ApurvaSpotify.Core;
+namespace Cadenza.Core;
 
 public static class Pkce
 {
@@ -47,6 +47,15 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store)
         return value;
     }
 
+    public static Uri ValidateRedirectUri(string value)
+    {
+        if (!Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri) ||
+            uri.Scheme != "http" || uri.Host != "127.0.0.1" ||
+            uri.Port < 1 || uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0)
+            throw new ArgumentException("Use an HTTP loopback URL such as http://127.0.0.1:8888/callback, with no query or fragment.");
+        return uri;
+    }
+
     public async Task RestoreAsync(string value, CancellationToken ct)
     {
         clientId = ValidateClientId(value);
@@ -54,20 +63,22 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store)
         tokens = saved?.ClientId == clientId ? saved : null;
     }
 
-    public async Task ConnectAsync(string value, CancellationToken ct)
+    public async Task ConnectAsync(string value, CancellationToken ct, string redirectUri = RedirectUri)
     {
         var newClientId = ValidateClientId(value);
+        var redirect = ValidateRedirectUri(redirectUri);
+        redirectUri = redirect.AbsoluteUri;
         var verifier = Pkce.RandomValue();
         var state = Pkce.RandomValue();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromMinutes(3));
         using var listener = new HttpListener();
-        listener.Prefixes.Add("http://127.0.0.1:8888/");
+        listener.Prefixes.Add(redirect.GetLeftPart(UriPartial.Authority) + "/");
         try { listener.Start(); }
-        catch (HttpListenerException) { throw new InvalidOperationException("Sign-in port 8888 is busy. Close another sign-in attempt and retry."); }
+        catch (HttpListenerException) { throw new InvalidOperationException($"Could not open sign-in port {redirect.Port}. Check that it is available and permitted, then retry."); }
         var parameters = new Dictionary<string, string>
         {
-            ["client_id"] = newClientId, ["response_type"] = "code", ["redirect_uri"] = RedirectUri,
+            ["client_id"] = newClientId, ["response_type"] = "code", ["redirect_uri"] = redirectUri,
             ["code_challenge_method"] = "S256", ["code_challenge"] = Pkce.Challenge(verifier),
             ["state"] = state, ["scope"] = "user-library-read playlist-read-private playlist-read-collaborative streaming"
         };
@@ -79,7 +90,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store)
         {
             var context = await listener.GetContextAsync().WaitAsync(timeout.Token);
             var callback = context.Request.Url;
-            if (context.Request.HttpMethod != "GET" || callback?.AbsolutePath != "/callback")
+            if (context.Request.HttpMethod != "GET" || callback?.AbsolutePath != redirect.AbsolutePath)
             {
                 context.Response.StatusCode = 404;
                 context.Response.Close();
@@ -92,7 +103,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store)
                 context.Response.Close();
                 throw;
             }
-            var body = Encoding.UTF8.GetBytes("Sign-in received. You can close this tab and return to ApurvaSpotify.");
+            var body = Encoding.UTF8.GetBytes("Sign-in received. You can close this tab and return to Cadenza.");
             context.Response.ContentType = "text/plain; charset=utf-8";
             context.Response.Headers["Cache-Control"] = "no-store";
             context.Response.Headers["Referrer-Policy"] = "no-referrer";
@@ -105,7 +116,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store)
         var result = await ExchangeAsync(new Dictionary<string, string>
         {
             ["grant_type"] = "authorization_code", ["code"] = code,
-            ["redirect_uri"] = RedirectUri, ["client_id"] = newClientId, ["code_verifier"] = verifier
+            ["redirect_uri"] = redirectUri, ["client_id"] = newClientId, ["code_verifier"] = verifier
         }, newClientId, "", timeout.Token);
         await store.SaveAsync(result, timeout.Token);
         clientId = newClientId;

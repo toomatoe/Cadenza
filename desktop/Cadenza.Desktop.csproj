@@ -15,9 +15,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
-    <ProjectReference Include="../core/ApurvaSpotify.Core.csproj" />
-    <Content Include="../native/target/release/apurva_audio.dll" Condition="Exists('../native/target/release/apurva_audio.dll')">
-      <Link>apurva_audio.dll</Link>
+    <ProjectReference Include="../core/Cadenza.Core.csproj" />
+    <Content Include="../native/target/release/cadenza_audio.dll" Condition="Exists('../native/target/release/cadenza_audio.dll')">
+      <Link>cadenza_audio.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>

@@ -1,4 +1,4 @@
-namespace ApurvaSpotify.Core;
+namespace Cadenza.Core;
 
 public sealed record Track
 {

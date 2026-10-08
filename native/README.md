@@ -4,12 +4,12 @@ The optional `playback` feature adds librespot 0.8 and a Windows Rodio output. T
 
 | Function | Contract |
 | --- | --- |
-| `apurva_abi_version()` | Returns 2. |
-| `apurva_create()` | Nonzero opaque u64 handle, or 0 on failure. |
-| `apurva_submit(handle, request_id, opcode)` | Enqueues a command immediately. |
-| `apurva_submit_text(handle, request_id, opcode, bytes, length)` | Copies UTF-8 synchronously, 1–8192 bytes; pointer is never retained. |
-| `apurva_poll(handle, Event*)` | Writes one event; returns 1 if empty. |
-| `apurva_destroy(handle)` | Removes the handle, stops and joins its worker. Call off the UI thread. |
+| `cadenza_abi_version()` | Returns 2. |
+| `cadenza_create()` | Nonzero opaque u64 handle, or 0 on failure. |
+| `cadenza_submit(handle, request_id, opcode)` | Enqueues a command immediately. |
+| `cadenza_submit_text(handle, request_id, opcode, bytes, length)` | Copies UTF-8 synchronously, 1–8192 bytes; pointer is never retained. |
+| `cadenza_poll(handle, Event*)` | Writes one event; returns 1 if empty. |
+| `cadenza_destroy(handle)` | Removes the handle, stops and joins its worker. Call off the UI thread. |
 
 Request IDs must be nonzero and unique among outstanding requests. Accepted commands plus unconsumed completions are capped at 32. Telemetry occupies one separate coalesced slot; position updates cannot fill the completion queue. The C-layout event is 24 bytes: u64 request ID, u32 kind, i32 status, u32 value, u32 track stamp. Request ID 0 identifies telemetry; the stamp ties it to the load completion's value.
 
