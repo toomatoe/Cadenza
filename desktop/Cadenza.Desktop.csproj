@@ -16,10 +16,32 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
     <ProjectReference Include="../core/Cadenza.Core.csproj" />
-    <Content Include="../native/target/release/cadenza_audio.dll" Condition="Exists('../native/target/release/cadenza_audio.dll')">
-      <Link>cadenza_audio.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
+
   </ItemGroup>
+  <PropertyGroup>
+    <CargoExecutable Condition="'$(CargoExecutable)' == '' and Exists('$(USERPROFILE)\.cargo\bin\cargo.exe')">$(USERPROFILE)\.cargo\bin\cargo.exe</CargoExecutable>
+    <CargoExecutable Condition="'$(CargoExecutable)' == ''">cargo</CargoExecutable>
+    <BuildNativeAudio Condition="'$(BuildNativeAudio)' == ''">true</BuildNativeAudio>
+  </PropertyGroup>
+  <Target Name="BuildCadenzaAudio" BeforeTargets="PrepareForBuild" Condition="'$(BuildNativeAudio)' == 'true'">
+    <Exec Command="&quot;$(CargoExecutable)&quot; build --locked --release --features playback --manifest-path &quot;$(MSBuildProjectDirectory)/../native/Cargo.toml&quot;" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="CadenzaNativeExitCode" />
+    </Exec>
+    <Error Condition="'$(CadenzaNativeExitCode)' == '9009'" Text="Rust (cargo) is missing from PATH. Install Rust stable with the MSVC toolchain and Visual Studio C++ Build Tools, reopen PowerShell, then run build.ps1 -Publish." />
+    <Error Condition="'$(CadenzaNativeExitCode)' != '0'" Text="The native playback build failed. See cargo output above. Install the prerequisites in README.md and run build.ps1 -Publish." />
+    <Error Condition="!Exists('../native/target/release/cadenza_audio.dll')" Text="Native audio DLL was not built. Install Rust MSVC and Visual Studio C++ Build Tools, then run build.ps1 -Publish." />
+  </Target>
+  <Target Name="IncludeCadenzaAudio" BeforeTargets="AssignTargetPaths" DependsOnTargets="BuildCadenzaAudio">
+    <Message Condition="!Exists('../native/target/release/cadenza_audio.dll')" Importance="high" Text="Building the desktop UI without native audio. Playback requires Rust MSVC and Visual Studio C++ Build Tools; run build.ps1 -Publish for the complete app." />
+    <ItemGroup>
+      <Content Include="../native/target/release/cadenza_audio.dll" Condition="Exists('../native/target/release/cadenza_audio.dll')">
+        <Link>cadenza_audio.dll</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
+    </ItemGroup>
+  </Target>
+  <Target Name="RequirePublishedAudio" BeforeTargets="PrepareForPublish">
+    <Error Condition="!Exists('../native/target/release/cadenza_audio.dll')" Text="Publishing requires the native audio engine. Run build.ps1 -Publish after installing Rust MSVC and Visual Studio C++ Build Tools, or use build.ps1 -UiOnly to build just the interface." />
+  </Target>
 </Project>

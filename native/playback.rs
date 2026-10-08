@@ -82,6 +82,7 @@ impl Playback {
                 if let Some(events) = &mut self.events {
                     while events.try_recv().is_ok() {}
                 }
+                super::diagnostics::clear();
                 self.stamp = self.stamp.wrapping_add(1).max(1);
                 self.native_request = None;
                 self.current = Some(uri.clone());
@@ -139,6 +140,7 @@ impl Playback {
             return UNSUPPORTED;
         }
         self.disconnect();
+        super::diagnostics::clear();
         let Ok(runtime) = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()
@@ -233,7 +235,7 @@ impl Playback {
                     status: if self.audio_failed.load(Ordering::Acquire) {
                         AUDIO_FAILED
                     } else {
-                        NOT_CONNECTED
+                        super::diagnostics::reason(NOT_CONNECTED)
                     },
                     reserved: self.stamp,
                     ..Event::default()
@@ -302,6 +304,7 @@ impl Playback {
         }
         self.last = Event {
             kind,
+            status: if kind == 15 { super::diagnostics::reason(super::diagnostics::TRACK_UNAVAILABLE) } else { OK },
             value: position,
             reserved: self.stamp,
             ..Event::default()
@@ -413,6 +416,18 @@ mod tests {
             })
             .unwrap();
         assert_eq!(end.kind, 14);
+    }
+    #[test]
+    fn unavailable_track_reports_a_failure_code() {
+        let mut player = Playback::new(Arc::new(AtomicBool::new(true)));
+        let uri = SpotifyUri::from_uri("spotify:track:4uLU6hMCjMI75M1A2tKUQC").unwrap();
+        player.current = Some(uri.clone());
+        player.stamp = 3;
+        player.native_request = Some(1);
+        let event = player.map_event(PlayerEvent::Unavailable { play_request_id: 1, track_id: uri }).unwrap();
+        assert_eq!(event.kind, 15);
+        assert_ne!(event.status, OK);
+        assert_eq!(event.reserved, 3);
     }
     #[test]
     fn rejects_commands_without_a_session() {

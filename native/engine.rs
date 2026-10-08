@@ -1,6 +1,8 @@
 //! Bounded asynchronous command bridge; optional Windows Spotify playback.
 #[cfg(feature = "playback")]
 mod playback;
+#[cfg(feature = "playback")]
+mod diagnostics;
 use std::collections::{HashMap, VecDeque};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -62,6 +64,8 @@ pub extern "C" fn cadenza_abi_version() -> u32 {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn cadenza_create() -> u64 {
+    #[cfg(feature = "playback")]
+    diagnostics::init();
     catch_unwind(|| {
         let (tx, rx) = mpsc::sync_channel::<Command>(CAPACITY);
         let state = Arc::new(Mutex::new(State::default()));

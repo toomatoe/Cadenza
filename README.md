@@ -5,7 +5,7 @@ A personal Windows music application with a C#/WinUI 3 interface and a Rust comm
 ## Current build
 
 Implemented in source:
-- Native desktop navigation for library, search, playlists, queue, and settings.
+- Native desktop navigation with frosted acrylic panels, artwork cards for the library and playlists, playlist cover headers, and a content-sized playback dock.
 - Spotify Authorization Code with PKCE using the system browser and a temporary loopback callback listener.
 - Windows Credential Manager token storage, serialized refresh, and disconnect cleanup.
 - Asynchronous Spotify requests with paging, canceled stale searches, bounded retries, and rate-limit handling.
@@ -26,6 +26,25 @@ cd Cadenza
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Publish
 & .\artifacts\windows-x64\Cadenza.Desktop.exe
 ```
+
+To build and launch the latest app after installing the prerequisites:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1
+```
+
+The launcher defaults to Debug, resolves the executable through MSBuild, restarts an existing instance of that output, and launches only after a successful build. Add `-NoRestore` when packages are already restored, or `-Configuration Release` to launch a Release build. In your IDE, select the `Cadenza.Desktop` Project launch profile so it builds and launches the current project output. Stop debugging before rebuilding; continuing after a build failure may launch an older executable.
+
+To build the interface without launching it:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -UiOnly
+& .\desktop\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64\Cadenza.Desktop.exe
+```
+
+If dependencies have already been restored, add `-NoRestore` to avoid contacting NuGet again. A first build needs network access for package restoration.
+
+Normal desktop builds compile the Rust playback engine and copy its DLL beside the executable. The project finds Rust in its standard user install location even when the IDE has an older PATH. Use `run.ps1 -UiOnly` or `build.ps1 -UiOnly` to explicitly build the interface without compiling native audio. Publishing requires the DLL; `build.ps1 -Publish` builds and tests it with playback enabled before packaging. If Windows reports a missing audio DLL, rebuild with the command above and launch the executable in `artifacts/windows-x64`. If the DLL is present but a dependency cannot load, install the Microsoft Visual C++ x64 runtime.
 
 The publish folder is self-contained. Keep its files together; the exe alone is not the application. Windows CI uploads a zip if compilation and checks succeed. CI is a build check, not a playback certification.
 
@@ -75,4 +94,4 @@ On a Windows machine, verify launch, browser sign-in, audible playback of severa
 
 Spotify's [developer policy](https://developer.spotify.com/policy) restricts replacement experiences and ML/AI ingestion of Spotify content. This project does not currently train models or analyze audio. The shuffle rule is an explicit queue-ordering preference, not a learned recommendation system.
 
-Memory improvements remain a goal, not a measured claim. Compare full process-tree private memory, idle CPU, startup time, and prolonged listening under equivalent workloads after playback exists. Artwork is not loaded in this milestone; list controls virtualize rows, API data is paged, and the queue is capped at 500 tracks.
+Memory improvements remain a goal, not a measured claim. Compare full process-tree private memory, idle CPU, startup time, and prolonged listening under equivalent workloads after playback exists. Artwork uses bounded 360-pixel decoding and a record placeholder when covers are unavailable; lists and artwork shelves virtualize their items, API data is paged, and the queue is capped at 500 tracks.

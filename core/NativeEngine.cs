@@ -38,7 +38,20 @@ public sealed class NativeEngine : IAsyncDisposable
     private Exception? terminalFailure;
     public NativeEngine()
     {
-        if (Marshal.SizeOf<NativeEvent>() != 24 || Native.cadenza_abi_version() != 2)
+        uint abi;
+        try { abi = Native.cadenza_abi_version(); }
+        catch (DllNotFoundException error)
+        {
+            var dll = Path.Combine(AppContext.BaseDirectory, "cadenza_audio.dll");
+            throw new InvalidOperationException(File.Exists(dll)
+                ? "The audio engine could not load a required dependency. Install the Microsoft Visual C++ x64 runtime, then restart Cadenza."
+                : "The audio engine is missing. Rebuild with build.ps1 -Publish, then launch artifacts\\windows-x64\\Cadenza.Desktop.exe. Keep all files in that folder together.", error);
+        }
+        catch (BadImageFormatException error)
+        {
+            throw new InvalidOperationException("The audio engine has the wrong architecture. Rebuild the Windows x64 application with build.ps1 -Publish.", error);
+        }
+        if (Marshal.SizeOf<NativeEvent>() != 24 || abi != 2)
             throw new InvalidOperationException("The native engine ABI does not match this application.");
         handle = Native.cadenza_create();
         if (handle == 0) throw new InvalidOperationException("The native worker could not start.");

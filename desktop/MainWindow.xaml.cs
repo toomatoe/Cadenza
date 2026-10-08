@@ -33,10 +33,11 @@ public sealed partial class MainWindow : Window
     private bool hasMore;
     private bool signingIn;
     private bool closing;
-    private bool suppressPlaylistChange;
     private int generation;
     private Page<Playlist>? playlistPage;
-    private readonly ObservableCollection<Playlist> playlists = [];
+    public ObservableCollection<Playlist> Playlists { get; } = [];
+    private ObservableCollection<Playlist> playlists => Playlists;
+    private Playlist? selectedPlaylist;
 
     public MainWindow()
     {
@@ -44,11 +45,17 @@ public sealed partial class MainWindow : Window
         auth = new SpotifyAuth(http, new WindowsTokenStore());
         api = new SpotifyApi(http, auth);
         InitializeComponent();
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+        AppWindow.TitleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 230, 225, 242);
+        AppWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 160, 155, 174);
+        AppWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
+        AppWindow.TitleBar.ButtonInactiveBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1180, 800));
         ClientIdBox.Text = preferences.ClientId;
         RedirectUriBox.Text = preferences.RedirectUri;
         SpacingBox.Value = preferences.ArtistSpacing;
-        PlaylistPicker.ItemsSource = playlists;
+
         Root.Loaded += async (_, _) =>
         {
             if (preferences.ClientId.Length == 0) return;
@@ -100,10 +107,9 @@ public sealed partial class MainWindow : Window
     private async Task NavigateAsync(string destination)
     {
         CancelViewWork();
-        view = destination; offset = 0; hasMore = false; Tracks.Clear();
+        view = destination; selectedPlaylist = null; offset = 0; hasMore = false; Tracks.Clear();
         SettingsPanel.Visibility = view == "Settings" ? Visibility.Visible : Visibility.Collapsed;
-        TrackList.Visibility = view == "Settings" ? Visibility.Collapsed : Visibility.Visible;
-        PlaylistPicker.Visibility = view == "Playlists" ? Visibility.Visible : Visibility.Collapsed;
+        UpdateViewSurfaces();
         QueueTools.Visibility = view == "Queue" ? Visibility.Visible : Visibility.Collapsed;
         MoreButton.Visibility = Visibility.Collapsed;
         PageTitle.Text = view switch { "Library" => "Your library", "Queue" => "Listening queue", _ => view };
@@ -121,15 +127,15 @@ public sealed partial class MainWindow : Window
         {
             if (view == "Playlists")
             {
-                suppressPlaylistChange = true;
-                try { playlists.Clear(); PlaylistPicker.SelectedIndex = -1; }
-                finally { suppressPlaylistChange = false; }
+                playlists.Clear(); selectedPlaylist = null;
                 playlistPage = await api.PlaylistsAsync(0, ct);
                 ct.ThrowIfCancellationRequested();
                 foreach (var item in playlistPage.Items) playlists.Add(item);
                 hasMore = playlistPage.HasMore;
                 MoreButton.Visibility = hasMore ? Visibility.Visible : Visibility.Collapsed;
-                EmptyDescription.Text = "Choose a playlist above to browse its tracks.";
+                EmptyTitle.Text = "Your playlist collection";
+                EmptyDescription.Text = "Your playlists will appear here as cover records.";
+                UpdateEmpty();
             }
             else await LoadTracksAsync(false, ct);
         });
@@ -144,7 +150,7 @@ public sealed partial class MainWindow : Window
                 var query = SearchBox.Text.Trim();
                 if (query.Length == 0) return;
                 page = await api.SearchAsync(query, nextOffset, ct); lastQuery = query; break;
-            case "Playlists" when PlaylistPicker.SelectedItem is Playlist selected:
+            case "Playlists" when selectedPlaylist is Playlist selected:
                 page = await api.PlaylistTracksAsync(selected.Id, nextOffset, ct); break;
             case "Library": page = await api.SavedTracksAsync(nextOffset, ct); break;
             default: return;
@@ -161,7 +167,35 @@ public sealed partial class MainWindow : Window
         ConnectionLabel.Text = "Spotify connected";
         UpdateEmpty();
     }
-    private void UpdateEmpty() => EmptyState.Visibility = Tracks.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    private void UpdateViewSurfaces()
+    {
+        LibraryCards.Visibility = view == "Library" ? Visibility.Visible : Visibility.Collapsed;
+        PlaylistCards.Visibility = view == "Playlists" && selectedPlaylist is null ? Visibility.Visible : Visibility.Collapsed;
+        PlaylistDetail.Visibility = view == "Playlists" && selectedPlaylist is not null ? Visibility.Visible : Visibility.Collapsed;
+        TrackPanel.Visibility = view == "Search" || view == "Queue" || (view == "Playlists" && selectedPlaylist is not null) ? Visibility.Visible : Visibility.Collapsed;
+        SearchPanel.Visibility = view == "Settings" || view == "Playlists" ? Visibility.Collapsed : Visibility.Visible;
+    }
+    private void UpdateEmpty()
+    {
+        var empty = view == "Playlists" && selectedPlaylist is null ? playlists.Count == 0 : Tracks.Count == 0;
+        EmptyState.Visibility = view != "Settings" && empty ? Visibility.Visible : Visibility.Collapsed;
+    }
+    private async void PlaylistCard_Click(object sender, ItemClickEventArgs e)
+    {
+        if (signingIn || e.ClickedItem is not Playlist selected) return;
+        selectedPlaylist = selected; Tracks.Clear(); offset = 0; hasMore = false;
+        MoreButton.Visibility = Visibility.Collapsed;
+        PlaylistHeroTitle.Text = selected.Name; PlaylistHeroSubtitle.Text = selected.Subtitle;
+        PlaylistHeroImage.Source = new ArtworkConverter().Convert(selected.ArtworkUrl, typeof(Microsoft.UI.Xaml.Media.ImageSource), null!, "") as Microsoft.UI.Xaml.Media.ImageSource;
+        PageTitle.Text = "In the collection";
+        UpdateViewSurfaces(); UpdateEmpty();
+        await RunAsync(ct => LoadTracksAsync(false, ct));
+    }
+    private async void BackToPlaylists_Click(object sender, RoutedEventArgs e) => await NavigateAsync("Playlists");
+    private void LibraryCard_Click(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is Track track) LibraryCards.SelectedItem = track;
+    }
     private async void Search_Click(object sender, RoutedEventArgs e)
     {
         if (signingIn) return;
@@ -182,23 +216,18 @@ public sealed partial class MainWindow : Window
             await LoadTracksAsync(false, ct);
         });
     }
-    private async void Playlist_Changed(object sender, SelectionChangedEventArgs e)
-    {
-        if (suppressPlaylistChange || signingIn || view != "Playlists" || PlaylistPicker.SelectedItem is not Playlist) return;
-        Tracks.Clear(); offset = 0;
-        await RunAsync(ct => LoadTracksAsync(false, ct));
-    }
     private async void More_Click(object sender, RoutedEventArgs e)
     {
         if (signingIn || !hasMore) return;
         await RunAsync(async ct =>
         {
-            if (view == "Playlists" && PlaylistPicker.SelectedItem is null && playlistPage is not null)
+            if (view == "Playlists" && selectedPlaylist is null && playlistPage is not null)
             {
                 var page = await api.PlaylistsAsync(playlistPage.Offset + 10, ct);
                 ct.ThrowIfCancellationRequested(); playlistPage = page;
                 foreach (var item in page.Items) playlists.Add(item);
                 hasMore = page.HasMore && playlists.Count < 500; MoreButton.Visibility = hasMore ? Visibility.Visible : Visibility.Collapsed;
+                UpdateEmpty();
             }
             else await LoadTracksAsync(view != "Search" || lastQuery == SearchBox.Text.Trim(), ct);
         });
@@ -232,7 +261,7 @@ public sealed partial class MainWindow : Window
             Tracks.Clear(); playlists.Clear(); playlistPage = null; queue.Forget();
             QueueLabel.Text = "0 tracks";
             ConnectionLabel.Text = "Spotify disconnected"; hasMore = false; offset = 0;
-            MoreButton.Visibility = Visibility.Collapsed;
+            MoreButton.Visibility = Visibility.Collapsed; UpdateEmpty();
             Message("Disconnected. Saved sign-in and session data were removed.", InfoBarSeverity.Success);
         });
     }
@@ -307,6 +336,7 @@ public sealed partial class MainWindow : Window
         ct.ThrowIfCancellationRequested();
         playingStamp = stamp; playingTrack = track; playbackState = PlaybackState.Loading;
         NowPlayingLabel.Text = $"{track.Name} · {track.Artist}";
+        NowPlayingImage.Source = new ArtworkConverter().Convert(track.ArtworkUrl, typeof(Microsoft.UI.Xaml.Media.ImageSource), null!, "") as Microsoft.UI.Xaml.Media.ImageSource;
         PositionSlider.Maximum = Math.Max(1, track.DurationMs); PositionSlider.Value = 0; PositionSlider.IsEnabled = true;
         PlaybackLabel.Text = "Loading…"; PlayPauseButton.Content = "Pause";
         if (currentEngine.LatestPlayback is { } update) ApplyPlayback(update);
@@ -316,9 +346,10 @@ public sealed partial class MainWindow : Window
         if (update.State == PlaybackState.Failed)
         {
             if (update.TrackStamp != 0 && update.TrackStamp != playingStamp) return;
-            nativeConnected = false; playbackState = PlaybackState.Failed;
+            if (PlaybackErrors.RequiresReconnect(update.ErrorCode)) nativeConnected = false;
+            playbackState = PlaybackState.Failed;
             PlaybackLabel.Text = "Playback failed"; PlayPauseButton.Content = "Play";
-            Message(update.ErrorCode == 8 ? "Windows audio output failed. Check your playback device." : "The track or playback session is unavailable. Reconnect Spotify in Settings if this persists.", InfoBarSeverity.Error);
+            Message(PlaybackErrors.Describe(update.ErrorCode), InfoBarSeverity.Error);
             return;
         }
         if (update.TrackStamp != playingStamp || playingTrack is null) return;
@@ -339,7 +370,7 @@ public sealed partial class MainWindow : Window
     }
     private async void PlayTrack_Click(object sender, RoutedEventArgs e)
     {
-        if (((Button)sender).Tag is Track track) await PlaybackWorkAsync(ct => PlayTrackAsync(track, ct));
+        if (((Button)sender).Tag is Track track) { TrackList.SelectedItem = track; LibraryCards.SelectedItem = track; await PlaybackWorkAsync(ct => PlayTrackAsync(track, ct)); }
     }
     private async void PlayPause_Click(object sender, RoutedEventArgs e)
     {
@@ -347,7 +378,7 @@ public sealed partial class MainWindow : Window
         {
             if (playingTrack is null)
             {
-                var selected = TrackList.SelectedItem as Track ?? queue.Tracks.FirstOrDefault();
+                var selected = (view == "Library" ? LibraryCards.SelectedItem as Track : TrackList.SelectedItem as Track) ?? queue.Tracks.FirstOrDefault();
                 if (selected is null) throw new InvalidOperationException("Choose a track or add one to your queue.");
                 await PlayTrackAsync(selected, ct);
             }
@@ -386,7 +417,7 @@ public sealed partial class MainWindow : Window
         if (old is not null) await old.DisposeAsync();
         if (!closing)
         {
-            NowPlayingLabel.Text = "Choose a track to play"; PlaybackLabel.Text = "Not playing";
+            NowPlayingLabel.Text = "Choose a track to play"; NowPlayingImage.Source = null; PlaybackLabel.Text = "Not playing";
             PlayPauseButton.Content = "Play"; PositionSlider.IsEnabled = false; PositionSlider.Value = 0;
         }
     }

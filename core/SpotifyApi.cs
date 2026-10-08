@@ -29,7 +29,8 @@ public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth)
             var count = 0;
             if ((item.TryGetProperty("items", out var items) || item.TryGetProperty("tracks", out items)) &&
                 items.ValueKind == JsonValueKind.Object && items.TryGetProperty("total", out var total)) count = total.GetInt32();
-            result.Add(new Playlist(Text(item, "id"), Text(item, "name"), count));
+            result.Add(new Playlist(Text(item, "id"), Text(item, "name"), count, Artwork(item),
+                item.TryGetProperty("owner", out var owner) ? Text(owner, "display_name") : ""));
         }
         return new Page<Playlist>(result, offset, HasMore(root));
     }
@@ -50,7 +51,7 @@ public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth)
             var id = Text(item, "id");
             tracks.Add(new Track(id, Text(item, "name"), name, artists.Length > 0 ? Text(artists[0], "id") : "",
                 Text(item.GetProperty("album"), "name"), item.GetProperty("duration_ms").GetInt32(),
-                $"https://open.spotify.com/track/{id}", item.TryGetProperty("explicit", out var e) && e.ValueKind == JsonValueKind.True));
+                $"https://open.spotify.com/track/{id}", item.TryGetProperty("explicit", out var e) && e.ValueKind == JsonValueKind.True, Artwork(item.GetProperty("album"))));
         }
         return new Page<Track>(tracks, offset, HasMore(root));
     }
@@ -95,6 +96,17 @@ public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth)
             }
         }
         finally { requestGate.Release(); }
+    }
+
+    private static string Artwork(JsonElement item)
+    {
+        if (!item.TryGetProperty("images", out var images) || images.ValueKind != JsonValueKind.Array) return "";
+        // Prefer a bounded thumbnail over the full-resolution cover.
+        var candidates = images.EnumerateArray().Where(image => image.ValueKind == JsonValueKind.Object)
+            .Select(image => new { Url = Text(image, "url"), Width = image.TryGetProperty("width", out var width) && width.ValueKind == JsonValueKind.Number && width.TryGetInt32(out var size) ? size : 0 })
+            .Where(image => Uri.TryCreate(image.Url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+            .OrderBy(image => image.Width >= 300 ? 0 : 1).ThenBy(image => image.Width >= 300 ? image.Width : -image.Width);
+        return candidates.FirstOrDefault()?.Url ?? "";
     }
 
     private static string Text(JsonElement item, string property) =>

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Cadenza.Desktop": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}
