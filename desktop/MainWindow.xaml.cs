@@ -40,6 +40,11 @@ public sealed partial class MainWindow : Window
     public ObservableCollection<Playlist> Playlists { get; } = [];
     private ObservableCollection<Playlist> playlists => Playlists;
     private Playlist? selectedPlaylist;
+    public ObservableCollection<Track> UpNext { get; } = [];
+    public ObservableCollection<Playlist> PinnedPlaylists { get; } = [];
+    private Track? heroTrack;
+    private static readonly double[] FanAngles = [-14, -4, 5, 15];
+    private static readonly double[] FanOffsets = [120, 40, -40, -120];
 
     public MainWindow()
     {
@@ -55,7 +60,7 @@ public sealed partial class MainWindow : Window
         AppWindow.TitleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 16, 36, 61);
         AppWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
         AppWindow.TitleBar.ButtonInactiveBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1180, 800));
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(1320, 880));
         ClientIdBox.Text = preferences.ClientId;
         RedirectUriBox.Text = preferences.RedirectUri;
         SpacingBox.Value = preferences.ArtistSpacing;
@@ -68,7 +73,7 @@ public sealed partial class MainWindow : Window
             {
                 await auth.RestoreAsync(preferences.ClientId, ct);
                 ConnectionLabel.Text = auth.IsConnected ? "Spotify sign-in saved" : "Spotify disconnected";
-                if (auth.IsConnected) await LoadTracksAsync(false, ct);
+                if (auth.IsConnected) { await LoadTracksAsync(false, ct); await LoadPinnedPlaylistsAsync(ct); }
             });
         };
         Closed += OnClosed;
@@ -143,8 +148,116 @@ public sealed partial class MainWindow : Window
                 EmptyDescription.Text = "Your playlists will appear here as cover records.";
                 UpdateEmpty();
             }
-            else await LoadTracksAsync(false, ct);
+            else
+            {
+                await LoadTracksAsync(false, ct);
+                if (view == "Library" && PinnedPlaylists.Count == 0) await LoadPinnedPlaylistsAsync(ct);
+            }
         });
+    }
+    private async Task LoadPinnedPlaylistsAsync(CancellationToken ct)
+    {
+        var page = await api.PlaylistsAsync(0, ct);
+        ct.ThrowIfCancellationRequested();
+        PinnedPlaylists.Clear();
+        foreach (var item in page.Items.Take(6)) PinnedPlaylists.Add(item);
+        UpdateFan();
+        if (view == "Library") ScrollLibraryToTop();
+    }
+    private void UpdateFan()
+    {
+        var cards = new[] { Fan0, Fan1, Fan2, Fan3 };
+        var names = new[] { FanName0, FanName1, FanName2, FanName3 };
+        var images = new[] { FanImg0, FanImg1, FanImg2, FanImg3 };
+        for (var i = 0; i < cards.Length; i++)
+        {
+            var item = i < PinnedPlaylists.Count ? PinnedPlaylists[i] : null;
+            cards[i].Visibility = item is null ? Visibility.Collapsed : Visibility.Visible;
+            cards[i].Tag = item;
+            names[i].Text = item?.Name ?? "";
+            images[i].Source = item is null ? null : Artwork(item.ArtworkUrl);
+            if (item is not null) AutomationProperties.SetName(cards[i], $"Open {item.Name}");
+        }
+        PlaylistFan.Visibility = PinnedPlaylists.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        SidebarPlaylists.Visibility = PlaylistFan.Visibility;
+    }
+    private static ImageSource? Artwork(string url) =>
+        new ArtworkConverter().Convert(url, typeof(ImageSource), null!, "") as ImageSource;
+    private void AnimateFan(bool spread)
+    {
+        var transforms = new[] { FanX0, FanX1, FanX2, FanX3 };
+        var storyboard = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+        var ease = new Microsoft.UI.Xaml.Media.Animation.CubicEase { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut };
+        for (var i = 0; i < transforms.Length; i++)
+        {
+            foreach (var (property, target) in new[] { ("Rotation", spread ? 0 : FanAngles[i]), ("TranslateX", spread ? 0 : FanOffsets[i]) })
+            {
+                var animation = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation { To = target, Duration = TimeSpan.FromMilliseconds(450), EasingFunction = ease };
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animation, transforms[i]);
+                Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animation, property);
+                storyboard.Children.Add(animation);
+            }
+        }
+        storyboard.Begin();
+    }
+    private void FanHost_PointerEntered(object sender, PointerRoutedEventArgs e) => AnimateFan(true);
+    private void FanHost_PointerExited(object sender, PointerRoutedEventArgs e) => AnimateFan(false);
+    private void FanHost_GotFocus(object sender, RoutedEventArgs e) => AnimateFan(true);
+    private void FanHost_LostFocus(object sender, RoutedEventArgs e) => AnimateFan(false);
+    private async void Fan_Click(object sender, RoutedEventArgs e)
+    {
+        if (((Button)sender).Tag is Playlist playlist) await OpenPlaylistAsync(playlist);
+    }
+    private async void PinnedPlaylist_Click(object sender, RoutedEventArgs e)
+    {
+        if (((Button)sender).Tag is Playlist playlist) await OpenPlaylistAsync(playlist);
+    }
+    private ScrollViewer? libraryScroller;
+    private static ScrollViewer? FindScrollViewer(DependencyObject parent)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is ScrollViewer found) return found;
+            if (FindScrollViewer(child) is { } nested) return nested;
+        }
+        return null;
+    }
+    private void ScrollLibraryToTop()
+    {
+        libraryScroller ??= FindScrollViewer(LibraryCards);
+        if (libraryScroller is null) return;
+        // The header grows after items load; anchoring would otherwise hide it above the fold.
+        libraryScroller.VerticalAnchorRatio = double.NaN;
+        libraryScroller.ChangeView(null, 0, null, true);
+    }
+    private void UpdateHero()
+    {
+        if (playingTrack is not null) heroTrack = playingTrack;
+        else if (view == "Library" && Tracks.Count > 0 && (heroTrack is null || !Tracks.Contains(heroTrack))) heroTrack = Tracks[0];
+        if (heroTrack is not { } track) { HeroCard.Visibility = Visibility.Collapsed; return; }
+        var playing = ReferenceEquals(track, playingTrack) && playbackState is PlaybackState.Playing or PlaybackState.Loading;
+        HeroCard.Visibility = Visibility.Visible;
+        HeroEyebrow.Text = playing ? "NOW PLAYING" : "JUMP BACK IN";
+        HeroTitle.Text = track.Name;
+        HeroSubtitle.Text = $"{track.Artist} · {track.Album}";
+        HeroImage.Source = Artwork(track.ArtworkUrl);
+        HeroAddButton.Tag = track; HeroOpenLink.Tag = track;
+        HeroPlayGlyph.Glyph = playing ? "" : "";
+        HeroPlayText.Text = playing ? "Pause" : "Play";
+    }
+    private async void HeroPlay_Click(object sender, RoutedEventArgs e)
+    {
+        if (heroTrack is not { } track) return;
+        if (ReferenceEquals(track, playingTrack)) PlayPause_Click(sender, e);
+        else await PlaybackWorkAsync(ct => PlayTrackAsync(track, ct));
+    }
+    private void ShuffleQueue_Click(object sender, RoutedEventArgs e)
+    {
+        if (queue.Tracks.Count < 2) { Message("Add a few tracks to your queue to shuffle them."); return; }
+        queue.Shuffle(preferences.ArtistSpacing, Random.Shared);
+        UpdateQueueLabel(); if (view == "Queue") RenderQueue();
+        Message("Queue shuffled using your artist-spacing preference.");
     }
     private async Task LoadTracksAsync(bool append, CancellationToken ct)
     {
@@ -171,7 +284,8 @@ public sealed partial class MainWindow : Window
         EmptyTitle.Text = "Nothing here yet";
         EmptyDescription.Text = "No tracks were returned. Try another search or playlist.";
         ConnectionLabel.Text = "Spotify connected";
-        UpdateEmpty();
+        UpdateEmpty(); UpdateHero();
+        if (!append && view == "Library") ScrollLibraryToTop();
     }
     private void UpdateNav()
     {
@@ -205,7 +319,17 @@ public sealed partial class MainWindow : Window
     }
     private async void PlaylistCard_Click(object sender, ItemClickEventArgs e)
     {
-        if (signingIn || e.ClickedItem is not Playlist selected) return;
+        if (e.ClickedItem is Playlist selected) await OpenPlaylistAsync(selected);
+    }
+    private async Task OpenPlaylistAsync(Playlist selected)
+    {
+        if (signingIn) return;
+        if (view != "Playlists")
+        {
+            CancelViewWork(); view = "Playlists";
+            SettingsPanel.Visibility = Visibility.Collapsed; QueueTools.Visibility = Visibility.Collapsed;
+            UpdateNav();
+        }
         selectedPlaylist = selected; Tracks.Clear(); offset = 0; hasMore = false;
         MoreButton.Visibility = Visibility.Collapsed;
         PlaylistHeroTitle.Text = selected.Name; PlaylistHeroSubtitle.Text = selected.Subtitle;
@@ -282,7 +406,7 @@ public sealed partial class MainWindow : Window
             await ResetPlaybackAsync();
             await auth.DisconnectAsync(ct);
             Tracks.Clear(); playlists.Clear(); playlistPage = null; queue.Forget();
-            QueueLabel.Text = "0 tracks";
+            UpdateQueueLabel(); PinnedPlaylists.Clear(); UpdateFan(); heroTrack = null; UpdateHero();
             ConnectionLabel.Text = "Spotify disconnected"; hasMore = false; offset = 0;
             MoreButton.Visibility = Visibility.Collapsed; UpdateEmpty();
             Message("Disconnected. Saved sign-in and session data were removed.", InfoBarSeverity.Success);
@@ -361,7 +485,7 @@ public sealed partial class MainWindow : Window
         NowPlayingLabel.Text = $"{track.Name} · {track.Artist}";
         NowPlayingImage.Source = new ArtworkConverter().Convert(track.ArtworkUrl, typeof(Microsoft.UI.Xaml.Media.ImageSource), null!, "") as Microsoft.UI.Xaml.Media.ImageSource;
         PositionSlider.Maximum = Math.Max(1, track.DurationMs); PositionSlider.Value = 0; PositionSlider.IsEnabled = true;
-        PlaybackLabel.Text = "Loading…"; ShowPlayGlyph(true);
+        PlaybackLabel.Text = "Loading…"; ShowPlayGlyph(true); UpdateHero();
         if (currentEngine.LatestPlayback is { } update) ApplyPlayback(update);
     }
     private void ApplyPlayback(PlaybackUpdate update)
@@ -378,7 +502,7 @@ public sealed partial class MainWindow : Window
         if (update.TrackStamp != playingStamp || playingTrack is null) return;
         playbackState = update.State;
         if (!adjustingPosition) PositionSlider.Value = Math.Min(update.PositionMs, PositionSlider.Maximum);
-        ShowPlayGlyph(update.State is PlaybackState.Playing or PlaybackState.Loading);
+        ShowPlayGlyph(update.State is PlaybackState.Playing or PlaybackState.Loading); UpdateHero();
         PlaybackLabel.Text = update.State switch
         {
             PlaybackState.Loading => "Loading…", PlaybackState.Paused => "Paused", PlaybackState.Stopped => "Stopped", PlaybackState.Ended => "Finished",
@@ -441,7 +565,7 @@ public sealed partial class MainWindow : Window
         if (!closing)
         {
             NowPlayingLabel.Text = "Choose a track to play"; NowPlayingImage.Source = null; PlaybackLabel.Text = "Not playing";
-            ShowPlayGlyph(false); PositionSlider.IsEnabled = false; PositionSlider.Value = 0;
+            ShowPlayGlyph(false); PositionSlider.IsEnabled = false; PositionSlider.Value = 0; UpdateHero();
         }
     }
     private void Add_Click(object sender, RoutedEventArgs e)
@@ -457,7 +581,12 @@ public sealed partial class MainWindow : Window
         catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
         { Message("Windows couldn't open the Spotify link.", InfoBarSeverity.Warning); }
     }
-    private void UpdateQueueLabel() => QueueLabel.Text = $"{queue.Tracks.Count} tracks";
+    private void UpdateQueueLabel()
+    {
+        QueueLabel.Text = $"{queue.Tracks.Count} tracks";
+        UpNext.Clear(); foreach (var track in queue.Tracks.Take(3)) UpNext.Add(track);
+        UpNextEmpty.Visibility = UpNext.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
     private void RenderQueue(int selection = -1)
     {
         Tracks.Clear(); foreach (var track in queue.Tracks) Tracks.Add(track);
