@@ -3,124 +3,230 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:core="using:Cadenza.Core" Title="Cadenza">
     <Window.SystemBackdrop><DesktopAcrylicBackdrop/></Window.SystemBackdrop>
-    <Grid x:Name="Root" RequestedTheme="Dark" KeyDown="Root_KeyDown">
-        <Grid.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#B51C1931" Offset="0"/><GradientStop Color="#A5111C29" Offset="0.55"/><GradientStop Color="#AD282034" Offset="1"/></LinearGradientBrush></Grid.Background>
+    <Grid x:Name="Root" RequestedTheme="Light" KeyDown="Root_KeyDown">
+        <Grid.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#F2EEF5FC" Offset="0"/><GradientStop Color="#F0DDEBF8" Offset="0.55"/><GradientStop Color="#F2D2E4F5" Offset="1"/></LinearGradientBrush></Grid.Background>
         <Grid.RowDefinitions><RowDefinition Height="36"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Grid.ColumnDefinitions><ColumnDefinition x:Name="SidebarColumn" Width="200"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition x:Name="SidebarColumn" Width="224"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+
+        <!-- Soft light behind the glass; the acrylic panels blur it. -->
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="2" IsHitTestVisible="False">
+            <Rectangle><Rectangle.Fill><RadialGradientBrush Center="0.08,0.05" GradientOrigin="0.08,0.05" RadiusX="0.55" RadiusY="0.7"><GradientStop Color="#B39FCBF2" Offset="0"/><GradientStop Color="#009FCBF2" Offset="1"/></RadialGradientBrush></Rectangle.Fill></Rectangle>
+            <Rectangle><Rectangle.Fill><RadialGradientBrush Center="0.92,0.3" GradientOrigin="0.92,0.3" RadiusX="0.45" RadiusY="0.6"><GradientStop Color="#E6FFFFFF" Offset="0"/><GradientStop Color="#00FFFFFF" Offset="1"/></RadialGradientBrush></Rectangle.Fill></Rectangle>
+            <Rectangle><Rectangle.Fill><RadialGradientBrush Center="0.5,1" GradientOrigin="0.5,1" RadiusX="0.5" RadiusY="0.55"><GradientStop Color="#9986BDEE" Offset="0"/><GradientStop Color="#0086BDEE" Offset="1"/></RadialGradientBrush></Rectangle.Fill></Rectangle>
+        </Grid>
+
         <Grid x:Name="AppTitleBar" Grid.ColumnSpan="2" Background="Transparent"><TextBlock Text="Cadenza" FontSize="12" Foreground="{StaticResource MutedText}" Margin="22,0,0,0" VerticalAlignment="Center"/></Grid>
-        <Border Grid.Row="1" Margin="14,0,0,0" Background="{StaticResource GlassSurface}" BorderBrush="{StaticResource GlassEdge}" BorderThickness="1" CornerRadius="24" Padding="18,24">
-            <Grid RowSpacing="20">
+
+        <Border Grid.Row="1" Margin="14,0,0,0" Style="{StaticResource GlassCardStyle}" CornerRadius="26" Padding="14,24,14,16">
+            <Grid RowSpacing="22">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <StackPanel Spacing="8"><TextBlock Text="cadenza" FontSize="28" FontWeight="SemiBold" CharacterSpacing="-40"/><TextBlock Text="A space for your sound" FontSize="11" Foreground="{StaticResource MutedText}"/></StackPanel>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="10">
-                    <Button Content="Library" Tag="Library" Click="Navigate_Click" HorizontalAlignment="Stretch"/>
-                    <Button Content="Search" Tag="Search" Click="Navigate_Click" HorizontalAlignment="Stretch"/>
-                    <Button Content="Playlists" Tag="Playlists" Click="Navigate_Click" HorizontalAlignment="Stretch"/>
-                    <Button Content="Queue" Tag="Queue" Click="Navigate_Click" HorizontalAlignment="Stretch"/>
+                <StackPanel Spacing="4" Padding="10,0"><TextBlock Text="cadenza" FontSize="28" FontWeight="SemiBold" CharacterSpacing="-40"/><TextBlock Text="A space for your sound" FontSize="12" Foreground="{StaticResource MutedText}"/></StackPanel>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="4">
+                    <Button x:Name="NavLibrary" Tag="Library" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Library"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE8F1;" FontSize="16"/><TextBlock Text="Library"/></StackPanel></Button>
+                    <Button x:Name="NavSearch" Tag="Search" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Search"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE721;" FontSize="16"/><TextBlock Text="Search"/></StackPanel></Button>
+                    <Button x:Name="NavPlaylists" Tag="Playlists" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Playlists"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE93C;" FontSize="16"/><TextBlock Text="Playlists"/></StackPanel></Button>
+                    <Button x:Name="NavQueue" Tag="Queue" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Queue"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE8FD;" FontSize="16"/><TextBlock Text="Queue"/></StackPanel></Button>
                 </StackPanel></ScrollViewer>
-                <StackPanel Grid.Row="2" Spacing="12"><TextBlock x:Name="ConnectionLabel" Text="Spotify disconnected" Foreground="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap"/><Button Content="Settings" Tag="Settings" Click="Navigate_Click" HorizontalAlignment="Stretch"/></StackPanel>
+                <StackPanel Grid.Row="2" Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="8" Padding="12,0"><Ellipse Width="8" Height="8" Fill="{StaticResource Accent}" VerticalAlignment="Center"/><TextBlock x:Name="ConnectionLabel" Text="Spotify disconnected" Foreground="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap"/></StackPanel>
+                    <Button x:Name="NavSettings" Tag="Settings" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Settings"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE713;" FontSize="16"/><TextBlock Text="Settings"/></StackPanel></Button>
+                </StackPanel>
             </Grid>
         </Border>
-        <Grid Grid.Row="1" Grid.Column="1" Padding="28,14,24,16" RowSpacing="16">
+
+        <Grid Grid.Row="1" Grid.Column="1" Padding="28,4,24,16" RowSpacing="16">
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <StackPanel><TextBlock Text="YOUR MUSIC, YOUR MOMENT" FontSize="10" CharacterSpacing="180" Foreground="{StaticResource MutedText}"/><TextBlock x:Name="PageTitle" Text="Your library" FontSize="34" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel>
-            <InfoBar x:Name="Notice" Grid.Row="1" IsOpen="False" IsClosable="True" HorizontalAlignment="Stretch"/>
-            <Grid x:Name="SearchPanel" Grid.Row="2" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="SearchBox" PlaceholderText="Find your next favourite   ·   Ctrl+K" TextChanged="Search_TextChanged" KeyDown="Search_KeyDown" AutomationProperties.Name="Search Spotify"/><Button Grid.Column="1" Content="Search" Click="Search_Click"/></Grid>
+            <StackPanel><TextBlock Text="YOUR MUSIC, YOUR MOMENT" Style="{StaticResource EyebrowTextStyle}"/><TextBlock x:Name="PageTitle" Text="Your library" FontSize="36" FontWeight="SemiBold" CharacterSpacing="-20" Margin="0,4,0,0"/></StackPanel>
+            <InfoBar x:Name="Notice" Grid.Row="1" IsOpen="False" IsClosable="True" HorizontalAlignment="Stretch" CornerRadius="14"/>
+            <Grid x:Name="SearchPanel" Grid.Row="2" ColumnSpacing="12" MaxWidth="760" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBox x:Name="SearchBox" PlaceholderText="Find your next favourite   ·   Ctrl+K" TextChanged="Search_TextChanged" KeyDown="Search_KeyDown" AutomationProperties.Name="Search Spotify" CornerRadius="24" MinHeight="48" MinWidth="320" Padding="20,13,16,0" FontSize="15" VerticalContentAlignment="Center"/>
+                <Button Grid.Column="1" Click="Search_Click" Style="{StaticResource PillAccentButtonStyle}" MinHeight="48" CornerRadius="24"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE721;" FontSize="14"/><TextBlock Text="Search"/></StackPanel></Button>
+            </Grid>
             <Grid Grid.Row="3">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <Grid x:Name="PlaylistDetail" Visibility="Collapsed" Margin="0,0,0,18">
-                    <Border Background="{StaticResource GlassSurface}" BorderBrush="{StaticResource GlassEdge}" BorderThickness="1" CornerRadius="22" Padding="20">
-                        <Grid ColumnSpacing="24"><Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <Border Width="140" Height="140" CornerRadius="14" Background="#394E4267"><Grid><FontIcon Glyph="&#xE93C;" FontSize="40" Foreground="#CDC0ED"/><Image x:Name="PlaylistHeroImage" Stretch="UniformToFill"/></Grid></Border>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="10"><Button Content="← All playlists" Click="BackToPlaylists_Click" HorizontalAlignment="Left"/><TextBlock Text="PLAYLIST" FontSize="10" CharacterSpacing="160" Foreground="{StaticResource MutedText}"/><TextBlock x:Name="PlaylistHeroTitle" FontSize="26" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/><TextBlock x:Name="PlaylistHeroSubtitle" Foreground="{StaticResource MutedText}" TextWrapping="Wrap"/></StackPanel>
+                    <Border Style="{StaticResource GlassCardStyle}" CornerRadius="28" Padding="22">
+                        <Grid ColumnSpacing="26"><Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Border Width="160" Height="160" CornerRadius="20" Background="{StaticResource ArtTile}">
+                                <Grid>
+                                    <Ellipse Width="118" Height="118" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtGroove}" StrokeThickness="10"/>
+                                    <Ellipse Width="40" Height="40" Fill="{StaticResource ArtLabel}"/>
+                                    <Ellipse Width="9" Height="9" Fill="{StaticResource ArtDisc}"/>
+                                    <Image x:Name="PlaylistHeroImage" Stretch="UniformToFill"/>
+                                </Grid>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8">
+                                <Button Click="BackToPlaylists_Click" HorizontalAlignment="Left" Background="Transparent" BorderBrush="Transparent" Padding="8,6" MinHeight="32"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE72B;" FontSize="12"/><TextBlock Text="All playlists" FontSize="13"/></StackPanel></Button>
+                                <TextBlock Text="PLAYLIST" Style="{StaticResource EyebrowTextStyle}"/>
+                                <TextBlock x:Name="PlaylistHeroTitle" FontSize="34" FontWeight="Bold" CharacterSpacing="-30" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="PlaylistHeroSubtitle" Foreground="{StaticResource MutedText}" TextWrapping="Wrap"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
-                <Grid x:Name="TrackPanel" Grid.Row="1" Visibility="Collapsed">
-                <ListView x:Name="TrackList" SelectionMode="Single" HorizontalContentAlignment="Stretch" ItemsSource="{x:Bind Tracks}" AutomationProperties.Name="Tracks">
-                    <ListView.ItemTemplate>
-                        <DataTemplate x:DataType="core:Track">
-                            <Grid Padding="4,10" ColumnSpacing="16">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/><ColumnDefinition Width="56"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <Border Width="48" Height="48" CornerRadius="10" Background="#28413F5B"><Grid><FontIcon Glyph="&#xE8D6;" Foreground="#A6A2BE"/><Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill"/></Grid></Border>
-                                <StackPanel Grid.Column="1" Spacing="4">
-                                    <TextBlock Text="{x:Bind Name}" FontSize="16" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{x:Bind Artist}" Foreground="#A5B1C2" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{x:Bind Album}" Foreground="#778498" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                                <TextBlock Grid.Column="2" Text="{x:Bind Duration}" VerticalAlignment="Center" Foreground="#A5B1C2"/>
-                                <Button Grid.Column="3" Content="Play" Tag="{x:Bind}" Click="PlayTrack_Click" VerticalAlignment="Center" AutomationProperties.Name="Play track in Cadenza"/>
-                                <Button Grid.Column="4" Content="+" Tag="{x:Bind}" Click="Add_Click" VerticalAlignment="Center" AutomationProperties.Name="Add track to listening queue"/>
-                                <HyperlinkButton Grid.Column="5" Content="↗" Tag="{x:Bind}" Click="OpenTrack_Click" VerticalAlignment="Center" AutomationProperties.Name="Open track on Spotify"/>
-                            </Grid>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
 
-                </Grid>
+                <Border x:Name="TrackPanel" Grid.Row="1" Visibility="Collapsed" Style="{StaticResource GlassCardStyle}" Padding="8">
+                    <ListView x:Name="TrackList" SelectionMode="Single" HorizontalContentAlignment="Stretch" ItemsSource="{x:Bind Tracks}" AutomationProperties.Name="Tracks">
+                        <ListView.ItemContainerStyle><Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}"><Setter Property="CornerRadius" Value="14"/><Setter Property="Margin" Value="0,2"/></Style></ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="core:Track">
+                                <Grid Padding="4,8" ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="56"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <Border Width="48" Height="48" CornerRadius="12" Background="{StaticResource ArtTile}"><Grid><Ellipse Width="30" Height="30" Fill="{StaticResource ArtDisc}"/><Ellipse Width="10" Height="10" Fill="{StaticResource ArtLabel}"/><Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill"/></Grid></Border>
+                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{x:Bind Artist}" Foreground="{StaticResource MutedText}" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{x:Bind Album}" Foreground="{StaticResource MutedText}" FontSize="12" Opacity="0.8" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{x:Bind Duration}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{StaticResource MutedText}" FontSize="13"/>
+                                    <Button Grid.Column="3" Tag="{x:Bind}" Click="PlayTrack_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Play track in Cadenza" ToolTipService.ToolTip="Play"><FontIcon Glyph="&#xE768;" FontSize="14"/></Button>
+                                    <Button Grid.Column="4" Tag="{x:Bind}" Click="Add_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Add track to listening queue" ToolTipService.ToolTip="Add to queue"><FontIcon Glyph="&#xE710;" FontSize="14"/></Button>
+                                    <HyperlinkButton Grid.Column="5" Tag="{x:Bind}" Click="OpenTrack_Click" Style="{StaticResource IconLinkStyle}" AutomationProperties.Name="Open track on Spotify" ToolTipService.ToolTip="Open on Spotify"><FontIcon Glyph="&#xE8A7;" FontSize="14"/></HyperlinkButton>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Border>
+
                 <GridView Grid.RowSpan="2" x:Name="PlaylistCards" Visibility="Collapsed" IsItemClickEnabled="True" ItemClick="PlaylistCard_Click" SelectionMode="None" ItemsSource="{x:Bind Playlists}" Padding="0,0,0,16" AutomationProperties.Name="Playlist covers">
-                    <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="5"/></ItemsPanelTemplate></GridView.ItemsPanel>
+                    <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal"/></ItemsPanelTemplate></GridView.ItemsPanel>
                     <GridView.ItemTemplate><DataTemplate x:DataType="core:Playlist">
-                        <Border Width="196" Margin="0,0,12,16" Padding="12" CornerRadius="20" Background="{StaticResource GlassSurface}" BorderBrush="{StaticResource GlassEdge}" BorderThickness="1">
+                        <Border Width="196" Margin="0,0,12,16" Padding="12,12,12,0" Style="{StaticResource GlassCardStyle}" CornerRadius="22">
                             <StackPanel Spacing="12">
-                                <Border Width="170" Height="170" CornerRadius="12" Background="#394E4267"><Grid><Ellipse Width="126" Height="126" Fill="#B3151420" Stroke="#556F6489" StrokeThickness="1"/><Ellipse Width="44" Height="44" Fill="#A98BA8DC"/><Ellipse Width="10" Height="10" Fill="#FF231E35"/><Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill" AutomationProperties.Name="Playlist cover"/></Grid></Border>
-                                <TextBlock Text="{x:Bind Name}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" MinHeight="42"/>
-                                <TextBlock Text="{x:Bind Subtitle}" Foreground="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                <Border Height="170" CornerRadius="14" Background="{StaticResource ArtTile}"><Grid><Ellipse Width="126" Height="126" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtGroove}" StrokeThickness="10"/><Ellipse Width="44" Height="44" Fill="{StaticResource ArtLabel}"/><Ellipse Width="10" Height="10" Fill="{StaticResource ArtDisc}"/><Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill" AutomationProperties.Name="Playlist cover"/></Grid></Border>
+                                <Border Margin="-12,0" Padding="14,10,14,12" Background="{StaticResource CaptionBand}" BorderBrush="{StaticResource CaptionEdge}" BorderThickness="0,1,0,0" CornerRadius="0,0,22,22">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{x:Bind Subtitle}" Foreground="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Border>
                     </DataTemplate></GridView.ItemTemplate>
                 </GridView>
+
                 <GridView Grid.RowSpan="2" x:Name="LibraryCards" ItemsSource="{x:Bind Tracks}" IsItemClickEnabled="True" ItemClick="LibraryCard_Click" SelectionMode="Single" Padding="0,0,0,16" AutomationProperties.Name="Library album covers">
-                    <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="5"/></ItemsPanelTemplate></GridView.ItemsPanel>
+                    <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal"/></ItemsPanelTemplate></GridView.ItemsPanel>
                     <GridView.ItemTemplate><DataTemplate x:DataType="core:Track">
-                        <Border Width="196" Margin="0,0,12,16" Padding="12" CornerRadius="20" Background="{StaticResource GlassSurface}" BorderBrush="{StaticResource GlassEdge}" BorderThickness="1">
-                            <StackPanel Spacing="10">
-                                <Border Width="170" Height="170" CornerRadius="12" Background="#39414F67"><Grid><Ellipse Width="126" Height="126" Fill="#B3151420" Stroke="#556F6489"/><Ellipse Width="44" Height="44" Fill="#B080A6A5"/><Ellipse Width="10" Height="10" Fill="#FF231E35"/><Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill"/></Grid></Border>
-                                <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{x:Bind Artist}" Foreground="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Button Content="Play" Tag="{x:Bind}" Click="PlayTrack_Click"/><Button Grid.Column="1" Content="+" Tag="{x:Bind}" Click="Add_Click" AutomationProperties.Name="Add track to queue"/></Grid>
+                        <Border Width="196" Margin="0,0,12,16" Padding="12,12,12,0" Style="{StaticResource GlassCardStyle}" CornerRadius="22">
+                            <StackPanel Spacing="12">
+                                <Border Height="170" CornerRadius="14" Background="{StaticResource ArtTile}">
+                                    <Grid>
+                                        <Ellipse Width="126" Height="126" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtGroove}" StrokeThickness="10"/>
+                                        <Ellipse Width="44" Height="44" Fill="{StaticResource ArtLabel}"/>
+                                        <Ellipse Width="10" Height="10" Fill="{StaticResource ArtDisc}"/>
+                                        <Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill"/>
+                                        <Button Tag="{x:Bind}" Click="PlayTrack_Click" Style="{StaticResource AccentButtonStyle}" Width="44" Height="44" Padding="0" CornerRadius="22" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,10" AutomationProperties.Name="Play track in Cadenza" ToolTipService.ToolTip="Play"><FontIcon Glyph="&#xE768;" FontSize="14"/></Button>
+                                    </Grid>
+                                </Border>
+                                <Border Margin="-12,0" Padding="14,8,6,10" Background="{StaticResource CaptionBand}" BorderBrush="{StaticResource CaptionEdge}" BorderThickness="0,1,0,0" CornerRadius="0,0,22,22">
+                                    <Grid ColumnSpacing="4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{x:Bind Artist}" Foreground="{StaticResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Tag="{x:Bind}" Click="Add_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Add track to queue" ToolTipService.ToolTip="Add to queue"><FontIcon Glyph="&#xE710;" FontSize="14"/></Button>
+                                    </Grid>
+                                </Border>
                             </StackPanel>
                         </Border>
                     </DataTemplate></GridView.ItemTemplate>
                 </GridView>
-                <StackPanel Grid.Row="1" x:Name="EmptyState" Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="360" Padding="16"><FontIcon Glyph="&#xE8D6;" FontSize="44" Foreground="{StaticResource Accent}"/><TextBlock x:Name="EmptyTitle" Text="Make room for your music" FontSize="24" TextWrapping="Wrap" TextAlignment="Center"/><TextBlock x:Name="EmptyDescription" Text="Connect Spotify in Settings. Your albums and playlists will find a home here." TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource MutedText}"/><Button Content="Connect Spotify" Tag="Settings" Click="Navigate_Click" HorizontalAlignment="Center"/></StackPanel>
-                <ScrollViewer Grid.RowSpan="2" x:Name="SettingsPanel" Visibility="Collapsed" Padding="8,8,16,32" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Spacing="16" MaxWidth="600" HorizontalAlignment="Left">
-                        <TextBlock Text="Connect Spotify" FontSize="22" FontWeight="SemiBold"/>
-                        <TextBlock Text="Use your own Spotify developer Client ID. No client secret is needed." TextWrapping="Wrap" Foreground="#A5B1C2"/>
-                        <TextBox x:Name="ClientIdBox" Header="Spotify Client ID" PlaceholderText="32-character Client ID"/>
-                        <TextBlock Text="Redirect URL (register the same URL in your Spotify developer app):" Foreground="#A5B1C2" TextWrapping="Wrap"/>
-                        <TextBox x:Name="RedirectUriBox" Header="Redirect URL" PlaceholderText="http://127.0.0.1:8888/callback"/>
-                        <StackPanel Spacing="12">
-                            <Button x:Name="ConnectButton" Content="Connect Spotify" Click="Connect_Click"/>
-                            <Button x:Name="DisconnectButton" Content="Disconnect" Click="Disconnect_Click"/>
-                            <HyperlinkButton Content="Developer dashboard ↗" NavigateUri="https://developer.spotify.com/dashboard"/>
-                        </StackPanel>
-                        <TextBlock Text="Queue preferences" FontSize="22" FontWeight="SemiBold" Margin="0,20,0,0"/>
-                        <NumberBox x:Name="SpacingBox" Header="Artist spacing when shuffling" Minimum="0" Maximum="10" Value="2" SpinButtonPlacementMode="Inline"/>
-                        <TextBlock Text="Try to leave this many tracks between the same lead artist. If that is impossible, spacing is relaxed. All tracks remain in the queue." TextWrapping="Wrap" Foreground="#A5B1C2"/>
-                        <Button Content="Save preferences" Click="SavePreferences_Click"/>
-                        <TextBlock Text="Playback integration" FontSize="22" FontWeight="SemiBold" Margin="0,20,0,0"/>
-                        <TextBlock Text="Experimental librespot playback uses Windows audio output. Reconnect Spotify after updating to grant the streaming scope. Live account compatibility still needs validation." TextWrapping="Wrap" Foreground="#A5B1C2"/>
-                        <Button Content="Check native bridge" Click="CheckBridge_Click"/>
-                        <TextBlock Text="Your sign-in is stored in Windows Credential Manager. Disconnect clears it and this session's Spotify data. Queue contents are kept only in memory." TextWrapping="Wrap" Foreground="#778498" FontSize="12"/>
+
+                <Border Grid.Row="1" x:Name="EmptyState" Style="{StaticResource GlassCardStyle}" CornerRadius="28" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="440" Padding="36,40">
+                    <StackPanel Spacing="14">
+                        <FontIcon Glyph="&#xE8D6;" FontSize="40" Foreground="{StaticResource Accent}"/>
+                        <TextBlock x:Name="EmptyTitle" Text="Make room for your music" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center"/>
+                        <TextBlock x:Name="EmptyDescription" Text="Connect Spotify in Settings. Your albums and playlists will find a home here." TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource MutedText}"/>
+                        <Button Content="Connect Spotify" Tag="Settings" Click="Navigate_Click" HorizontalAlignment="Center" Style="{StaticResource PillAccentButtonStyle}" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer Grid.RowSpan="2" x:Name="SettingsPanel" Visibility="Collapsed" Padding="0,0,16,32" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="18" MaxWidth="680" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource GlassCardStyle}" Padding="26">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Connect Spotify" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Use your own Spotify developer Client ID. No client secret is needed." TextWrapping="Wrap" Foreground="{StaticResource MutedText}"/>
+                                <TextBox x:Name="ClientIdBox" Header="Spotify Client ID" PlaceholderText="32-character Client ID" CornerRadius="12"/>
+                                <TextBox x:Name="RedirectUriBox" Header="Redirect URL" PlaceholderText="http://127.0.0.1:8888/callback" CornerRadius="12"/>
+                                <TextBlock Text="Register the same redirect URL in your Spotify developer app." Foreground="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap"/>
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button x:Name="ConnectButton" Content="Connect Spotify" Click="Connect_Click" Style="{StaticResource PillAccentButtonStyle}"/>
+                                    <Button x:Name="DisconnectButton" Content="Disconnect" Click="Disconnect_Click" CornerRadius="22" MinHeight="44" Padding="20,10"/>
+                                    <HyperlinkButton Content="Developer dashboard ↗" NavigateUri="https://developer.spotify.com/dashboard" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Border Background="#40FFFFFF" BorderBrush="#80FFFFFF" BorderThickness="1" CornerRadius="16" Padding="14,12">
+                                    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE72E;" FontSize="16" Foreground="{StaticResource MutedText}" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                                        <TextBlock Grid.Column="1" Text="Your sign-in is stored in Windows Credential Manager. Disconnect clears it and this session's Spotify data. Queue contents are kept only in memory." TextWrapping="Wrap" Foreground="{StaticResource MutedText}" FontSize="12"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource GlassCardStyle}" Padding="26">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Queue preferences" Style="{StaticResource SectionTitleStyle}"/>
+                                <NumberBox x:Name="SpacingBox" Header="Artist spacing when shuffling" Minimum="0" Maximum="10" Value="2" SpinButtonPlacementMode="Inline" HorizontalAlignment="Left" MinWidth="220"/>
+                                <TextBlock Text="Try to leave this many tracks between the same lead artist. If that is impossible, spacing is relaxed. All tracks remain in the queue." TextWrapping="Wrap" Foreground="{StaticResource MutedText}"/>
+                                <Button Content="Save preferences" Click="SavePreferences_Click" CornerRadius="22" Padding="20,10"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource GlassCardStyle}" Padding="26">
+                            <StackPanel Spacing="14">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock Text="Playback integration" Style="{StaticResource SectionTitleStyle}"/>
+                                    <Border Background="#33FFFFFF" BorderBrush="#99FFFFFF" BorderThickness="1" CornerRadius="10" Padding="10,3" VerticalAlignment="Center"><TextBlock Text="EXPERIMENTAL" FontSize="10" CharacterSpacing="100" Foreground="#1F65BC"/></Border>
+                                </StackPanel>
+                                <TextBlock Text="Experimental librespot playback uses Windows audio output. Reconnect Spotify after updating to grant the streaming scope. Live account compatibility still needs validation." TextWrapping="Wrap" Foreground="{StaticResource MutedText}"/>
+                                <Button Content="Check native bridge" Click="CheckBridge_Click" CornerRadius="22" Padding="20,10"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
 
                 <ProgressRing x:Name="Loading" IsActive="False" Width="32" Height="32" HorizontalAlignment="Right" VerticalAlignment="Top"/>
             </Grid>
-            <ScrollViewer Grid.Row="4" HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollBarVisibility="Disabled"><StackPanel Orientation="Horizontal" Spacing="8"><Button x:Name="MoreButton" Content="Load more" Visibility="Collapsed" Click="More_Click"/><StackPanel x:Name="QueueTools" Orientation="Horizontal" Spacing="8" Visibility="Collapsed"><Button Content="↑" Click="Up_Click" AutomationProperties.Name="Move selected track up"/><Button Content="↓" Click="Down_Click" AutomationProperties.Name="Move selected track down"/><Button Content="Remove" Click="Remove_Click"/><Button Content="Undo" Click="Undo_Click"/><Button Content="Shuffle with spacing" Click="Shuffle_Click"/><Button Content="Clear" Click="Clear_Click"/></StackPanel></StackPanel></ScrollViewer>
+            <ScrollViewer Grid.Row="4" HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="MoreButton" Content="Load more" Visibility="Collapsed" Click="More_Click" CornerRadius="20"/>
+                    <StackPanel x:Name="QueueTools" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
+                        <Button Click="Up_Click" AutomationProperties.Name="Move selected track up" ToolTipService.ToolTip="Move up" Width="40" Padding="0"><FontIcon Glyph="&#xE70E;" FontSize="14"/></Button>
+                        <Button Click="Down_Click" AutomationProperties.Name="Move selected track down" ToolTipService.ToolTip="Move down" Width="40" Padding="0"><FontIcon Glyph="&#xE70D;" FontSize="14"/></Button>
+                        <Button Click="Remove_Click"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE74D;" FontSize="14"/><TextBlock Text="Remove"/></StackPanel></Button>
+                        <Button Click="Undo_Click"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7A7;" FontSize="14"/><TextBlock Text="Undo"/></StackPanel></Button>
+                        <Button Click="Shuffle_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="14" Padding="14,9" MinHeight="40"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B1;" FontSize="14"/><TextBlock Text="Shuffle with spacing"/></StackPanel></Button>
+                        <Button Click="Clear_Click"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE894;" FontSize="14"/><TextBlock Text="Clear"/></StackPanel></Button>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
-        <Border Grid.ColumnSpan="2" Grid.Row="2" Background="{StaticResource GlassSurface}" BorderBrush="{StaticResource GlassEdge}" BorderThickness="1" CornerRadius="24" Margin="14,0,14,14" Padding="20,16">
-            <Grid RowSpacing="10" ColumnSpacing="18">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="140"/></Grid.ColumnDefinitions>
-                <Border Grid.RowSpan="2" Width="56" Height="56" VerticalAlignment="Center" CornerRadius="12" Background="#394E4267"><Grid><FontIcon Glyph="&#xE8D6;" Foreground="#CDC0ED"/><Image x:Name="NowPlayingImage" Stretch="UniformToFill"/></Grid></Border>
-                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center"><TextBlock x:Name="NowPlayingLabel" Text="Choose a track to play" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock x:Name="QueueLabel" Text="0 tracks" Foreground="{StaticResource MutedText}" FontSize="12"/></StackPanel>
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><Button x:Name="PlayPauseButton" Content="Play" Click="PlayPause_Click"/><Button Content="Next" Click="Next_Click"/><Button Content="Stop" Click="Stop_Click"/></StackPanel>
-                <Slider x:Name="VolumeSlider" Grid.Column="3" Minimum="0" Maximum="100" Value="25" StepFrequency="1" Header="Volume" AutomationProperties.Name="Playback volume" PointerReleased="Volume_Released" KeyUp="Volume_KeyUp"/>
-                <Slider x:Name="PositionSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Minimum="0" Maximum="1" Value="0" IsEnabled="False" AutomationProperties.Name="Playback position" PointerPressed="Position_Pressed" PointerReleased="Position_Released" KeyDown="Position_KeyDown" KeyUp="Position_KeyUp"/>
-                <TextBlock x:Name="PlaybackLabel" Grid.Row="1" Grid.Column="3" Text="Not playing" Foreground="{StaticResource MutedText}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
+
+        <Border Grid.ColumnSpan="2" Grid.Row="2" Style="{StaticResource GlassCardStyle}" CornerRadius="26" Margin="14,0,14,14" Padding="18,12">
+            <Grid ColumnSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="280"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Grid ColumnSpacing="14" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Width="56" Height="56" CornerRadius="14" Background="{StaticResource ArtTile}"><Grid><Ellipse Width="36" Height="36" Fill="{StaticResource ArtDisc}"/><Ellipse Width="12" Height="12" Fill="{StaticResource ArtLabel}"/><Image x:Name="NowPlayingImage" Stretch="UniformToFill"/></Grid></Border>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"><TextBlock x:Name="NowPlayingLabel" Text="Choose a track to play" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock x:Name="QueueLabel" Text="0 tracks" Foreground="{StaticResource MutedText}" FontSize="12"/></StackPanel>
+                </Grid>
+                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <Button Click="Stop_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Stop" ToolTipService.ToolTip="Stop"><FontIcon Glyph="&#xE71A;" FontSize="14"/></Button>
+                        <Button x:Name="PlayPauseButton" Click="PlayPause_Click" Style="{StaticResource RoundAccentButtonStyle}" AutomationProperties.Name="Play" ToolTipService.ToolTip="Play or pause"><FontIcon x:Name="PlayPauseGlyph" Glyph="&#xE768;" FontSize="18"/></Button>
+                        <Button Click="Next_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Next" ToolTipService.ToolTip="Next in queue"><FontIcon Glyph="&#xE893;" FontSize="14"/></Button>
+                    </StackPanel>
+                    <Grid ColumnSpacing="12" MaxWidth="620">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Slider x:Name="PositionSlider" Minimum="0" Maximum="1" Value="0" IsEnabled="False" IsThumbToolTipEnabled="False" AutomationProperties.Name="Playback position" PointerPressed="Position_Pressed" PointerReleased="Position_Released" KeyDown="Position_KeyDown" KeyUp="Position_KeyUp" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="PlaybackLabel" Grid.Column="1" Text="Not playing" Foreground="{StaticResource MutedText}" FontSize="12" VerticalAlignment="Center" MinWidth="90"/>
+                    </Grid>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE767;" FontSize="16" Foreground="{StaticResource MutedText}"/>
+                    <Slider x:Name="VolumeSlider" Width="130" Minimum="0" Maximum="100" Value="25" StepFrequency="1" AutomationProperties.Name="Playback volume" PointerReleased="Volume_Released" KeyUp="Volume_KeyUp" VerticalAlignment="Center"/>
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

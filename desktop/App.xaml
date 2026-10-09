@@ -6,17 +6,115 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
-            <SolidColorBrush x:Key="Accent" Color="#C7B5FF" />
-            <SolidColorBrush x:Key="MutedText" Color="#C2BCD2" />
-            <SolidColorBrush x:Key="GlassEdge" Color="#30FFFFFF" />
-            <AcrylicBrush x:Key="GlassSurface" TintColor="#252438" TintOpacity="0.65" FallbackColor="#28283B" />
+
+            <!-- Frosted ice blue: one hue, navy ink, white glass. -->
+            <Color x:Key="SystemAccentColor">#2A74CF</Color>
+            <Color x:Key="SystemAccentColorLight1">#4A8EDB</Color>
+            <Color x:Key="SystemAccentColorLight2">#7AAEE6</Color>
+            <Color x:Key="SystemAccentColorLight3">#A9CCF0</Color>
+            <Color x:Key="SystemAccentColorDark1">#1F65BC</Color>
+            <Color x:Key="SystemAccentColorDark2">#174C88</Color>
+            <Color x:Key="SystemAccentColorDark3">#103866</Color>
+            <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#10243D" />
+            <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#51657F" />
+
+            <SolidColorBrush x:Key="Accent" Color="#2A74CF" />
+            <SolidColorBrush x:Key="Ink" Color="#10243D" />
+            <SolidColorBrush x:Key="MutedText" Color="#51657F" />
+            <LinearGradientBrush x:Key="GlassEdge" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#F2FFFFFF" Offset="0" />
+                <GradientStop Color="#66FFFFFF" Offset="1" />
+            </LinearGradientBrush>
+            <AcrylicBrush x:Key="GlassSurface" TintColor="#FFFFFF" TintOpacity="0.35" TintLuminosityOpacity="0.78" FallbackColor="#EEF5FC" />
+            <SolidColorBrush x:Key="CaptionBand" Color="#59FFFFFF" />
+            <SolidColorBrush x:Key="CaptionEdge" Color="#80FFFFFF" />
+            <SolidColorBrush x:Key="ArtTile" Color="#3D82BF" />
+            <SolidColorBrush x:Key="ArtDisc" Color="#0F1E2E" />
+            <SolidColorBrush x:Key="ArtGroove" Color="#33506B" />
+            <SolidColorBrush x:Key="ArtLabel" Color="#CBE7FB" />
+            <SolidColorBrush x:Key="NavSelectedBrush" Color="#E6FFFFFF" />
+            <SolidColorBrush x:Key="NavIdleBrush" Color="Transparent" />
+
+            <!-- Lightweight styling for the built-in controls. -->
+            <SolidColorBrush x:Key="ButtonBackground" Color="#99FFFFFF" />
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#E6FFFFFF" />
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#CCEAF3FC" />
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#CCFFFFFF" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#CCFFFFFF" />
+            <SolidColorBrush x:Key="ButtonForeground" Color="#10243D" />
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#10243D" />
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#10243D" />
+            <SolidColorBrush x:Key="TextControlBackground" Color="#99FFFFFF" />
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#CCFFFFFF" />
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="TextControlBorderBrush" Color="#CCFFFFFF" />
+            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="#66FFFFFF" />
+            <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="#B3FFFFFF" />
+            <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="#D9FFFFFF" />
+            <SolidColorBrush x:Key="GridViewItemBackgroundPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="GridViewItemBackgroundSelected" Color="Transparent" />
+            <SolidColorBrush x:Key="GridViewItemBackgroundSelectedPointerOver" Color="Transparent" />
+
             <local:ArtworkConverter x:Key="ArtworkConverter" />
-            <Style TargetType="Button">
+
+            <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
                 <Setter Property="CornerRadius" Value="14" />
-                <Setter Property="Padding" Value="14,10" />
-                <Setter Property="Background" Value="#18FFFFFF" />
-                <Setter Property="BorderBrush" Value="#26FFFFFF" />
-                <Setter Property="MinHeight" Value="42" />
+                <Setter Property="Padding" Value="14,9" />
+                <Setter Property="MinHeight" Value="40" />
+            </Style>
+            <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Width" Value="40" />
+                <Setter Property="Height" Value="40" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="20" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="NavButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Height" Value="44" />
+                <Setter Property="Padding" Value="12,0" />
+                <Setter Property="CornerRadius" Value="14" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="Background" Value="{StaticResource NavIdleBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource NavIdleBrush}" />
+            </Style>
+            <Style x:Key="PillAccentButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+                <Setter Property="CornerRadius" Value="22" />
+                <Setter Property="Padding" Value="20,10" />
+                <Setter Property="MinHeight" Value="44" />
+            </Style>
+            <Style x:Key="RoundAccentButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+                <Setter Property="Width" Value="48" />
+                <Setter Property="Height" Value="48" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="24" />
+            </Style>
+            <Style x:Key="IconLinkStyle" TargetType="HyperlinkButton">
+                <Setter Property="Width" Value="40" />
+                <Setter Property="Height" Value="40" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="20" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="GlassCardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource GlassSurface}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GlassEdge}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="24" />
+            </Style>
+            <Style x:Key="EyebrowTextStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="CharacterSpacing" Value="180" />
+                <Setter Property="Foreground" Value="{StaticResource MutedText}" />
+            </Style>
+            <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="22" />
+                <Setter Property="FontWeight" Value="SemiBold" />
             </Style>
         </ResourceDictionary>
     </Application.Resources>

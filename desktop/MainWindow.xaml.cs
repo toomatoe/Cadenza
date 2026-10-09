@@ -2,8 +2,10 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Cadenza.Core;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Windows.System;
 
 namespace Cadenza.Desktop;
@@ -47,14 +49,17 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
-        AppWindow.TitleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 230, 225, 242);
-        AppWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 160, 155, 174);
+        AppWindow.TitleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 16, 36, 61);
+        AppWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 110, 126, 148);
+        AppWindow.TitleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(120, 255, 255, 255);
+        AppWindow.TitleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 16, 36, 61);
         AppWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
         AppWindow.TitleBar.ButtonInactiveBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1180, 800));
         ClientIdBox.Text = preferences.ClientId;
         RedirectUriBox.Text = preferences.RedirectUri;
         SpacingBox.Value = preferences.ArtistSpacing;
+        UpdateNav();
 
         Root.Loaded += async (_, _) =>
         {
@@ -109,6 +114,7 @@ public sealed partial class MainWindow : Window
         CancelViewWork();
         view = destination; selectedPlaylist = null; offset = 0; hasMore = false; Tracks.Clear();
         SettingsPanel.Visibility = view == "Settings" ? Visibility.Visible : Visibility.Collapsed;
+        UpdateNav();
         UpdateViewSurfaces();
         QueueTools.Visibility = view == "Queue" ? Visibility.Visible : Visibility.Collapsed;
         MoreButton.Visibility = Visibility.Collapsed;
@@ -166,6 +172,23 @@ public sealed partial class MainWindow : Window
         EmptyDescription.Text = "No tracks were returned. Try another search or playlist.";
         ConnectionLabel.Text = "Spotify connected";
         UpdateEmpty();
+    }
+    private void UpdateNav()
+    {
+        var selected = (Brush)Application.Current.Resources["NavSelectedBrush"];
+        var idle = (Brush)Application.Current.Resources["NavIdleBrush"];
+        foreach (var button in new[] { NavLibrary, NavSearch, NavPlaylists, NavQueue, NavSettings })
+        {
+            var current = (string)button.Tag == view;
+            button.Background = current ? selected : idle;
+            button.BorderBrush = current ? selected : idle;
+            button.FontWeight = current ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
+        }
+    }
+    private void ShowPlayGlyph(bool playing)
+    {
+        PlayPauseGlyph.Glyph = playing ? "" : "";
+        AutomationProperties.SetName(PlayPauseButton, playing ? "Pause" : "Play");
     }
     private void UpdateViewSurfaces()
     {
@@ -338,7 +361,7 @@ public sealed partial class MainWindow : Window
         NowPlayingLabel.Text = $"{track.Name} · {track.Artist}";
         NowPlayingImage.Source = new ArtworkConverter().Convert(track.ArtworkUrl, typeof(Microsoft.UI.Xaml.Media.ImageSource), null!, "") as Microsoft.UI.Xaml.Media.ImageSource;
         PositionSlider.Maximum = Math.Max(1, track.DurationMs); PositionSlider.Value = 0; PositionSlider.IsEnabled = true;
-        PlaybackLabel.Text = "Loading…"; PlayPauseButton.Content = "Pause";
+        PlaybackLabel.Text = "Loading…"; ShowPlayGlyph(true);
         if (currentEngine.LatestPlayback is { } update) ApplyPlayback(update);
     }
     private void ApplyPlayback(PlaybackUpdate update)
@@ -348,14 +371,14 @@ public sealed partial class MainWindow : Window
             if (update.TrackStamp != 0 && update.TrackStamp != playingStamp) return;
             if (PlaybackErrors.RequiresReconnect(update.ErrorCode)) nativeConnected = false;
             playbackState = PlaybackState.Failed;
-            PlaybackLabel.Text = "Playback failed"; PlayPauseButton.Content = "Play";
+            PlaybackLabel.Text = "Playback failed"; ShowPlayGlyph(false);
             Message(PlaybackErrors.Describe(update.ErrorCode), InfoBarSeverity.Error);
             return;
         }
         if (update.TrackStamp != playingStamp || playingTrack is null) return;
         playbackState = update.State;
         if (!adjustingPosition) PositionSlider.Value = Math.Min(update.PositionMs, PositionSlider.Maximum);
-        PlayPauseButton.Content = update.State is PlaybackState.Playing or PlaybackState.Loading ? "Pause" : "Play";
+        ShowPlayGlyph(update.State is PlaybackState.Playing or PlaybackState.Loading);
         PlaybackLabel.Text = update.State switch
         {
             PlaybackState.Loading => "Loading…", PlaybackState.Paused => "Paused", PlaybackState.Stopped => "Stopped", PlaybackState.Ended => "Finished",
@@ -418,7 +441,7 @@ public sealed partial class MainWindow : Window
         if (!closing)
         {
             NowPlayingLabel.Text = "Choose a track to play"; NowPlayingImage.Source = null; PlaybackLabel.Text = "Not playing";
-            PlayPauseButton.Content = "Play"; PositionSlider.IsEnabled = false; PositionSlider.Value = 0;
+            ShowPlayGlyph(false); PositionSlider.IsEnabled = false; PositionSlider.Value = 0;
         }
     }
     private void Add_Click(object sender, RoutedEventArgs e)
