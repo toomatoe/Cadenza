@@ -48,12 +48,15 @@
                 <Grid x:Name="PlaylistDetail" Visibility="Collapsed" Margin="0,0,0,18">
                     <Border Style="{StaticResource GlassCardStyle}" CornerRadius="28" Padding="22">
                         <Grid ColumnSpacing="26"><Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <Border Width="160" Height="160" CornerRadius="20" Background="{StaticResource ArtTile}">
+                            <Border Width="160" Height="160" CornerRadius="20" Background="{StaticResource ArtTile}" BorderBrush="{StaticResource ArtEdge}" BorderThickness="1" Shadow="{StaticResource ArtShadow}" Translation="0,0,24">
                                 <Grid>
-                                    <Ellipse Width="118" Height="118" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtGroove}" StrokeThickness="10"/>
-                                    <Ellipse Width="40" Height="40" Fill="{StaticResource ArtLabel}"/>
-                                    <Ellipse Width="9" Height="9" Fill="{StaticResource ArtDisc}"/>
+                                    <Ellipse Width="122" Height="122" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtRim}" StrokeThickness="1"/>
+                                    <Ellipse Width="98" Height="98" Stroke="{StaticResource ArtGroove}" StrokeThickness="1"/>
+                                    <Ellipse Width="74" Height="74" Stroke="{StaticResource ArtGroove}" StrokeThickness="1"/>
+                                    <Ellipse Width="42" Height="42" Fill="{StaticResource ArtLabel}"/>
+                                    <Ellipse Width="9" Height="9" Fill="{StaticResource ArtHole}"/>
                                     <Image x:Name="PlaylistHeroImage" Stretch="UniformToFill"/>
+                                    <Border CornerRadius="19" Background="{StaticResource ArtGloss}" IsHitTestVisible="False"/>
                                 </Grid>
                             </Border>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8">
@@ -73,7 +76,7 @@
                             <DataTemplate x:DataType="core:Track">
                                 <Grid Padding="4,8" ColumnSpacing="16">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="56"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <Border Width="48" Height="48" CornerRadius="12" Background="{StaticResource ArtTile}"><Grid><Ellipse Width="30" Height="30" Fill="{StaticResource ArtDisc}"/><Ellipse Width="10" Height="10" Fill="{StaticResource ArtLabel}"/><Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill"/></Grid></Border>
+                                    <Border Width="48" Height="48" CornerRadius="12" Background="{StaticResource ArtTile}" BorderBrush="{StaticResource ArtEdge}" BorderThickness="1"><Grid><Ellipse Width="32" Height="32" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtRim}" StrokeThickness="1"/><Ellipse Width="11" Height="11" Fill="{StaticResource ArtLabel}"/><Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill"/><Border CornerRadius="11" Background="{StaticResource ArtGloss}" IsHitTestVisible="False"/></Grid></Border>
                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                                         <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                         <TextBlock Text="{x:Bind Artist}" Foreground="{StaticResource MutedText}" FontSize="13" TextTrimming="CharacterEllipsis"/>
@@ -94,7 +97,17 @@
                     <GridView.ItemTemplate><DataTemplate x:DataType="core:Playlist">
                         <Border Width="196" Margin="0,0,12,16" Padding="12,12,12,0" Style="{StaticResource GlassCardStyle}" CornerRadius="22">
                             <StackPanel Spacing="12">
-                                <Border Height="170" CornerRadius="14" Background="{StaticResource ArtTile}"><Grid><Ellipse Width="126" Height="126" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtGroove}" StrokeThickness="10"/><Ellipse Width="44" Height="44" Fill="{StaticResource ArtLabel}"/><Ellipse Width="10" Height="10" Fill="{StaticResource ArtDisc}"/><Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill" AutomationProperties.Name="Playlist cover"/></Grid></Border>
+                                <Border Height="170" CornerRadius="14" Background="{StaticResource ArtTile}" BorderBrush="{StaticResource ArtEdge}" BorderThickness="1" Shadow="{StaticResource ArtShadow}" Translation="0,0,16">
+                                    <Grid>
+                                        <Ellipse Width="128" Height="128" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtRim}" StrokeThickness="1"/>
+                                        <Ellipse Width="104" Height="104" Stroke="{StaticResource ArtGroove}" StrokeThickness="1"/>
+                                        <Ellipse Width="80" Height="80" Stroke="{StaticResource ArtGroove}" StrokeThickness="1"/>
+                                        <Ellipse Width="44" Height="44" Fill="{StaticResource ArtLabel}"/>
+                                        <Ellipse Width="10" Height="10" Fill="{StaticResource ArtHole}"/>
+                                        <Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill" AutomationProperties.Name="Playlist cover"/>
+                                        <Border CornerRadius="13" Background="{StaticResource ArtGloss}" IsHitTestVisible="False"/>
+                                    </Grid>
+                                </Border>
                                 <Border Margin="-12,0" Padding="14,10,14,12" Background="{StaticResource CaptionBand}" BorderBrush="{StaticResource CaptionEdge}" BorderThickness="0,1,0,0" CornerRadius="0,0,22,22">
                                     <StackPanel Spacing="2">
                                         <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
@@ -111,12 +124,15 @@
                     <GridView.ItemTemplate><DataTemplate x:DataType="core:Track">
                         <Border Width="196" Margin="0,0,12,16" Padding="12,12,12,0" Style="{StaticResource GlassCardStyle}" CornerRadius="22">
                             <StackPanel Spacing="12">
-                                <Border Height="170" CornerRadius="14" Background="{StaticResource ArtTile}">
+                                <Border Height="170" CornerRadius="14" Background="{StaticResource ArtTile}" BorderBrush="{StaticResource ArtEdge}" BorderThickness="1" Shadow="{StaticResource ArtShadow}" Translation="0,0,16">
                                     <Grid>
-                                        <Ellipse Width="126" Height="126" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtGroove}" StrokeThickness="10"/>
+                                        <Ellipse Width="128" Height="128" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtRim}" StrokeThickness="1"/>
+                                        <Ellipse Width="104" Height="104" Stroke="{StaticResource ArtGroove}" StrokeThickness="1"/>
+                                        <Ellipse Width="80" Height="80" Stroke="{StaticResource ArtGroove}" StrokeThickness="1"/>
                                         <Ellipse Width="44" Height="44" Fill="{StaticResource ArtLabel}"/>
-                                        <Ellipse Width="10" Height="10" Fill="{StaticResource ArtDisc}"/>
+                                        <Ellipse Width="10" Height="10" Fill="{StaticResource ArtHole}"/>
                                         <Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill"/>
+                                        <Border CornerRadius="13" Background="{StaticResource ArtGloss}" IsHitTestVisible="False"/>
                                         <Button Tag="{x:Bind}" Click="PlayTrack_Click" Style="{StaticResource AccentButtonStyle}" Width="44" Height="44" Padding="0" CornerRadius="22" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,10" AutomationProperties.Name="Play track in Cadenza" ToolTipService.ToolTip="Play"><FontIcon Glyph="&#xE768;" FontSize="14"/></Button>
                                     </Grid>
                                 </Border>
@@ -208,7 +224,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="280"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <Grid ColumnSpacing="14" VerticalAlignment="Center">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <Border Width="56" Height="56" CornerRadius="14" Background="{StaticResource ArtTile}"><Grid><Ellipse Width="36" Height="36" Fill="{StaticResource ArtDisc}"/><Ellipse Width="12" Height="12" Fill="{StaticResource ArtLabel}"/><Image x:Name="NowPlayingImage" Stretch="UniformToFill"/></Grid></Border>
+                    <Border Width="56" Height="56" CornerRadius="14" Background="{StaticResource ArtTile}" BorderBrush="{StaticResource ArtEdge}" BorderThickness="1" Shadow="{StaticResource ArtShadow}" Translation="0,0,12"><Grid><Ellipse Width="40" Height="40" Fill="{StaticResource ArtDisc}" Stroke="{StaticResource ArtRim}" StrokeThickness="1"/><Ellipse Width="28" Height="28" Stroke="{StaticResource ArtGroove}" StrokeThickness="1"/><Ellipse Width="13" Height="13" Fill="{StaticResource ArtLabel}"/><Ellipse Width="4" Height="4" Fill="{StaticResource ArtHole}"/><Image x:Name="NowPlayingImage" Stretch="UniformToFill"/><Border CornerRadius="13" Background="{StaticResource ArtGloss}" IsHitTestVisible="False"/></Grid></Border>
                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center"><TextBlock x:Name="NowPlayingLabel" Text="Choose a track to play" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock x:Name="QueueLabel" Text="0 tracks" Foreground="{StaticResource MutedText}" FontSize="12"/></StackPanel>
                 </Grid>
                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">

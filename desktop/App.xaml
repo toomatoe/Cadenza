@@ -28,10 +28,35 @@
             <AcrylicBrush x:Key="GlassSurface" TintColor="#FFFFFF" TintOpacity="0.35" TintLuminosityOpacity="0.78" FallbackColor="#EEF5FC" />
             <SolidColorBrush x:Key="CaptionBand" Color="#59FFFFFF" />
             <SolidColorBrush x:Key="CaptionEdge" Color="#80FFFFFF" />
-            <SolidColorBrush x:Key="ArtTile" Color="#3D82BF" />
-            <SolidColorBrush x:Key="ArtDisc" Color="#0F1E2E" />
-            <SolidColorBrush x:Key="ArtGroove" Color="#33506B" />
-            <SolidColorBrush x:Key="ArtLabel" Color="#CBE7FB" />
+            <!-- Record artwork: translucent tile, glossy sheen, record with light catching it. -->
+            <LinearGradientBrush x:Key="ArtTile" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#D97BB4E6" Offset="0" />
+                <GradientStop Color="#E04A8DCB" Offset="0.5" />
+                <GradientStop Color="#EB2C6AAA" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="ArtEdge" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#E6FFFFFF" Offset="0" />
+                <GradientStop Color="#33FFFFFF" Offset="0.5" />
+                <GradientStop Color="#1AFFFFFF" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="ArtGloss" StartPoint="0.25,0" EndPoint="0.75,1">
+                <GradientStop Color="#73FFFFFF" Offset="0" />
+                <GradientStop Color="#26FFFFFF" Offset="0.32" />
+                <GradientStop Color="#00FFFFFF" Offset="0.5" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="ArtDisc" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#0F1E2E" Offset="0" />
+                <GradientStop Color="#3E5B78" Offset="0.2" />
+                <GradientStop Color="#122436" Offset="0.42" />
+                <GradientStop Color="#0F1E2E" Offset="0.56" />
+                <GradientStop Color="#365270" Offset="0.8" />
+                <GradientStop Color="#0F1E2E" Offset="1" />
+            </LinearGradientBrush>
+            <SolidColorBrush x:Key="ArtGroove" Color="#1FFFFFFF" />
+            <SolidColorBrush x:Key="ArtRim" Color="#4DFFFFFF" />
+            <SolidColorBrush x:Key="ArtLabel" Color="#DDF0FF" />
+            <SolidColorBrush x:Key="ArtHole" Color="#0F1E2E" />
+            <ThemeShadow x:Key="ArtShadow" />
             <SolidColorBrush x:Key="NavSelectedBrush" Color="#E6FFFFFF" />
             <SolidColorBrush x:Key="NavIdleBrush" Color="Transparent" />
 
