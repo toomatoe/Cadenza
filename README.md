@@ -54,7 +54,7 @@ The publish folder is self-contained. Keep its files together; the exe alone is 
 2. Register your chosen redirect URI (`http://127.0.0.1:8888/callback` is only the default) and allow your Spotify account as a development user where required.
 3. Open Settings in Cadenza and enter the app's Client ID and the same redirect URL, then select Connect Spotify.
 4. Complete Spotify's consent screen in your system browser. No client secret is used. Reconnect after updating from the foundation build to grant the added `streaming` scope.
-5. Select Play on a track. Playback connects on demand; Pause, Next, Stop, volume, and seeking are in the bottom bar. Next consumes the first queued track. Queue progression follows native end-of-track events.
+5. Select Play on a track. The first time, your browser asks you to approve playback once: Spotify's streaming servers reject tokens issued to developer apps, so playback signs in separately with the desktop client ID librespot uses (Spotify Premium required). Playback connects on demand; Pause, Next, Stop, volume, and seeking are in the bottom bar. Next consumes the first queued track. Queue progression follows native end-of-track events.
 
 Premium alone does not provide a developer Client ID. Endpoint availability depends on your application's current Spotify access. Forbidden endpoints show an actionable error. Your chosen port must be available during sign-in; the listener is stopped afterward. Sign-in times out after three minutes.
 

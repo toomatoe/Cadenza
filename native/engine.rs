@@ -1,8 +1,8 @@
 //! Bounded asynchronous command bridge; optional Windows Spotify playback.
 #[cfg(feature = "playback")]
-mod playback;
-#[cfg(feature = "playback")]
 mod diagnostics;
+#[cfg(feature = "playback")]
+mod playback;
 use std::collections::{HashMap, VecDeque};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};

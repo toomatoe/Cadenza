@@ -304,7 +304,11 @@ impl Playback {
         }
         self.last = Event {
             kind,
-            status: if kind == 15 { super::diagnostics::reason(super::diagnostics::TRACK_UNAVAILABLE) } else { OK },
+            status: if kind == 15 {
+                super::diagnostics::reason(super::diagnostics::TRACK_UNAVAILABLE)
+            } else {
+                OK
+            },
             value: position,
             reserved: self.stamp,
             ..Event::default()
@@ -424,7 +428,12 @@ mod tests {
         player.current = Some(uri.clone());
         player.stamp = 3;
         player.native_request = Some(1);
-        let event = player.map_event(PlayerEvent::Unavailable { play_request_id: 1, track_id: uri }).unwrap();
+        let event = player
+            .map_event(PlayerEvent::Unavailable {
+                play_request_id: 1,
+                track_id: uri,
+            })
+            .unwrap();
         assert_eq!(event.kind, 15);
         assert_ne!(event.status, OK);
         assert_eq!(event.reserved, 3);

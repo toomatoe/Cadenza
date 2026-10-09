@@ -29,9 +29,15 @@ public static class Pkce
     }
 }
 
-public sealed class SpotifyAuth(HttpClient http, ITokenStore store)
+public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope = SpotifyAuth.LibraryScope)
 {
     public const string RedirectUri = "http://127.0.0.1:8888/callback";
+    public const string LibraryScope = "user-library-read playlist-read-private playlist-read-collaborative streaming";
+    // Spotify's streaming servers reject tokens issued to third-party Web API apps. Playback signs in
+    // separately with the desktop client ID librespot is built for, on librespot's loopback redirect.
+    public const string PlaybackClientId = "65b708073fc0480ea92a077233ca87bd";
+    public const string PlaybackRedirectUri = "http://127.0.0.1:8898/login";
+    public const string PlaybackScope = "streaming user-read-private user-read-email user-read-playback-state user-modify-playback-state user-library-read";
     private const string TokenUrl = "https://accounts.spotify.com/api/token";
     private readonly SemaphoreSlim refreshGate = new(1, 1);
     private Tokens? tokens;
@@ -80,7 +86,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store)
         {
             ["client_id"] = newClientId, ["response_type"] = "code", ["redirect_uri"] = redirectUri,
             ["code_challenge_method"] = "S256", ["code_challenge"] = Pkce.Challenge(verifier),
-            ["state"] = state, ["scope"] = "user-library-read playlist-read-private playlist-read-collaborative streaming"
+            ["state"] = state, ["scope"] = scope
         };
         var url = "https://accounts.spotify.com/authorize?" + string.Join('&',
             parameters.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"));

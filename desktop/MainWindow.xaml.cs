@@ -17,6 +17,7 @@ public sealed partial class MainWindow : Window
     private readonly ListeningQueue queue = new();
     private readonly CancellationTokenSource lifetime = new();
     private readonly SpotifyAuth auth;
+    private readonly SpotifyAuth playbackAuth;
     private readonly SpotifyApi api;
     private Preferences preferences;
     private NativeEngine? engine;
@@ -50,6 +51,7 @@ public sealed partial class MainWindow : Window
     {
         preferences = Preferences.Load();
         auth = new SpotifyAuth(http, new WindowsTokenStore());
+        playbackAuth = new SpotifyAuth(http, new WindowsTokenStore(), SpotifyAuth.PlaybackScope);
         api = new SpotifyApi(http, auth);
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
@@ -405,6 +407,8 @@ public sealed partial class MainWindow : Window
         {
             await ResetPlaybackAsync();
             await auth.DisconnectAsync(ct);
+            await playbackAuth.RestoreAsync(SpotifyAuth.PlaybackClientId, ct);
+            await playbackAuth.DisconnectAsync(ct);
             Tracks.Clear(); playlists.Clear(); playlistPage = null; queue.Forget();
             UpdateQueueLabel(); PinnedPlaylists.Clear(); UpdateFan(); heroTrack = null; UpdateHero();
             ConnectionLabel.Text = "Spotify disconnected"; hasMore = false; offset = 0;
@@ -473,9 +477,7 @@ public sealed partial class MainWindow : Window
         var currentEngine = engine!;
         if (!nativeConnected)
         {
-            PlaybackLabel.Text = "Connecting…";
-            var token = await auth.GetAccessTokenAsync(ct);
-            await currentEngine.AuthenticateAsync(auth.ClientId, token, ct);
+            await AuthenticatePlaybackAsync(currentEngine, ct);
             ct.ThrowIfCancellationRequested(); nativeConnected = true;
             await currentEngine.SetVolumeAsync((uint)VolumeSlider.Value, ct);
         }
@@ -487,6 +489,24 @@ public sealed partial class MainWindow : Window
         PositionSlider.Maximum = Math.Max(1, track.DurationMs); PositionSlider.Value = 0; PositionSlider.IsEnabled = true;
         PlaybackLabel.Text = "Loading…"; ShowPlayGlyph(true); UpdateHero();
         if (currentEngine.LatestPlayback is { } update) ApplyPlayback(update);
+    }
+    private async Task AuthenticatePlaybackAsync(NativeEngine target, CancellationToken ct)
+    {
+        if (!playbackAuth.IsConnected) await playbackAuth.RestoreAsync(SpotifyAuth.PlaybackClientId, ct);
+        if (!playbackAuth.IsConnected)
+        {
+            PlaybackLabel.Text = "Approve in browser…";
+            Message("One-time step: approve Spotify playback in your browser, then return here.");
+            await playbackAuth.ConnectAsync(SpotifyAuth.PlaybackClientId, ct, SpotifyAuth.PlaybackRedirectUri);
+            Notice.IsOpen = false;
+        }
+        PlaybackLabel.Text = "Connecting…";
+        try { await target.AuthenticateAsync(playbackAuth.ClientId, await playbackAuth.GetAccessTokenAsync(ct), ct); }
+        catch (InvalidOperationException) when (!ct.IsCancellationRequested)
+        {
+            // A stale playback token is the common cause; refresh once before reporting failure.
+            await target.AuthenticateAsync(playbackAuth.ClientId, await playbackAuth.GetAccessTokenAsync(ct, forceRefresh: true), ct);
+        }
     }
     private void ApplyPlayback(PlaybackUpdate update)
     {
