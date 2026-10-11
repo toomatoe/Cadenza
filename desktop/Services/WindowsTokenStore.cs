@@ -1,9 +1,10 @@
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
-using Cadenza.Core;
+using Cadenza.Core.Models;
+using Cadenza.Core.Services.Contracts;
+using Cadenza.Core.Services.Spotify;
 
-namespace Cadenza.Desktop;
+namespace Cadenza.Desktop.Services;
 
 /// <summary>Generic credentials protected by Windows Credential Manager. No token files.</summary>
 internal sealed class WindowsTokenStore : ITokenStore
@@ -62,8 +63,12 @@ internal sealed class WindowsTokenStore : ITokenStore
             Marshal.Copy(bytes, 0, buffer, bytes.Length);
             var credential = new Credential
             {
-                Type = 1, TargetName = Target(tokens.ClientId), CredentialBlobSize = (uint)bytes.Length,
-                CredentialBlob = buffer, Persist = 2, UserName = "Spotify OAuth"
+                Type = 1,
+                TargetName = Target(tokens.ClientId),
+                CredentialBlobSize = (uint)bytes.Length,
+                CredentialBlob = buffer,
+                Persist = 2,
+                UserName = "Spotify OAuth"
             };
             if (!CredWrite(ref credential, 0)) throw new InvalidOperationException("Windows could not save your Spotify sign-in.");
         }
@@ -79,21 +84,5 @@ internal sealed class WindowsTokenStore : ITokenStore
         if (!CredDelete(Target(clientId), 1, 0) && Marshal.GetLastWin32Error() != 1168)
             throw new InvalidOperationException("Windows could not remove your saved Spotify sign-in.");
         return Task.CompletedTask;
-    }
-}
-
-internal sealed record Preferences(string ClientId = "", int ArtistSpacing = 2, string RedirectUri = SpotifyAuth.RedirectUri)
-{
-    private static string Path => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cadenza", "preferences.json");
-    public static Preferences Load()
-    {
-        try { return File.Exists(Path) ? JsonSerializer.Deserialize<Preferences>(File.ReadAllText(Path)) ?? new() : new(); }
-        catch (Exception e) when (e is IOException or JsonException) { return new(); }
-    }
-    public void Save()
-    {
-        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
-        File.WriteAllText(Path + ".tmp", JsonSerializer.Serialize(this), Encoding.UTF8);
-        File.Move(Path + ".tmp", Path, overwrite: true);
     }
 }

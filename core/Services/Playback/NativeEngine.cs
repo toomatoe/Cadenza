@@ -2,11 +2,10 @@ using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using Cadenza.Core.Models;
+using Cadenza.Core.Services.Spotify;
 
-namespace Cadenza.Core;
-
-public enum PlaybackState { Loading = 10, Playing = 11, Paused = 12, Stopped = 13, Ended = 14, Failed = 15 }
-public sealed record PlaybackUpdate(PlaybackState State, uint PositionMs, uint TrackStamp, int ErrorCode);
+namespace Cadenza.Core.Services.Playback;
 
 public sealed class NativeEngine : IAsyncDisposable
 {

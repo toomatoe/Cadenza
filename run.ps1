@@ -1,7 +1,9 @@
 param(
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug',
     [switch]$NoRestore,
-    [switch]$UiOnly
+    [switch]$UiOnly,
+    [switch]$BuildOnly,
+    [switch]$Rebuild
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -30,9 +32,14 @@ foreach ($instance in @(Get-Process -Name Cadenza.Desktop -ErrorAction SilentlyC
     }
 }
 [string[]]$restoreArguments = if ($NoRestore) { @('--no-restore') } else { @() }
-& dotnet build $projectPath @properties @restoreArguments
+[string[]]$buildArguments = if ($Rebuild) { @('-t:Rebuild') } else { @() }
+& dotnet build $projectPath @properties @restoreArguments @buildArguments
 if ($LASTEXITCODE -ne 0) { throw 'Build failed. Cadenza was not launched; the old output will not be used.' }
 if (-not (Test-Path -LiteralPath $executablePath)) { throw "Built executable not found: $executablePath" }
+if ($BuildOnly) {
+    Write-Host "Build verified: $executablePath"
+    return
+}
 Write-Host "Launching $executablePath"
 $started = Start-Process -FilePath $executablePath -WorkingDirectory (Split-Path -Parent $executablePath) -PassThru
 Write-Host "Cadenza process: $($started.Id)"

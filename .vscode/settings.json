@@ -1,3 +1,5 @@
 {
-    "dotnet.defaultSolution": "Cadenza.slnx"
+    "dotnet.defaultSolution": "Cadenza.slnx",
+    "debug.onTaskErrors": "abort",
+    "debug.saveBeforeStart": "nonUntitledEditors"
 }

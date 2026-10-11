@@ -1,33 +1,14 @@
 using System.Diagnostics;
 using System.Net;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
+using System.Text;
+using Cadenza.Core.Exceptions;
+using Cadenza.Core.Models;
+using Cadenza.Core.Security;
+using Cadenza.Core.Services.Contracts;
 
-namespace Cadenza.Core;
-
-public static class Pkce
-{
-    public static string RandomValue() => Base64Url(RandomNumberGenerator.GetBytes(32));
-    public static string Challenge(string verifier) => Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
-    private static string Base64Url(byte[] value) => Convert.ToBase64String(value).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-    public static string ReadCode(Uri callback, string expectedState)
-    {
-        var pairs = callback.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => p.Split('=', 2)).ToArray();
-        if (pairs.GroupBy(p => p[0]).Any(g => g.Count() > 1))
-            throw new InvalidOperationException("Duplicate authorization parameters.");
-        var fields = pairs.ToDictionary(p => Uri.UnescapeDataString(p[0]),
-            p => p.Length == 2 ? Uri.UnescapeDataString(p[1].Replace('+', ' ')) : "");
-        if (!fields.TryGetValue("state", out var state) ||
-            !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(state), Encoding.UTF8.GetBytes(expectedState)))
-            throw new InvalidOperationException("Authorization state did not match. Try connecting again.");
-        if (fields.ContainsKey("error")) throw new InvalidOperationException("Spotify authorization was declined.");
-        if (!fields.TryGetValue("code", out var code) || string.IsNullOrWhiteSpace(code))
-            throw new InvalidOperationException("Spotify did not provide an authorization code.");
-        return code;
-    }
-}
+namespace Cadenza.Core.Services.Spotify;
 
 public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope = SpotifyAuth.LibraryScope)
 {
@@ -84,9 +65,13 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
         catch (HttpListenerException) { throw new InvalidOperationException($"Could not open sign-in port {redirect.Port}. Check that it is available and permitted, then retry."); }
         var parameters = new Dictionary<string, string>
         {
-            ["client_id"] = newClientId, ["response_type"] = "code", ["redirect_uri"] = redirectUri,
-            ["code_challenge_method"] = "S256", ["code_challenge"] = Pkce.Challenge(verifier),
-            ["state"] = state, ["scope"] = scope
+            ["client_id"] = newClientId,
+            ["response_type"] = "code",
+            ["redirect_uri"] = redirectUri,
+            ["code_challenge_method"] = "S256",
+            ["code_challenge"] = Pkce.Challenge(verifier),
+            ["state"] = state,
+            ["scope"] = scope
         };
         var url = "https://accounts.spotify.com/authorize?" + string.Join('&',
             parameters.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"));
@@ -121,8 +106,11 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
         listener.Stop();
         var result = await ExchangeAsync(new Dictionary<string, string>
         {
-            ["grant_type"] = "authorization_code", ["code"] = code,
-            ["redirect_uri"] = redirectUri, ["client_id"] = newClientId, ["code_verifier"] = verifier
+            ["grant_type"] = "authorization_code",
+            ["code"] = code,
+            ["redirect_uri"] = redirectUri,
+            ["client_id"] = newClientId,
+            ["code_verifier"] = verifier
         }, newClientId, "", timeout.Token);
         await store.SaveAsync(result, timeout.Token);
         clientId = newClientId;
@@ -138,7 +126,9 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
             if (!forceRefresh && current.ExpiresAt > DateTimeOffset.UtcNow.AddSeconds(60)) return current.AccessToken;
             var refreshed = await ExchangeAsync(new Dictionary<string, string>
             {
-                ["grant_type"] = "refresh_token", ["refresh_token"] = current.RefreshToken, ["client_id"] = clientId
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = current.RefreshToken,
+                ["client_id"] = clientId
             }, clientId, current.RefreshToken, ct);
             await store.SaveAsync(refreshed, ct);
             tokens = refreshed;

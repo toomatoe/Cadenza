@@ -1,26 +1,30 @@
-using System.Net;
 using System.Net.Http.Headers;
+using System.Net;
 using System.Text.Json;
+using Cadenza.Core.Exceptions;
+using Cadenza.Core.Models;
+using Cadenza.Core.Services.Contracts;
 
-namespace Cadenza.Core;
+namespace Cadenza.Core.Services.Spotify;
 
-public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth)
+public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth) : IMusicCatalog
 {
+    public const int PageSize = 10;
     private readonly SemaphoreSlim requestGate = new(1, 1);
 
     public Task<Page<Track>> SearchAsync(string query, int offset, CancellationToken ct) =>
-        TrackPageAsync($"search?q={Uri.EscapeDataString(query.Trim())}&type=track&limit=10&offset={offset}", offset, "tracks", false, ct);
+        TrackPageAsync($"search?q={Uri.EscapeDataString(query.Trim())}&type=track&limit={PageSize}&offset={offset}", offset, "tracks", false, ct);
     public Task<Page<Track>> SavedTracksAsync(int offset, CancellationToken ct) =>
-        TrackPageAsync($"me/tracks?limit=10&offset={offset}", offset, null, true, ct);
+        TrackPageAsync($"me/tracks?limit={PageSize}&offset={offset}", offset, null, true, ct);
     public Task<Page<Track>> PlaylistTracksAsync(string id, int offset, CancellationToken ct)
     {
         if (id.Length != 22 || id.Any(c => !char.IsAsciiLetterOrDigit(c))) throw new ArgumentException("Invalid playlist ID.");
-        return TrackPageAsync($"playlists/{id}/items?limit=10&offset={offset}", offset, null, true, ct);
+        return TrackPageAsync($"playlists/{id}/items?limit={PageSize}&offset={offset}", offset, null, true, ct);
     }
 
     public async Task<Page<Playlist>> PlaylistsAsync(int offset, CancellationToken ct)
     {
-        using var document = await GetAsync($"me/playlists?limit=10&offset={offset}", ct);
+        using var document = await GetAsync($"me/playlists?limit={PageSize}&offset={offset}", ct);
         var root = document.RootElement;
         var result = new List<Playlist>();
         foreach (var item in root.GetProperty("items").EnumerateArray())

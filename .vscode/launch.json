@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Cadenza Desktop (Debug x64)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build Cadenza Desktop (Debug x64)",
+            "program": "${workspaceFolder}/desktop/bin/x64/Debug/net10.0-windows10.0.19041.0/win-x64/Cadenza.Desktop.exe",
+            "cwd": "${workspaceFolder}/desktop/bin/x64/Debug/net10.0-windows10.0.19041.0/win-x64",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Cadenza Desktop (Release x64)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build Cadenza Desktop (Release x64)",
+            "program": "${workspaceFolder}/desktop/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Cadenza.Desktop.exe",
+            "cwd": "${workspaceFolder}/desktop/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        }
+    ]
+}

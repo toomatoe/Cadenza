@@ -1,3 +1,4 @@
+using Cadenza.Desktop.Views;
 using Microsoft.UI.Xaml;
 
 namespace Cadenza.Desktop;
