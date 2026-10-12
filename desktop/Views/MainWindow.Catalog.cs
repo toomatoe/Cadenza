@@ -129,6 +129,7 @@ public sealed partial class MainWindow
         EmptyDescription.Text = "No tracks were returned. Try another search or playlist.";
         ConnectionLabel.Text = "Spotify connected";
         UpdateEmpty();
+        UpdateQueueControls();
         if (!append && view == "Library") ScrollLibraryToTop();
     }
     private void UpdateNav()
@@ -156,6 +157,7 @@ public sealed partial class MainWindow
         PlaylistCards.Visibility = view == "Playlists" && selectedPlaylist is null ? Visibility.Visible : Visibility.Collapsed;
         PlaylistDetail.Visibility = view == "Playlists" && selectedPlaylist is not null ? Visibility.Visible : Visibility.Collapsed;
         TrackPanel.Visibility = view == "Search" || view == "Queue" || (view == "Playlists" && selectedPlaylist is not null) ? Visibility.Visible : Visibility.Collapsed;
+        UpdateQueueControls();
         SearchPanel.Visibility = view == "Settings" || view == "Playlists" ? Visibility.Collapsed : Visibility.Visible;
     }
     private void UpdateEmpty()

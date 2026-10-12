@@ -2,9 +2,17 @@
 
 Cadenza is a personal music app for Windows, built with C#/WinUI 3 and Rust. Browse your Spotify library, make a queue, and shuffle with a little space between tracks by the same artist. The interface runs as a native Windows app.
 
+## Download and try it
+
+Visit [GitHub Releases](https://github.com/toomatoe/Cadenza/releases) and download **Cadenza-windows-x64.zip** from the release you want to test. Early versions are marked as prereleases. Choose the named Cadenza ZIP under Assets; GitHub's **Source code** downloads are for building the project yourself.
+
+Right-click the ZIP, choose **Extract All**, then open the extracted folder and double-click **Cadenza.Desktop.exe**. Keep the other files beside it. You don't need .NET, Rust, or VS Code installed. `TESTER-START-HERE.txt` in the download walks you through setup and troubleshooting.
+
+The download targets Windows 10 build 19041+ and Windows 11 on x64. Early builds are unsigned, so Windows may show a warning or block launch. Native playback is experimental, and Spotify setup still requires a developer Client ID; see [Connect your account](#connect-your-account).
+
 ## What works so far
 
-Here?s what?s in the app:
+Here's what's in the app:
 
 - Native desktop navigation with Acrylic, Mica, and Solid backgrounds, restrained surface fills, artwork cards for the library and playlists, playlist cover headers, and a content-sized playback dock.
 - Spotify Authorization Code with PKCE using the system browser and a temporary loopback callback listener.
@@ -69,6 +77,22 @@ Normal desktop builds compile the Rust playback engine and copy its DLL beside t
 
 Keep the whole publish folder together?the executable needs the files beside it. Windows CI also produces a zip when the build and checks pass, though it cannot confirm live Spotify playback.
 
+## Publishing a release
+
+After committing and pushing the changes you want to ship, push a version tag:
+
+```powershell
+# Example: an early testing release. Pick a new version for each release.
+git tag v0.1.0-beta.1
+git push origin v0.1.0-beta.1
+```
+
+The Windows workflow builds and tests that exact tag, publishes a self-contained app, and attaches **Cadenza-windows-x64.zip** and its **SHA-256 checksum** to a GitHub Release. Tags with a suffix such as `-beta.1` become prereleases. A tag like `v0.1.0` becomes a stable release and is marked latest. Share the specific release page with testers, especially for prereleases.
+
+The release stays a draft until both files upload successfully. If an upload fails, rerun the failed job to finish the draft. Published downloads are not overwritten; ship a new version tag for a fix. Ordinary branch pushes, pull requests, and manual workflow runs build downloadable Actions artifacts without publishing a Release. The workflow uses GitHub's built-in token, so no personal access token needs to be configured.
+
+For a local package, run `build.ps1 -Publish` (optionally with `-Version 0.1.0-beta.1`). It writes the ZIP and checksum to `artifacts/` after checking the executable, native audio DLL, and compiled XAML resources. Test the extracted package on a clean Windows machine before inviting a wider group.
+
 ## Appearance
 
 Open **Settings > Appearance** to choose Acrylic, Mica, or Solid. Acrylic is the default: it shows a live, blurred view of what?s behind the window, with a lighter tint so more of your desktop comes through. If you previously chose Wallpaper, that selection now uses Acrylic. Mica picks up your Windows wallpaper?s colors, while Solid gives you a plain background. Cadenza respects Windows transparency and high-contrast settings and falls back to Solid when effects are unavailable. Text and artwork stay fully opaque.
@@ -88,6 +112,14 @@ Premium alone does not provide a developer Client ID. Endpoint availability depe
 Tokens are stored in Windows Credential Manager under `Cadenza/<Client ID>`. Disconnect removes the saved sign-in and clears session data and queue history. Preferences save your Client ID, redirect URL, artist spacing, and appearance choice. Updating from the old project name requires reconnecting because credentials and preferences now use Cadenza. Queue contents are not saved to disk. Remove app access in your Spotify account settings if you also want to revoke authorization at Spotify.
 
 The redirect URL can be chosen freely within [Spotify's redirect URI rules](https://developer.spotify.com/documentation/web-api/concepts/redirect_uri) and must match the registered URL. Spotify requires HTTPS except for explicit loopback IP addresses, and does not allow `localhost`. Cadenza currently receives callbacks through HTTP on `127.0.0.1`; choose any available port and path, for example `http://127.0.0.1:9000/signin`. A remote URL requires a different callback mechanism.
+
+## Your listening queue
+
+Use **+** beside a track to add it to the end of your queue. Right-click the same button (or press Shift+F10 while it has focus) and choose **Play next** to put it first. **Queue loaded tracks** adds the tracks currently loaded in your library, search, or playlist; load more first if you want to include another page.
+
+Open **Queue** to see what's coming up. **Play queue** starts the first track, while a row's play button starts that particular occurrence and removes it from the upcoming list after loading succeeds. You can move tracks up or down, remove them, shuffle with your artist-spacing preference, or clear the list. **Undo** reverses edits, but doesn't bring back tracks that have already started playing. The player shows the upcoming count and total duration.
+
+Duplicates are welcome. The queue holds up to 500 tracks, and a bulk add that would exceed that limit leaves the queue unchanged. It stays in memory for this session and clears when you disconnect or close Cadenza.
 
 ## Project layout
 

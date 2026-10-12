@@ -76,7 +76,7 @@
                 </Grid>
 
                 <Border x:Name="TrackPanel" Grid.Row="1" Visibility="Collapsed" Style="{StaticResource GlassCardStyle}" Padding="8">
-                    <ListView x:Name="TrackList" SelectionMode="Single" HorizontalContentAlignment="Stretch" ItemsSource="{x:Bind Tracks}" AutomationProperties.Name="Tracks">
+                    <ListView x:Name="TrackList" SelectionChanged="QueueSelection_Changed" SelectionMode="Single" HorizontalContentAlignment="Stretch" ItemsSource="{x:Bind Tracks}" AutomationProperties.Name="Tracks">
                         <ListView.ItemContainerStyle><Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}"><Setter Property="CornerRadius" Value="14"/><Setter Property="Margin" Value="0,2"/></Style></ListView.ItemContainerStyle>
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="core:Track">
@@ -90,7 +90,7 @@
                                     </StackPanel>
                                     <TextBlock Grid.Column="2" Text="{x:Bind Duration}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{ThemeResource MutedText}" FontSize="13"/>
                                     <Button Grid.Column="3" Tag="{x:Bind}" Click="PlayTrack_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Play track in Cadenza" ToolTipService.ToolTip="Play"><FontIcon Glyph="&#xE768;" FontSize="14"/></Button>
-                                    <Button Grid.Column="4" Tag="{x:Bind}" Click="Add_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Add track to listening queue" ToolTipService.ToolTip="Add to queue"><FontIcon Glyph="&#xE710;" FontSize="14"/></Button>
+                                    <Button Grid.Column="4" Tag="{x:Bind}" Click="Add_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Add track to listening queue" ToolTipService.ToolTip="Add to queue"><Button.ContextFlyout><MenuFlyout><MenuFlyoutItem Text="Play next" Tag="{x:Bind}" Click="PlayNextMenu_Click"/></MenuFlyout></Button.ContextFlyout><FontIcon Glyph="&#xE710;" FontSize="14"/></Button>
                                     <HyperlinkButton Grid.Column="5" Tag="{x:Bind}" Click="OpenTrack_Click" Style="{StaticResource IconLinkStyle}" AutomationProperties.Name="Open track on Spotify" ToolTipService.ToolTip="Open on Spotify"><FontIcon Glyph="&#xE8A7;" FontSize="14"/></HyperlinkButton>
                                 </Grid>
                             </DataTemplate>
@@ -140,7 +140,7 @@
                                             <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource MutedText}" FontSize="12" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
-                                        <Button Grid.Column="1" Tag="{x:Bind}" Click="Add_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Add track to queue" ToolTipService.ToolTip="Add to queue"><FontIcon Glyph="&#xE710;" FontSize="14"/></Button>
+                                        <Button Grid.Column="1" Tag="{x:Bind}" Click="Add_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Add track to queue" ToolTipService.ToolTip="Add to queue"><Button.ContextFlyout><MenuFlyout><MenuFlyoutItem Text="Play next" Tag="{x:Bind}" Click="PlayNextMenu_Click"/></MenuFlyout></Button.ContextFlyout><FontIcon Glyph="&#xE710;" FontSize="14"/></Button>
                                     </Grid>
                                 </Border>
                             </StackPanel>
@@ -216,13 +216,15 @@
             <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" VerticalScrollBarVisibility="Disabled">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Button x:Name="MoreButton" Content="Load more" Visibility="Collapsed" Click="More_Click" CornerRadius="24" Padding="20,10" Background="{ThemeResource NavSelectedBrush}" BorderBrush="{ThemeResource GlassEdge}"/>
+                    <Button x:Name="QueueLoadedButton" Content="Queue loaded tracks" Click="QueueLoaded_Click" Visibility="Collapsed"/>
                     <StackPanel x:Name="QueueTools" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
-                        <Button Click="Up_Click" AutomationProperties.Name="Move selected track up" ToolTipService.ToolTip="Move up" Width="40" Padding="0"><FontIcon Glyph="&#xE70E;" FontSize="14"/></Button>
-                        <Button Click="Down_Click" AutomationProperties.Name="Move selected track down" ToolTipService.ToolTip="Move down" Width="40" Padding="0"><FontIcon Glyph="&#xE70D;" FontSize="14"/></Button>
-                        <Button Click="Remove_Click"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE74D;" FontSize="14"/><TextBlock Text="Remove"/></StackPanel></Button>
-                        <Button Click="Undo_Click"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7A7;" FontSize="14"/><TextBlock Text="Undo"/></StackPanel></Button>
-                        <Button Click="Shuffle_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="14" Padding="14,9" MinHeight="40"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B1;" FontSize="14"/><TextBlock Text="Shuffle with spacing"/></StackPanel></Button>
-                        <Button Click="Clear_Click"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE894;" FontSize="14"/><TextBlock Text="Clear"/></StackPanel></Button>
+                        <Button x:Name="QueuePlayButton" Content="Play queue" Click="QueuePlay_Click"/>
+                        <Button x:Name="QueueUpButton" Click="Up_Click" AutomationProperties.Name="Move selected track up" ToolTipService.ToolTip="Move up" Width="40" Padding="0"><FontIcon Glyph="&#xE70E;" FontSize="14"/></Button>
+                        <Button x:Name="QueueDownButton" Click="Down_Click" AutomationProperties.Name="Move selected track down" ToolTipService.ToolTip="Move down" Width="40" Padding="0"><FontIcon Glyph="&#xE70D;" FontSize="14"/></Button>
+                        <Button x:Name="QueueRemoveButton" Click="Remove_Click"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE74D;" FontSize="14"/><TextBlock Text="Remove"/></StackPanel></Button>
+                        <Button x:Name="QueueUndoButton" Click="Undo_Click"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7A7;" FontSize="14"/><TextBlock Text="Undo"/></StackPanel></Button>
+                        <Button x:Name="QueueShuffleButton" Click="Shuffle_Click" Style="{StaticResource AccentButtonStyle}" CornerRadius="14" Padding="14,9" MinHeight="40"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B1;" FontSize="14"/><TextBlock Text="Shuffle with spacing"/></StackPanel></Button>
+                        <Button x:Name="QueueClearButton" Click="Clear_Click"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE894;" FontSize="14"/><TextBlock Text="Clear"/></StackPanel></Button>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>

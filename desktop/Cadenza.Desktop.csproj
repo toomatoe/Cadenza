@@ -46,4 +46,21 @@
   <Target Name="RequirePublishedAudio" BeforeTargets="PrepareForPublish">
     <Error Condition="!Exists('../native/target/release/cadenza_audio.dll')" Text="Publishing requires the native audio engine. Run build.ps1 -Publish after installing Rust MSVC and Visual Studio C++ Build Tools, or use build.ps1 -UiOnly to build just the interface." />
   </Target>
+  <!-- WinUI's unpackaged publish does not reliably include these compiled resources.
+       Copy from this build's output rather than trusting files left by an older publish. -->
+  <Target Name="PublishCadenzaXaml" AfterTargets="Publish">
+    <ItemGroup>
+      <CadenzaCompiledXaml Include="$(TargetDir)App.xbf">
+        <PublishPath>App.xbf</PublishPath>
+      </CadenzaCompiledXaml>
+      <CadenzaCompiledXaml Include="$(TargetDir)Views/MainWindow.xbf">
+        <PublishPath>Views/MainWindow.xbf</PublishPath>
+      </CadenzaCompiledXaml>
+      <CadenzaCompiledXaml Include="$(TargetDir)Cadenza.Desktop.pri">
+        <PublishPath>Cadenza.Desktop.pri</PublishPath>
+      </CadenzaCompiledXaml>
+    </ItemGroup>
+    <Error Condition="!Exists('%(CadenzaCompiledXaml.Identity)')" Text="Compiled XAML resource is missing: %(CadenzaCompiledXaml.Identity)" />
+    <Copy SourceFiles="@(CadenzaCompiledXaml)" DestinationFiles="@(CadenzaCompiledXaml->'$(PublishDir)%(PublishPath)')" />
+  </Target>
 </Project>

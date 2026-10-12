@@ -10,6 +10,7 @@ internal static class Program
         var checks = new CheckRunner();
         PkceChecks.Run(checks);
         QueueChecks.Run(checks);
+        await QueueChecks.RunPlaybackAsync(checks);
         PlaybackErrorChecks.Run(checks);
         await SpotifyApiChecks.RunAsync(checks);
         await CatalogControllerChecks.RunAsync(checks);

@@ -33,6 +33,8 @@ public sealed partial class MainWindow : Window
     private bool advanceAfterOperation;
     private Track? playingTrack;
     private uint playingStamp;
+    private uint endedStamp;
+    private bool awaitingTrackLoad;
     private PlaybackState playbackState = PlaybackState.Stopped;
     private CancellationTokenSource? playbackOperation;
     private CancellationTokenSource? active;
@@ -66,6 +68,7 @@ public sealed partial class MainWindow : Window
         RedirectUriBox.Text = preferences.RedirectUri;
         SpacingBox.Value = preferences.ArtistSpacing;
         InitializeAppearance();
+        UpdateQueueLabel();
 
         Root.Loaded += async (_, _) =>
         {

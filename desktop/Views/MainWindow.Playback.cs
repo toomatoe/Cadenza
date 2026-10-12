@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Cadenza.Core.Models;
+using Cadenza.Core.Controllers;
 using Cadenza.Core.Services.Playback;
 using Cadenza.Core.Services.Spotify;
 using Cadenza.Desktop.Converters;
@@ -38,7 +39,7 @@ public sealed partial class MainWindow
     private async Task PlaybackWorkAsync(Func<CancellationToken, Task> action)
     {
         if (closing || signingIn || playbackBusy) return;
-        playbackBusy = true; PlayPauseButton.IsEnabled = false;
+        playbackBusy = true; PlayPauseButton.IsEnabled = false; UpdateQueueControls();
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
         playbackOperation = operation;
         try { await action(operation.Token); }
@@ -50,7 +51,7 @@ public sealed partial class MainWindow
         finally
         {
             playbackBusy = false;
-            if (!closing) PlayPauseButton.IsEnabled = true;
+            if (!closing) { PlayPauseButton.IsEnabled = true; UpdateQueueControls(); }
             if (ReferenceEquals(playbackOperation, operation)) playbackOperation = null;
             if (advanceAfterOperation && !closing)
             {
@@ -70,7 +71,10 @@ public sealed partial class MainWindow
             ct.ThrowIfCancellationRequested(); nativeConnected = true;
             await currentEngine.SetVolumeAsync((uint)VolumeSlider.Value, ct);
         }
-        var stamp = await currentEngine.LoadTrackAsync(track.Id, ct);
+        uint stamp;
+        awaitingTrackLoad = true;
+        try { stamp = await currentEngine.LoadTrackAsync(track.Id, ct); }
+        finally { awaitingTrackLoad = false; }
         ct.ThrowIfCancellationRequested();
         playingStamp = stamp; playingTrack = track; playbackState = PlaybackState.Loading;
         NowPlayingLabel.Text = $"{track.Name} · {track.Artist}";
@@ -99,6 +103,7 @@ public sealed partial class MainWindow
     }
     private void ApplyPlayback(PlaybackUpdate update)
     {
+        if (awaitingTrackLoad) return;
         if (update.State == PlaybackState.Failed)
         {
             if (update.TrackStamp != 0 && update.TrackStamp != playingStamp) return;
@@ -121,15 +126,42 @@ public sealed partial class MainWindow
             _ => $"{TimeSpan.FromMilliseconds(update.PositionMs):m\\:ss} / {playingTrack.Duration}"
         };
         // Explicit queue progression, only after the native end-of-track event.
-        if (update.State == PlaybackState.Ended)
+        if (update.State == PlaybackState.Ended && endedStamp != update.TrackStamp)
         {
+            endedStamp = update.TrackStamp;
             if (playbackBusy) advanceAfterOperation = true;
             else _ = PlaybackWorkAsync(PlayNextAsync);
         }
     }
     private async void PlayTrack_Click(object sender, RoutedEventArgs e)
     {
-        if (((Button)sender).Tag is Track track) { TrackList.SelectedItem = track; LibraryCards.SelectedItem = track; await PlaybackWorkAsync(ct => PlayTrackAsync(track, ct)); }
+        if (((Button)sender).Tag is not Track track) return;
+        if (view == "Queue")
+        {
+            DependencyObject? container = (DependencyObject)sender;
+            while (container is not null && container is not ListViewItem)
+                container = VisualTreeHelper.GetParent(container);
+            var index = container is null ? -1 : TrackList.IndexFromContainer(container);
+            await PlaybackWorkAsync(ct => PlayQueueEntryAsync(index, ct));
+        }
+        else
+        {
+            TrackList.SelectedItem = track; LibraryCards.SelectedItem = track;
+            await PlaybackWorkAsync(ct => PlayTrackAsync(track, ct));
+        }
+    }
+    private async Task PlayQueueEntryAsync(int index, CancellationToken ct)
+    {
+        try
+        {
+            var controller = new QueuePlaybackController(queue);
+            if (!await controller.PlayAsync(index, PlayTrackAsync, ct)) Message("Your listening queue is empty.");
+        }
+        finally
+        {
+            UpdateQueueLabel();
+            if (view == "Queue") RenderQueue(Math.Min(index, queue.Entries.Count - 1));
+        }
     }
     private async void PlayPause_Click(object sender, RoutedEventArgs e)
     {
@@ -137,7 +169,13 @@ public sealed partial class MainWindow
         {
             if (playingTrack is null)
             {
-                var selected = (view == "Library" ? LibraryCards.SelectedItem as Track : TrackList.SelectedItem as Track) ?? queue.Tracks.FirstOrDefault();
+                if (view == "Queue")
+                {
+                    await PlayQueueEntryAsync(TrackList.SelectedIndex >= 0 ? TrackList.SelectedIndex : 0, ct);
+                    return;
+                }
+                var selected = view == "Library" ? LibraryCards.SelectedItem as Track : TrackList.SelectedItem as Track;
+                if (selected is null && queue.Entries.Count > 0) { await PlayQueueEntryAsync(0, ct); return; }
                 if (selected is null) throw new InvalidOperationException("Choose a track or add one to your queue.");
                 await PlayTrackAsync(selected, ct);
             }
@@ -146,14 +184,7 @@ public sealed partial class MainWindow
             else await engine!.ResumeAsync(ct);
         });
     }
-    private async Task PlayNextAsync(CancellationToken ct)
-    {
-        if (queue.Tracks.Count == 0) { Message("Your listening queue is empty."); return; }
-        // Duplicates are allowed. Consume one occurrence after loading, preserving undo.
-        var next = queue.Tracks[0];
-        await PlayTrackAsync(next, ct);
-        queue.RemoveAt(0); UpdateQueueLabel(); if (view == "Queue") RenderQueue();
-    }
+    private Task PlayNextAsync(CancellationToken ct) => PlayQueueEntryAsync(0, ct);
     private async void Next_Click(object sender, RoutedEventArgs e) => await PlaybackWorkAsync(PlayNextAsync);
     private async void Stop_Click(object sender, RoutedEventArgs e) => await PlaybackWorkAsync(async ct => { if (engine is not null && nativeConnected) await engine.StopAsync(ct); });
     private void Position_Pressed(object sender, PointerRoutedEventArgs e) => adjustingPosition = true;
@@ -171,7 +202,7 @@ public sealed partial class MainWindow
     private async Task ResetPlaybackAsync()
     {
         playbackOperation?.Cancel(); advanceAfterOperation = false;
-        var old = engine; engine = null; nativeConnected = false; playingTrack = null; playingStamp = 0;
+        var old = engine; engine = null; nativeConnected = false; playingTrack = null; playingStamp = 0; endedStamp = 0;
         playbackState = PlaybackState.Stopped;
         if (old is not null) await old.DisposeAsync();
         if (!closing)
