@@ -10,7 +10,7 @@ using Cadenza.Core.Services.Contracts;
 
 namespace Cadenza.Core.Services.Spotify;
 
-public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope = SpotifyAuth.LibraryScope)
+public class SpotifyAuth(HttpClient http, ITokenStore store, string scope = SpotifyAuth.LibraryScope)
 {
     public const string RedirectUri = "http://127.0.0.1:8888/callback";
     public const string LibraryScope = "user-library-read playlist-read-private playlist-read-collaborative streaming";

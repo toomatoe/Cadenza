@@ -7,7 +7,7 @@ using Windows.UI;
 namespace Cadenza.Desktop.Services;
 
 // Each window owns its backdrop; the base configuration retains Windows policy handling.
-internal sealed class TransparentAcrylicBackdrop : SystemBackdrop
+public class TransparentAcrylicBackdrop : SystemBackdrop
 {
     private DesktopAcrylicController? controller;
     private bool dark;

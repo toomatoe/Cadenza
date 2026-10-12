@@ -1,6 +1,6 @@
 namespace Cadenza.Core.Models;
 
-public sealed record Track
+public record Track
 {
     // WinUI's metadata generator treats init-only setters as regular setters.
     // Read-only properties keep the model immutable and safe for XAML binding.

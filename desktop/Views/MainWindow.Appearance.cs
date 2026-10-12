@@ -8,7 +8,7 @@ using Windows.UI.ViewManagement;
 
 namespace Cadenza.Desktop.Views;
 
-public sealed partial class MainWindow
+public partial class MainWindow
 {
     private readonly UISettings uiSettings = new();
     private readonly AccessibilitySettings accessibility = new();

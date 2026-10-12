@@ -10,7 +10,7 @@ using Windows.System;
 
 namespace Cadenza.Desktop.Views;
 
-public sealed partial class MainWindow
+public partial class MainWindow
 {
     private void Add_Click(object sender, RoutedEventArgs e)
     {

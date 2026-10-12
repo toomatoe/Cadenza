@@ -15,7 +15,7 @@ using Windows.System;
 
 namespace Cadenza.Desktop.Views;
 
-public sealed partial class MainWindow : Window
+public partial class MainWindow : Window
 {
     private readonly CatalogModel catalog = new();
     private readonly CatalogController catalogController;

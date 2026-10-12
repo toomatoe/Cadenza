@@ -7,7 +7,7 @@ using Cadenza.Core.Services.Spotify;
 
 namespace Cadenza.Core.Services.Playback;
 
-public sealed class NativeEngine : IAsyncDisposable
+public class NativeEngine : IAsyncDisposable
 {
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeEvent

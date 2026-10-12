@@ -1,6 +1,6 @@
 namespace Cadenza.Core.Models;
 
-public sealed record Playlist
+public record Playlist
 {
     public string Id { get; }
     public string Name { get; }

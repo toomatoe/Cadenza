@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Cadenza.Desktop.Converters;
 
-public sealed class ArtworkConverter : IValueConverter
+public class ArtworkConverter : IValueConverter
 {
     // UI-thread-only, weak cache: reuse live decoded artwork without retaining
     // offscreen bitmaps. Both metadata and URL references have a fixed bound.
@@ -16,7 +16,7 @@ public sealed class ArtworkConverter : IValueConverter
         var width = parameter is string text && int.TryParse(text, out var parsed) ? parsed : 360;
         return value is string url ? GetArtwork(url, width) : null;
     }
-    internal static BitmapImage? GetArtwork(string url, int width = 360)
+    public static BitmapImage? GetArtwork(string url, int width = 360)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return null;
         width = Math.Clamp(width, 64, 360);

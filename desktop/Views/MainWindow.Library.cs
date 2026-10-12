@@ -8,7 +8,7 @@ using Microsoft.UI.Xaml.Shapes;
 
 namespace Cadenza.Desktop.Views;
 
-public sealed partial class MainWindow
+public partial class MainWindow
 {
     public ObservableCollection<Track> LibraryTracks { get; } = [];
     public ObservableCollection<QueueEntry> UpcomingTracks { get; } = [];
@@ -128,11 +128,6 @@ public sealed partial class MainWindow
             button.LostFocus += (_, _) => SetPlaylistFanExpanded(false);
             PlaylistFan.Children.Add(button);
         }
-    }
-    private void ArtworkTile_SizeChanged(object sender, SizeChangedEventArgs args)
-    {
-        if (sender is Border tile && args.NewSize.Width > 0 && Math.Abs(tile.Height - args.NewSize.Width) > 0.5)
-            tile.Height = args.NewSize.Width;
     }
     private void SetPlaylistFanExpanded(bool expanded)
     {

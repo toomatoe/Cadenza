@@ -2,7 +2,7 @@ using Cadenza.Core.Models;
 
 namespace Cadenza.Core.Controllers;
 
-public sealed class QueuePlaybackController(ListeningQueue queue)
+public class QueuePlaybackController(ListeningQueue queue)
 {
     public async Task<bool> PlayAsync(int index, Func<Track, CancellationToken, Task> load, CancellationToken ct)
     {

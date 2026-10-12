@@ -1,6 +1,6 @@
 namespace Cadenza.Core.Models;
 
-public sealed class ListeningQueue
+public class ListeningQueue
 {
     public const int Capacity = 500;
     private readonly List<QueueEntry> entries = [];

@@ -1,6 +1,6 @@
 namespace Cadenza.Core.Models;
 
-public sealed record QueueEntry
+public record QueueEntry
 {
     public Guid Id { get; }
     public Track Track { get; }

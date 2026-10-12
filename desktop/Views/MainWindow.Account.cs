@@ -11,7 +11,7 @@ using Windows.System;
 
 namespace Cadenza.Desktop.Views;
 
-public sealed partial class MainWindow
+public partial class MainWindow
 {
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {

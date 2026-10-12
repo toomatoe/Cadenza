@@ -11,7 +11,7 @@ using Windows.System;
 
 namespace Cadenza.Desktop.Views;
 
-public sealed partial class MainWindow
+public partial class MainWindow
 {
     private async void Navigate_Click(object sender, RoutedEventArgs e)
     {
@@ -168,6 +168,9 @@ public sealed partial class MainWindow
     }
     private void UpdateEmpty()
     {
+        EmptyAction.Content = view == "Queue" ? "Browse library" : "Connect Spotify";
+        EmptyAction.Tag = view == "Queue" ? "Library" : "Settings";
+        EmptyAction.Visibility = view == "Queue" || !auth.IsConnected ? Visibility.Visible : Visibility.Collapsed;
         var empty = view == "Playlists" && selectedPlaylist is null ? playlists.Count == 0 : Tracks.Count == 0;
         EmptyState.Visibility = view != "Settings" && empty ? Visibility.Visible : Visibility.Collapsed;
     }

@@ -7,7 +7,7 @@ using Cadenza.Core.Services.Contracts;
 
 namespace Cadenza.Core.Services.Spotify;
 
-public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth) : IMusicCatalog
+public class SpotifyApi(HttpClient http, SpotifyAuth auth) : IMusicCatalog
 {
     public const int PageSize = 10;
     private readonly SemaphoreSlim requestGate = new(1, 1);

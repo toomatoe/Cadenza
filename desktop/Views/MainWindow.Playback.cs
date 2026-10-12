@@ -14,7 +14,7 @@ using Windows.System;
 
 namespace Cadenza.Desktop.Views;
 
-public sealed partial class MainWindow
+public partial class MainWindow
 {
     private async void CheckBridge_Click(object sender, RoutedEventArgs e)
     {

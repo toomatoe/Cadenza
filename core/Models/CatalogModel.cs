@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 namespace Cadenza.Core.Models;
 
 /// <summary>Bounded catalog state shared by the controller and native view.</summary>
-public sealed class CatalogModel
+public class CatalogModel
 {
     public const int ItemLimit = 500;
     public ObservableCollection<Track> Tracks { get; } = [];

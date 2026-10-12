@@ -7,7 +7,7 @@ using Cadenza.Core.Services.Spotify;
 namespace Cadenza.Desktop.Services;
 
 /// <summary>Generic credentials protected by Windows Credential Manager. No token files.</summary>
-internal sealed class WindowsTokenStore : ITokenStore
+public class WindowsTokenStore : ITokenStore
 {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct Credential

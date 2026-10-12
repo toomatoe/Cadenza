@@ -4,7 +4,7 @@ using Cadenza.Desktop.Models;
 
 namespace Cadenza.Desktop.Services;
 
-internal static class PreferencesStore
+public static class PreferencesStore
 {
     private static string FilePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cadenza", "preferences.json");

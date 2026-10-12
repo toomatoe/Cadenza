@@ -1,5 +1,17 @@
 # Claude design restoration
 
+## October 12 sidebar, song cards, and queue correction
+
+Native checks passed; full reference comparison final result: blocked. The in-app browser reported `Browser is not available: iab`, so the attached HTML was inspected as source but could not be freshly rendered for a matching visual comparison. This is not a claim of full design fidelity.
+
+The user screenshot and a fresh native capture (`artifacts/layout-before.png`) confirmed that scrolling the sidebar clipped Library and that caption bands were inset inside the song cards. Navigation now occupies fixed rows, while only playlists scroll with a hidden scrollbar. Native automation confirmed that playlist scrolling remains available, no scrollbar elements are exposed, and Library stays in place.
+
+Song cards now use stable 208 by 266 layout slots, square artwork measured before arrangement, and captions spanning the card width. The earlier per-image SizeChanged height mutation was removed. Rows wrap with the available width. `artifacts/layout-after-cards.png` was inspected to confirm square artwork and visible title/artist captions; partially visible cards at the scroll viewport boundary are expected. Fonts, colors, artwork sources, and music content are preserved. Caption padding and edges follow the supplied HTML; native rendering and fixed card widths remain differences from its fluid CSS grid.
+
+The queue empty state now offers Browse library instead of Connect Spotify. Connected empty catalog views also hide the connection action. Native automation verified the queue label and navigation back to the library. Capture: `artifacts/layout-after-queue.png`.
+
+Validation: desktop Debug UI build passed with zero warnings/errors; 69 core checks passed. Audio playback and a fresh rendered HTML comparison were not tested. The updated desktop app is running.
+
 Status: library structure and tested interactions restored; active-window transparency still needs visual confirmation.
 
 Reference: the user-provided Cadenza Glass Design HTML, rendered locally at 1440 x 900. Captures are under artifacts/ and are not published. The reference uses fictional music and active playback; the native app uses the connected library with idle playback. These content/state differences are not treated as visual defects. This is not a claim of pixel-identical rendering.

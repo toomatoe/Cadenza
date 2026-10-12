@@ -6,7 +6,7 @@ using Cadenza.Core.Services.Spotify;
 namespace Cadenza.Core.Controllers;
 
 /// <summary>Coordinates catalog requests and commits model changes after cancellation checks.</summary>
-public sealed class CatalogController(IMusicCatalog catalog, CatalogModel model)
+public class CatalogController(IMusicCatalog catalog, CatalogModel model)
 {
     public async Task LoadTracksAsync(TrackSource source, string queryOrPlaylistId, bool append, CancellationToken ct)
     {
