@@ -4,11 +4,11 @@ Cadenza is a personal music app for Windows, built with C#/WinUI 3 and Rust. Bro
 
 ## Download and try it
 
-Visit [GitHub Releases](https://github.com/toomatoe/Cadenza/releases) and download **Cadenza-windows-x64.zip** from the release you want to test. Early versions are marked as prereleases. Choose the named Cadenza ZIP under Assets; GitHub's **Source code** downloads are for building the project yourself.
+Visit [GitHub Releases](https://github.com/toomatoe/Cadenza/releases) and download **Cadenza-Setup.exe**. Run it, finish the setup wizard, then open **Cadenza** from your Start menu. Setup keeps the runtime files together, adds a shortcut, and includes an uninstaller. You don't need .NET, Rust, or VS Code installed.
 
-Right-click the ZIP, choose **Extract All**, then open the extracted folder and double-click **Cadenza.Desktop.exe**. Keep the other files beside it. You don't need .NET, Rust, or VS Code installed. `TESTER-START-HERE.txt` in the download walks you through setup and troubleshooting.
+If you prefer a portable copy, choose **Cadenza-windows-x64.zip**, use **Extract All**, then run **Cadenza.Desktop.exe** from the extracted folder. Keep its accompanying files together. GitHub's **Source code** downloads are for building the project yourself.
 
-The download targets Windows 10 build 19041+ and Windows 11 on x64. Early builds are unsigned, so Windows may show a warning or block launch. Native playback is experimental, and Spotify setup still requires a developer Client ID; see [Connect your account](#connect-your-account).
+The download targets Windows 10 build 19041+ and Windows 11 on x64-compatible machines. Early builds are unsigned, so Windows may show a warning or block launch. Native playback is experimental, and Spotify setup still requires a developer Client ID; see [Connect your account](#connect-your-account).
 
 ## What works so far
 
@@ -87,11 +87,11 @@ git tag v0.1.0-beta.1
 git push origin v0.1.0-beta.1
 ```
 
-The Windows workflow builds and tests that exact tag, publishes a self-contained app, and attaches **Cadenza-windows-x64.zip** and its **SHA-256 checksum** to a GitHub Release. Tags with a suffix such as `-beta.1` become prereleases. A tag like `v0.1.0` becomes a stable release and is marked latest. Share the specific release page with testers, especially for prereleases.
+The Windows workflow builds and tests that exact tag, publishes a self-contained app, and attaches **Cadenza-Setup.exe**, the optional portable **Cadenza-windows-x64.zip**, and a **SHA-256 checksum** for each to a GitHub Release. Tags with a suffix such as `-beta.1` become prereleases. A tag like `v0.1.0` becomes a stable release and is marked latest. Share the specific release page with testers, especially for prereleases.
 
-The release stays a draft until both files upload successfully. If an upload fails, rerun the failed job to finish the draft. Published downloads are not overwritten; ship a new version tag for a fix. Ordinary branch pushes, pull requests, and manual workflow runs build downloadable Actions artifacts without publishing a Release. The workflow uses GitHub's built-in token, so no personal access token needs to be configured.
+The release stays a draft until all downloads and checksums upload successfully. If an upload fails, rerun the failed job to finish the draft. Published downloads are not overwritten; ship a new version tag for a fix. Ordinary branch pushes, pull requests, and manual workflow runs build downloadable Actions artifacts without publishing a Release. The workflow uses GitHub's built-in token, so no personal access token needs to be configured.
 
-For a local package, run `build.ps1 -Publish` (optionally with `-Version 0.1.0-beta.1`). It writes the ZIP and checksum to `artifacts/` after checking the executable, native audio DLL, and compiled XAML resources. Test the extracted package on a clean Windows machine before inviting a wider group.
+For a local package, run `build.ps1 -Publish` (optionally with `-Version 0.1.0-beta.1`). It writes the installer, portable ZIP, and checksums to `artifacts/` after checking the executable, native audio DLL, and compiled XAML resources. The installer is built with Inno Setup 6; the script downloads the pinned official compiler and checks its signature if it is not already installed. Test installation on a clean Windows machine before inviting a wider group.
 
 ## Appearance
 

@@ -35,6 +35,8 @@ jobs:
         with:
           name: Cadenza-windows-x64
           path: |
+            artifacts/Cadenza-Setup.exe
+            artifacts/Cadenza-Setup.exe.sha256
             artifacts/Cadenza-windows-x64.zip
             artifacts/Cadenza-windows-x64.zip.sha256
           if-no-files-found: error
@@ -62,21 +64,33 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $archive = 'download/Cadenza-windows-x64.zip'
-          $checksumFile = "$archive.sha256"
-          $expectedHash = ((Get-Content -LiteralPath $checksumFile -Raw).Trim() -split '\s+')[0]
-          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ine $expectedHash) { throw 'Download checksum mismatch.' }
+          $uploadFiles = @()
+          foreach ($asset in @('download/Cadenza-Setup.exe', 'download/Cadenza-windows-x64.zip')) {
+            $checksumFile = "$asset.sha256"
+            $expectedHash = ((Get-Content -LiteralPath $checksumFile -Raw).Trim() -split '\s+')[0]
+            if ((Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash -ine $expectedHash) { throw "Checksum mismatch: $asset" }
+            $uploadFiles += @($asset, $checksumFile)
+          }
+          $notes = @'
+          ## Install Cadenza
+          Download **Cadenza-Setup.exe**, run it, then open **Cadenza** from the Start menu.
+          The installer keeps the runtime files together and includes an uninstaller.
+          The ZIP is an optional portable download; extract it fully before launching Cadenza.Desktop.exe.
+          This is an unsigned early build for x64-compatible Windows 10 (19041+) and Windows 11.
+          Spotify setup currently requires a developer Client ID. See the README for account setup.
+          '@
+          Set-Content -LiteralPath 'download/release-notes.md' -Value $notes -Encoding utf8
           $isPrerelease = $env:RELEASE_TAG.Contains('-')
           $releaseDraft = & gh release view $env:RELEASE_TAG --json isDraft --jq '.isDraft' 2>$null
           if ($LASTEXITCODE -eq 0) {
             if ($releaseDraft -ne 'true') { throw 'This release is already published. Use a new version tag instead of replacing public downloads.' }
           } else {
-            $createArguments = @('release', 'create', $env:RELEASE_TAG, '--verify-tag', '--draft', '--generate-notes', '--title', "Cadenza $env:RELEASE_TAG")
+            $createArguments = @('release', 'create', $env:RELEASE_TAG, '--verify-tag', '--draft', '--generate-notes', '--notes-file', 'download/release-notes.md', '--title', "Cadenza $env:RELEASE_TAG")
             if ($isPrerelease) { $createArguments += '--prerelease' }
             & gh @createArguments
             if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release.' }
           }
-          & gh release upload $env:RELEASE_TAG $archive $checksumFile --clobber
+          & gh release upload $env:RELEASE_TAG @uploadFiles --clobber
           if ($LASTEXITCODE -ne 0) { throw 'Could not attach downloads. The release remains a draft.' }
           $latest = if ($isPrerelease) { 'false' } else { 'true' }
           & gh release edit $env:RELEASE_TAG --draft=false "--prerelease=$($isPrerelease.ToString().ToLowerInvariant())" "--latest=$latest"

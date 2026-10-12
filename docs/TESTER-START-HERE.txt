@@ -1,8 +1,15 @@
 Welcome to Cadenza!
 
+Recommended download: Cadenza-Setup.exe
+Run it, finish setup, then open Cadenza from your Start menu.
+You can remove it from Windows Settings > Apps. Preferences and sign-in stay
+in your user profile; disconnect in Cadenza first if you want to clear sign-in.
+You do not need to install .NET, Rust, or VS Code.
+
+Portable ZIP alternative:
 1. Extract the whole ZIP using Windows "Extract All".
 2. Open the extracted folder and double-click Cadenza.Desktop.exe.
-3. Keep all the files together. You do not need to install .NET, Rust, or VS Code.
+3. Keep all the files together.
 
 This build is for 64-bit Windows 10 (build 19041+) and Windows 11.
 If Windows reports a missing Visual C++ runtime dependency, install Microsoft's
@@ -17,7 +24,8 @@ Client ID and registered loopback redirect URL. See README.md for setup details.
 Native streaming is experimental and requires Spotify Premium.
 
 Queue contents stay in memory and clear when you close or disconnect.
-For an update, close Cadenza and extract the new ZIP into a fresh folder.
+For an update, close Cadenza and run the new installer.
+For portable copies, extract the new ZIP into a fresh folder.
 Saved preferences and sign-in live outside the application folder.
 
 Report issues at https://github.com/toomatoe/Cadenza/issues

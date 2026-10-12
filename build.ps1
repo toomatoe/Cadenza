@@ -49,7 +49,9 @@ try {
         Compress-Archive -Path (Join-Path $publishDirectory '*') -DestinationPath $archivePath -Force
         $checksum = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
         Set-Content -LiteralPath "$archivePath.sha256" -Value "$checksum  Cadenza-windows-x64.zip" -Encoding ascii
-        Write-Host "Download package: $archivePath"
+        Write-Host "Portable package: $archivePath"
+        $installerVersion = if ($Version) { $Version } else { '0.1.0-dev' }
+        & (Join-Path $PSScriptRoot 'scripts/Build-Installer.ps1') -Version $installerVersion -PublishDirectory $publishDirectory -InstallCompiler
 
     }
 } finally { Pop-Location }
