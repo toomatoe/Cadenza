@@ -1,11 +1,17 @@
-# Reference comparison
+# Claude design restoration
 
-final result: blocked
+Status: library structure and tested interactions restored; active-window transparency still needs visual confirmation.
 
-The target is the user's wallpaper-backed native Cadenza library reference. Actual WinUI captures live under `artifacts/ui-validation/wallpaper-option-*.png` (local, ignored artifacts). The latest capture shows four album columns, the first albums at the top, square artwork, reduced card padding, rounded sidebar/player surfaces, and the heading/search layout without the former hero and animated fan.
+Reference: the user-provided Cadenza Glass Design HTML, rendered locally at 1440 x 900. Captures are under artifacts/ and are not published. The reference uses fictional music and active playback; the native app uses the connected library with idle playback. These content/state differences are not treated as visual defects. This is not a claim of pixel-identical rendering.
 
-Typography uses native Segoe UI, with the reference's hierarchy retained. Spacing was corrected to put albums immediately below the header. Shared light theme colors retain blue controls and opaque text. Artwork uses real catalog URLs and bounded decoding; no replacement images or generated mockups were used. Content and actions remain the existing catalog, playlist, queue, and playback controls.
+Restored the Sora headings and DM Sans text from the bundled reference fonts, the hero with Up next preview, playlist fan with hover/focus expansion, Recently added All/Liked filters, rounded square artwork, caption bands, search pill, and compact dark player control. Native Acrylic remains the background material.
 
-Full material fidelity cannot be judged: Windows Transparency effects is off on this machine, so the captured Wallpaper and Mica choices are Solid fallbacks. The source attachment also is not available as a local image for a normalized side-by-side composite. The actual enabled Wallpaper/Mica appearance and high-contrast runtime state still require capture and comparison. Smaller windows appropriately scroll, rather than fitting the entire reference's two rows into a short viewport.
+Earlier defects corrected: missing hero/fan/filters; mismatched typography; oversized navigation and cards; duplicate bottom library toolbar; clipped section heading; zero-height artwork and missing item data contexts in the virtualized shelf. Post-fix artwork capture: artifacts/restored-library-cards.png. The source and native captures were also placed together in artifacts/design-comparison.png for structural review.
 
-Do not treat passing builds or successful captures as a passing visual-match gate. Follow `docs/UI-VALIDATION.md` to complete the remaining checks; preserve the user's direction not to test playback.
+Checks: Debug and Release builds succeeded with zero warnings/errors; all 69 core checks passed. Native UI automation verified All/Liked switching, scrolling, adding a track, queue badge update, queue navigation, undo, and the Up next section moving below the hero at a compact width. The temporary queue addition was undone. Audio playback was not started.
+
+Remaining native differences: Windows caption controls/icons and system-material rendering; real album artwork instead of the reference's fictional record tiles. Likes currently last for the session and do not alter Spotify's saved library. Continuous record/equalizer animation is not implemented.
+
+Follow-up rendering correction: the user's screenshot exposed overlapping captions, insufficient light-theme contrast over a dark desktop, and a clipped player timeline. The earlier structural checks did not catch those defects. Playlist cards now stretch their content across the full card and use in-app Acrylic with a stronger caption surface to obscure underlying labels. The light theme has a neutral translucent wash and stronger panel fills. Idle player text is shorter, its text column is wider, and the timeline uses the native control's required height instead of being forced into 22 pixels. Programmatic playlist brushes refresh when the appearance changes.
+
+Validation after this correction: Debug and Release builds passed with zero warnings/errors; 69 core checks passed; native automation checked idle player text, timeline height, and library scrolling. Window-only captures are artifacts/render-fix-home.png and artifacts/render-fix-shelf.png. The home capture confirms card occlusion and the complete player thumb, but shows the inactive Acrylic fallback; active desktop transparency and a pixel-perfect reference match are not claimed. Audio playback was not started.

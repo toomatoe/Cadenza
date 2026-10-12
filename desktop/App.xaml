@@ -17,16 +17,18 @@
                     <Color x:Key="SystemAccentColorDark1">#115AC0</Color>
                     <Color x:Key="SystemAccentColorDark2">#10488F</Color>
                     <Color x:Key="SystemAccentColorDark3">#103866</Color>
-                    <SolidColorBrush x:Key="Accent" Color="#1469DE" />
-                    <SolidColorBrush x:Key="Ink" Color="#17283E" />
-                    <SolidColorBrush x:Key="MutedText" Color="#526278" />
+                    <SolidColorBrush x:Key="Accent" Color="#2A74CF" />
+                    <SolidColorBrush x:Key="Ink" Color="#10243D" />
+                    <SolidColorBrush x:Key="MutedText" Color="#465D77" />
                     <SolidColorBrush x:Key="SolidWindow" Color="#E7EDF7" />
-                    <SolidColorBrush x:Key="WindowWash" Color="#041469DE" />
-                    <SolidColorBrush x:Key="GlassSurface" Color="#28FFFFFF" />
+                    <SolidColorBrush x:Key="WindowWash" Color="#70EEF4FF" />
+                    <SolidColorBrush x:Key="GlassSurface" Color="#66FFFFFF" />
+                    <AcrylicBrush x:Key="PlaylistFanSurface" TintColor="#F4F8FF" TintOpacity="0.55" TintLuminosityOpacity="0.75" FallbackColor="#E7EDF7" />
+                    <SolidColorBrush x:Key="PlaylistCaption" Color="#E6F4F8FF" />
                     <SolidColorBrush x:Key="GlassEdge" Color="#D6FFFFFF" />
-                    <SolidColorBrush x:Key="CaptionBand" Color="Transparent" />
-                    <SolidColorBrush x:Key="CaptionEdge" Color="Transparent" />
-                    <SolidColorBrush x:Key="CardSurface" Color="#28FFFFFF" />
+                    <SolidColorBrush x:Key="CaptionBand" Color="#4DFFFFFF" />
+                    <SolidColorBrush x:Key="CaptionEdge" Color="#73FFFFFF" />
+                    <SolidColorBrush x:Key="CardSurface" Color="#66FFFFFF" />
                     <SolidColorBrush x:Key="NavSelectedBrush" Color="#99FFFFFF" />
                     <SolidColorBrush x:Key="NavIdleBrush" Color="Transparent" />
                 </ResourceDictionary>
@@ -37,6 +39,8 @@
                     <SolidColorBrush x:Key="SolidWindow" Color="#20242B" />
                     <SolidColorBrush x:Key="WindowWash" Color="#0C4A8EDB" />
                     <SolidColorBrush x:Key="GlassSurface" Color="#182D3F58" />
+                    <AcrylicBrush x:Key="PlaylistFanSurface" TintColor="#202B3C" TintOpacity="0.65" TintLuminosityOpacity="0.65" FallbackColor="#202B3C" />
+                    <SolidColorBrush x:Key="PlaylistCaption" Color="#E6202B3C" />
                     <SolidColorBrush x:Key="GlassEdge" Color="#506F829B" />
                     <SolidColorBrush x:Key="CaptionBand" Color="Transparent" />
                     <SolidColorBrush x:Key="CaptionEdge" Color="Transparent" />
@@ -51,6 +55,8 @@
                     <SolidColorBrush x:Key="SolidWindow" Color="{ThemeResource SystemColorWindowColor}" />
                     <SolidColorBrush x:Key="WindowWash" Color="Transparent" />
                     <SolidColorBrush x:Key="GlassSurface" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="PlaylistFanSurface" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="PlaylistCaption" Color="{ThemeResource SystemColorWindowColor}" />
                     <SolidColorBrush x:Key="GlassEdge" Color="{ThemeResource SystemColorWindowTextColor}" />
                     <SolidColorBrush x:Key="CaptionBand" Color="{ThemeResource SystemColorWindowColor}" />
                     <SolidColorBrush x:Key="CaptionEdge" Color="{ThemeResource SystemColorWindowColor}" />
@@ -65,14 +71,19 @@
             <SolidColorBrush x:Key="ArtEdge" Color="#40FFFFFF" />
             <local:ArtworkConverter x:Key="ArtworkConverter" />
 
+            <FontFamily x:Key="BodyFont">ms-appx:///Assets/Fonts/DMSans.ttf#DM Sans 9pt</FontFamily>
+            <FontFamily x:Key="HeadingFont">ms-appx:///Assets/Fonts/Sora.ttf#Sora</FontFamily>
+            <SolidColorBrush x:Key="VinylFill" Color="#14283D"/>
             <Style TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{ThemeResource Ink}" />
+                <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
             </Style>
 
             <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
                 <Setter Property="CornerRadius" Value="14" />
                 <Setter Property="Padding" Value="14,9" />
                 <Setter Property="MinHeight" Value="40" />
+                <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
                 <Setter Property="UseSystemFocusVisuals" Value="True" />
             </Style>
             <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
@@ -85,15 +96,16 @@
                 <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
             <Style x:Key="NavButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-                <Setter Property="Height" Value="48" />
-                <Setter Property="Padding" Value="14,0" />
-                <Setter Property="CornerRadius" Value="22" />
+                <Setter Property="Height" Value="44" />
+                <Setter Property="Padding" Value="12,0" />
+                <Setter Property="CornerRadius" Value="14" />
                 <Setter Property="HorizontalAlignment" Value="Stretch" />
                 <Setter Property="HorizontalContentAlignment" Value="Left" />
                 <Setter Property="Background" Value="{ThemeResource NavIdleBrush}" />
                 <Setter Property="BorderBrush" Value="{ThemeResource NavIdleBrush}" />
             </Style>
             <Style x:Key="PillAccentButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+                <Setter Property="Background" Value="{ThemeResource Accent}" />
                 <Setter Property="CornerRadius" Value="22" />
                 <Setter Property="Padding" Value="20,10" />
                 <Setter Property="MinHeight" Value="44" />
@@ -128,6 +140,8 @@
                 <Setter Property="Foreground" Value="{ThemeResource MutedText}" />
             </Style>
             <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource Ink}" />
+                <Setter Property="FontFamily" Value="{StaticResource HeadingFont}" />
                 <Setter Property="FontSize" Value="22" />
                 <Setter Property="FontWeight" Value="SemiBold" />
             </Style>

@@ -20,6 +20,11 @@ public sealed partial class MainWindow
     private void Root_SizeChanged(object sender, SizeChangedEventArgs args)
     {
         var compact = args.NewSize.Width < 1100;
+        Grid.SetRow(HeroQueue, compact ? 1 : 0);
+        Grid.SetColumn(HeroQueue, compact ? 0 : 1);
+        HeroQueueColumn.Width = compact ? new GridLength(0) : new GridLength(2, GridUnitType.Star);
+        Grid.SetColumnSpan(HeroMain, compact ? 2 : 1);
+        Grid.SetColumnSpan(HeroQueue, compact ? 2 : 1);
         if (compactLayout == compact) return;
         compactLayout = compact;
         Grid.SetRow(SearchPanel, compact ? 1 : 0);
@@ -85,6 +90,7 @@ public sealed partial class MainWindow
                 ? Windows.UI.Color.FromArgb(40, 255, 255, 255)
                 : Windows.UI.Color.FromArgb(24, 0, 0, 0);
         UpdateNav();
+        RefreshPlaylistDeck();
     }
 
     private void Appearance_SelectionChanged(object sender, SelectionChangedEventArgs e)

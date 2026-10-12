@@ -66,6 +66,7 @@ public sealed partial class MainWindow
         PinnedPlaylists.Clear();
         foreach (var item in pinned) PinnedPlaylists.Add(item);
         UpdatePinnedPlaylists();
+        RefreshPlaylistDeck();
         if (view == "Library") ScrollLibraryToTop();
     }
     private void UpdatePinnedPlaylists() =>
@@ -89,8 +90,8 @@ public sealed partial class MainWindow
     {
         // Page replacement changes the scroll extent. Commit layout once before
         // resetting the offset so recycled containers cannot keep an old page position.
-        LibraryCards.UpdateLayout();
-        libraryScroller ??= FindScrollViewer(LibraryCards);
+        LibraryScroll.UpdateLayout();
+        libraryScroller ??= LibraryScroll;
         if (libraryScroller is null) return;
         // A newly selected library starts at its first album.
         libraryScroller.VerticalAnchorRatio = double.NaN;
@@ -130,6 +131,7 @@ public sealed partial class MainWindow
         ConnectionLabel.Text = "Spotify connected";
         UpdateEmpty();
         UpdateQueueControls();
+        if (source == TrackSource.SavedLibrary) RefreshLibrary(true);
         if (!append && view == "Library") ScrollLibraryToTop();
     }
     private void UpdateNav()
@@ -150,10 +152,14 @@ public sealed partial class MainWindow
     {
         PlayPauseGlyph.Glyph = playing ? "" : "";
         AutomationProperties.SetName(PlayPauseButton, playing ? "Pause" : "Play");
+        HeroPlayGlyph.Glyph = PlayPauseGlyph.Glyph;
+        HeroPlayLabel.Text = playing ? "Pause" : "Play";
+        RefreshHero();
     }
     private void UpdateViewSurfaces()
     {
-        LibraryCards.Visibility = view == "Library" ? Visibility.Visible : Visibility.Collapsed;
+        LibraryScroll.Visibility = view == "Library" ? Visibility.Visible : Visibility.Collapsed;
+        CatalogTools.Visibility = view == "Library" ? Visibility.Collapsed : Visibility.Visible;
         PlaylistCards.Visibility = view == "Playlists" && selectedPlaylist is null ? Visibility.Visible : Visibility.Collapsed;
         PlaylistDetail.Visibility = view == "Playlists" && selectedPlaylist is not null ? Visibility.Visible : Visibility.Collapsed;
         TrackPanel.Visibility = view == "Search" || view == "Queue" || (view == "Playlists" && selectedPlaylist is not null) ? Visibility.Visible : Visibility.Collapsed;
@@ -191,7 +197,7 @@ public sealed partial class MainWindow
     private async void BackToPlaylists_Click(object sender, RoutedEventArgs e) => await NavigateAsync("Playlists");
     private void LibraryCard_Click(object sender, ItemClickEventArgs e)
     {
-        if (e.ClickedItem is Track track) LibraryCards.SelectedItem = track;
+        if (e.ClickedItem is Track track) selectedLibraryTrack = track;
     }
     private async void Search_Click(object sender, RoutedEventArgs e)
     {

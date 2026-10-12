@@ -113,6 +113,8 @@ Tokens are stored in Windows Credential Manager under `Cadenza/<Client ID>`. Dis
 
 The redirect URL can be chosen freely within [Spotify's redirect URI rules](https://developer.spotify.com/documentation/web-api/concepts/redirect_uri) and must match the registered URL. Spotify requires HTTPS except for explicit loopback IP addresses, and does not allow `localhost`. Cadenza currently receives callbacks through HTTP on `127.0.0.1`; choose any available port and path, for example `http://127.0.0.1:9000/signin`. A remote URL requires a different callback mechanism.
 
+The library follows the original glass design: Sora headings and DM Sans text, a now-playing hero with an Up next preview, an overlapping playlist fan, and a Recently added shelf. The All/Liked filter and player heart keep likes for the current session; they do not change your saved Spotify library.
+
 ## Your listening queue
 
 Use **+** beside a track to add it to the end of your queue. Right-click the same button (or press Shift+F10 while it has focus) and choose **Play next** to put it first. **Queue loaded tracks** adds the tracks currently loaded in your library, search, or playlist; load more first if you want to include another page.

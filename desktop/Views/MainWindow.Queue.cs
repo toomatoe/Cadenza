@@ -30,8 +30,11 @@ public sealed partial class MainWindow
         var count = queue.Entries.Count;
         var duration = TimeSpan.FromMilliseconds(queue.DurationMs);
         var time = duration.TotalHours >= 1 ? $"{(int)duration.TotalHours} hr {duration.Minutes} min" : $"{Math.Ceiling(duration.TotalMinutes)} min";
-        QueueLabel.Text = count == 0 ? "Queue empty" : $"{count} upcoming / {time}";
+        QueueCountBadge.Text = count.ToString();
+        ToolTipService.SetToolTip(QueueCountBadge, count == 0 ? "Queue empty" : $"{count} upcoming / {time}");
+        QueueLabel.Text = playingTrack?.Artist ?? "Choose a track";
         UpdateQueueControls();
+        RefreshUpcoming();
     }
     private void RenderQueue(int selection = -1)
     {

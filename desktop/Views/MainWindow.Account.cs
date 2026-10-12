@@ -44,6 +44,7 @@ public sealed partial class MainWindow
             catalogController.Reset();
             queue.Forget();
             UpdateQueueLabel(); PinnedPlaylists.Clear(); UpdatePinnedPlaylists();
+            likedTrackIds.Clear(); librarySnapshot.Clear(); selectedLibraryTrack = null; RefreshLibrary(); RefreshPlaylistDeck();
             ConnectionLabel.Text = "Spotify disconnected"; hasMore = false;
             MoreButton.Visibility = Visibility.Collapsed; UpdateEmpty();
             Message("Disconnected. Saved sign-in and session data were removed.", InfoBarSeverity.Success);

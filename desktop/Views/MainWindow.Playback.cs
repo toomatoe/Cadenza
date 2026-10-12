@@ -39,7 +39,7 @@ public sealed partial class MainWindow
     private async Task PlaybackWorkAsync(Func<CancellationToken, Task> action)
     {
         if (closing || signingIn || playbackBusy) return;
-        playbackBusy = true; PlayPauseButton.IsEnabled = false; UpdateQueueControls();
+        playbackBusy = true; PlayPauseButton.IsEnabled = false; UpdateQueueControls(); RefreshHero();
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
         playbackOperation = operation;
         try { await action(operation.Token); }
@@ -51,7 +51,7 @@ public sealed partial class MainWindow
         finally
         {
             playbackBusy = false;
-            if (!closing) { PlayPauseButton.IsEnabled = true; UpdateQueueControls(); }
+            if (!closing) { PlayPauseButton.IsEnabled = true; UpdateQueueControls(); RefreshHero(); }
             if (ReferenceEquals(playbackOperation, operation)) playbackOperation = null;
             if (advanceAfterOperation && !closing)
             {
@@ -77,7 +77,8 @@ public sealed partial class MainWindow
         finally { awaitingTrackLoad = false; }
         ct.ThrowIfCancellationRequested();
         playingStamp = stamp; playingTrack = track; playbackState = PlaybackState.Loading;
-        NowPlayingLabel.Text = $"{track.Name} · {track.Artist}";
+        NowPlayingLabel.Text = track.Name;
+        QueueLabel.Text = track.Artist;
         NowPlayingImage.Source = ArtworkConverter.GetArtwork(track.ArtworkUrl, 112);
         PositionSlider.Maximum = Math.Max(1, track.DurationMs); PositionSlider.Value = 0; PositionSlider.IsEnabled = true;
         PlaybackLabel.Text = "Loading…"; ShowPlayGlyph(true);
@@ -146,7 +147,7 @@ public sealed partial class MainWindow
         }
         else
         {
-            TrackList.SelectedItem = track; LibraryCards.SelectedItem = track;
+            TrackList.SelectedItem = track; selectedLibraryTrack = track;
             await PlaybackWorkAsync(ct => PlayTrackAsync(track, ct));
         }
     }
@@ -174,7 +175,7 @@ public sealed partial class MainWindow
                     await PlayQueueEntryAsync(TrackList.SelectedIndex >= 0 ? TrackList.SelectedIndex : 0, ct);
                     return;
                 }
-                var selected = view == "Library" ? LibraryCards.SelectedItem as Track : TrackList.SelectedItem as Track;
+                var selected = view == "Library" ? selectedLibraryTrack : TrackList.SelectedItem as Track;
                 if (selected is null && queue.Entries.Count > 0) { await PlayQueueEntryAsync(0, ct); return; }
                 if (selected is null) throw new InvalidOperationException("Choose a track or add one to your queue.");
                 await PlayTrackAsync(selected, ct);
@@ -207,7 +208,7 @@ public sealed partial class MainWindow
         if (old is not null) await old.DisposeAsync();
         if (!closing)
         {
-            NowPlayingLabel.Text = "Choose a track to play"; NowPlayingImage.Source = null; PlaybackLabel.Text = "Not playing";
+            NowPlayingLabel.Text = "Nothing playing"; NowPlayingImage.Source = null; PlaybackLabel.Text = "Not playing";
             ShowPlayGlyph(false); PositionSlider.IsEnabled = false; PositionSlider.Value = 0;
         }
     }

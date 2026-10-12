@@ -63,12 +63,17 @@ public sealed partial class MainWindow : Window
         AppWindow.TitleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 16, 36, 61);
         AppWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
         AppWindow.TitleBar.ButtonInactiveBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1320, 880));
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 900));
         ClientIdBox.Text = preferences.ClientId;
         RedirectUriBox.Text = preferences.RedirectUri;
         SpacingBox.Value = preferences.ArtistSpacing;
         InitializeAppearance();
+        UpdateViewSurfaces();
         UpdateQueueLabel();
+        RefreshLibrary();
+        RefreshPlaylistDeck();
+        PlaylistFan.PointerEntered += (_, _) => SetPlaylistFanExpanded(true);
+        PlaylistFan.PointerExited += (_, _) => SetPlaylistFanExpanded(false);
 
         Root.Loaded += async (_, _) =>
         {

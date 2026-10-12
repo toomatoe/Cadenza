@@ -18,6 +18,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
     <ProjectReference Include="../core/Cadenza.Core.csproj" />
+    <Content Include="Assets/Fonts/*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
 
   </ItemGroup>
   <PropertyGroup>
