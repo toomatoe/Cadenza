@@ -19,7 +19,8 @@ namespace Cadenza.Core.Services.Spotify;
 public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope = SpotifyAuth.LibraryScope) : IDisposable
 {
     public const string RedirectUri = "http://127.0.0.1:8888/callback";
-    public const string LibraryScope = "user-library-read playlist-read-private playlist-read-collaborative streaming";
+    public const string LibraryScope =
+        "user-library-read playlist-read-private playlist-read-collaborative streaming user-top-read user-read-recently-played";
 
     // Spotify's streaming servers reject tokens issued to third-party Web API apps. Playback signs in
     // separately with the desktop client ID librespot is built for, on librespot's loopback redirect.

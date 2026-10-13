@@ -73,7 +73,9 @@ public sealed partial class MainWindow : Window
         ClientIdBox.Text = _preferences.ClientId;
         RedirectUriBox.Text = _preferences.RedirectUri;
         SpacingBox.Value = _preferences.ArtistSpacing;
+        DiscoverySlider.Value = Math.Round(_preferences.Discovery * 100);
         InitializeAppearance();
+        InitializeProfile();
         UpdateViewSurfaces();
         UpdateQueueLabel();
         RefreshLibrary();
@@ -215,6 +217,7 @@ public sealed partial class MainWindow : Window
         }
         finally
         {
+            _similarArtists?.Dispose();
             _spotifyApi.Dispose();
             _auth.Dispose();
             _playbackAuth.Dispose();

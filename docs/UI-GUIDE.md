@@ -88,7 +88,7 @@ Both fonts ship in `desktop/Assets/Fonts`, with their OFL licences. Don't add ot
 │ title bar (36px, draggable, "Cadenza")                                         – □ ×          │
 │ ┌ sidebar (220, glass) ┐  ┌ page ─────────────────────────────────────────────────────────┐ │
 │ │ cadenza / tagline    │  │ EYEBROW                                        [ search pill ] │ │
-│ │ Library  Search      │  │ Page title                                                     │ │
+│ │ Library  For you     │  │ Page title                                                     │ │
 │ │ Playlists  Queue (n) │  │ ┌ content: Library / Search / Playlists / Queue / Settings ──┐ │ │
 │ │ PLAYLISTS (scroll)   │  │ │                                                            │ │ │
 │ │ ● Spotify connected  │  │ └────────────────────────────────────────────────────────────┘ │ │
@@ -103,6 +103,7 @@ Both fonts ship in `desktop/Assets/Fonts`, with their OFL licences. Don't add ot
 Pages are the `AppView` enum (`desktop/Models/AppView.cs`). Navigation buttons carry the enum name in `Tag`.
 
 - **Library:** hero card ("JUMP BACK IN", or "NOW PLAYING" while playing) with glossy record artwork, Play / Add to queue / Open, and an **Up next** column showing three queued tracks. Below it, **Your playlists** (the fan) and **Recently added** with All / Liked chips and the album grid.
+- **For you:** a reconnect InfoBar when the newer Spotify scopes are missing, a glass header card with the Familiar–New discovery slider and Refresh, then titled shelves (More like your favourites, Deeper cuts, Something new) of 208px album cards. Each card adds a one-line accent reason (its tooltip shows the score breakdown) and a "Not interested" button on the artwork. Nothing loads until the page is opened.
 - **Search:** results list; an empty-state card before you type ("Find something to play").
 - **Playlists:** playlist card grid, and a playlist detail header with its track list.
 - **Queue:** track list with a toolbar (Play queue, up/down, Remove, Undo, Shuffle with spacing, Clear); empty state "A fresh listening session".
@@ -110,7 +111,7 @@ Pages are the `AppView` enum (`desktop/Models/AppView.cs`). Navigation buttons c
 
 Below 1100px wide (`CompactLayoutWidth`), the search pill drops under the title and Up next moves under the hero. Every layout change must still work at that width.
 
-Code for each area lives in the matching `MainWindow.*.cs` partial (Catalog, Library, Queue, Playback, Account, Appearance). See `docs/ARCHITECTURE.md` for coding conventions.
+Code for each area lives in the matching `MainWindow.*.cs` partial (Catalog, Library, Queue, Playback, Account, Appearance, Profile, Recommendations). See `docs/ARCHITECTURE.md` for coding conventions.
 
 ---
 
@@ -160,6 +161,12 @@ After any change to backgrounds, margins, borders or panels, look closely at **a
 - **Disabled controls** must look disabled. Never hide important controls just because they're unavailable.
 
 ---
+
+## 5a. Profile companion
+
+- The pixel-art companion (`PixelSprite`) must stay **crisp**: integer scaling in physical pixels, never `Stretch` or fractional sizes. New art must be 24×24 in `core/Sprites/SpriteArt.cs` using the documented palette keys, and must be original or CC0.
+- It is decorative and personal: it may bring its own colours, but keep it small (sidebar about 48px, preview about 120px) and never let it carry information unavailable elsewhere.
+- Animation is low frame rate, pauses when hidden, and respects Windows animation settings.
 
 ## 6. Accessibility (non-negotiable)
 
