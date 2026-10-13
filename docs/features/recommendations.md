@@ -94,8 +94,8 @@ Each suggestion keeps its top contributing term as a **reason**: "Because you sa
 
 ## Open questions
 
-1. Is a one-time reconnect for the `user-top-read` and `user-read-recently-played` scopes acceptable?
-2. Are third-party sources (ListenBrainz, optionally Last.fm) fine, given they need network calls carrying artist and track names, though no user identity?
+1. ~~One-time reconnect for the extra scopes?~~ **Decided: yes.** Add `user-top-read` and `user-read-recently-played` to `LibraryScope`, and prompt once to reconnect, explaining why.
+2. ~~Third-party similarity sources?~~ **Decided: yes** for ListenBrainz/MusicBrainz (artist and track names only, never user identity). Last.fm stays optional, pending a terms check.
 3. Should recommendations also draw on friends' listening, once the Friends feature exists (opt-in)?
 4. Confirm the reading of Spotify Developer Policy clause 14 for local, non-ML scoring before release.
 
