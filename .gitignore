@@ -22,3 +22,8 @@ artifacts/
 *.log
 .DS_Store
 Thumbs.db
+
+# Local Cadenza Friends databases
+*.db
+*.db-shm
+*.db-wal

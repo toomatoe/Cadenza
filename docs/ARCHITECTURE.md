@@ -15,6 +15,8 @@ The catalog follows MVC boundaries:
 | Preference models | `desktop/Models/Preferences.cs`, `AppearanceMode.cs` | Preference values only; Wallpaper is the appearance default, while old Solid preferences are retained. |
 | Windows services | `desktop/Services/PreferencesStore.cs`, `WindowsTokenStore.cs` | JSON persistence with atomic replacement and Windows Credential Manager access. Persistence does not live in models. |
 | Native playback services | `core/Services/Playback/NativeEngine.cs`, `PlaybackErrors.cs`, `native/` | Existing command/event ABI, bounded queues, request correlation, and native audio lifecycle. Playback state and update records live in Models. |
+| Recommendations | `core/Recommendations/` | Deterministic taste profile, ListenBrainz similarity lookups, scoring and diversity re-rank; documented in `docs/features/recommendations.md`. |
+| Friends | `core/Social/`, `server/` | Shared contracts and validation, the HTTP + WebSocket client, and the ASP.NET Core + SQLite server; documented in `docs/features/friends.md`. |
 | Supporting types | `core/Security/Pkce.cs`, `core/Exceptions/SpotifyApiException.cs`, `desktop/Converters/ArtworkConverter.cs` | Security helpers, exceptions, and XAML converters are separated from services, models, and views. |
 
 `desktop/App.xaml` and `App.xaml.cs` remain at the project root as the WinUI application entry point. Files in `desktop/Views/` use the `Cadenza.Desktop.Views` namespace. The same folder-to-namespace convention applies to Models, Controllers, Services, Security, Exceptions, and Converters.

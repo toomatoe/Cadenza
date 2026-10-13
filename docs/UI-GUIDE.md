@@ -104,6 +104,7 @@ Pages are the `AppView` enum (`desktop/Models/AppView.cs`). Navigation buttons c
 
 - **Library:** hero card ("JUMP BACK IN", or "NOW PLAYING" while playing) with glossy record artwork, Play / Add to queue / Open, and an **Up next** column showing three queued tracks. Below it, **Your playlists** (the fan) and **Recently added** with All / Liked chips and the album grid.
 - **For you:** a reconnect InfoBar when the newer Spotify scopes are missing, a glass header card with the Familiar–New discovery slider and Refresh, then titled shelves (More like your favourites, Deeper cuts, Something new) of 208px album cards. Each card adds a one-line accent reason (its tooltip shows the score breakdown) and a "Not interested" button on the artwork. Nothing loads until the page is opened.
+- **Friends:** a join card (server address, invite code, username, display name) until you join. Then two glass columns: on the left, you, an Invite button, add-by-username, incoming requests and your friends; on the right, the conversation, where chat bubbles align by sender and shared tracks show as a small art tile with Play and Add to queue. The composer has Share what's playing and Send to their queue. The Friends nav item shows an unread count.
 - **Search:** results list; an empty-state card before you type ("Find something to play").
 - **Playlists:** playlist card grid, and a playlist detail header with its track list.
 - **Queue:** track list with a toolbar (Play queue, up/down, Remove, Undo, Shuffle with spacing, Clear); empty state "A fresh listening session".
@@ -111,7 +112,7 @@ Pages are the `AppView` enum (`desktop/Models/AppView.cs`). Navigation buttons c
 
 Below 1100px wide (`CompactLayoutWidth`), the search pill drops under the title and Up next moves under the hero. Every layout change must still work at that width.
 
-Code for each area lives in the matching `MainWindow.*.cs` partial (Catalog, Library, Queue, Playback, Account, Appearance, Profile, Recommendations). See `docs/ARCHITECTURE.md` for coding conventions.
+Code for each area lives in the matching `MainWindow.*.cs` partial (Catalog, Library, Queue, Playback, Account, Appearance, Profile, Recommendations, Friends). See `docs/ARCHITECTURE.md` for coding conventions.
 
 ---
 

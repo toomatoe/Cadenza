@@ -97,6 +97,7 @@ public sealed partial class MainWindow : Window
 
     private async void Root_Loaded(object sender, RoutedEventArgs e)
     {
+        _ = RestoreFriendsAsync();
         if (_preferences.ClientId.Length == 0)
         {
             return;
@@ -218,6 +219,11 @@ public sealed partial class MainWindow : Window
         finally
         {
             _similarArtists?.Dispose();
+            if (_socialLive is not null)
+            {
+                await _socialLive.DisposeAsync();
+            }
+
             _spotifyApi.Dispose();
             _auth.Dispose();
             _playbackAuth.Dispose();

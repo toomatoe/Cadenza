@@ -8,5 +8,6 @@ public enum AppView
     Search,
     Playlists,
     Queue,
+    Friends,
     Settings
 }

@@ -131,6 +131,19 @@ public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth) : IMusicCatalo
             .ToArray();
     }
 
+    /// <summary>One track by ID; used to show tracks friends share, which arrive as IDs only.</summary>
+    public async Task<Track> TrackAsync(string id, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        if (id.Length != SpotifyIdLength || id.Any(c => !char.IsAsciiLetterOrDigit(c)))
+        {
+            throw new ArgumentException("Invalid track ID.", nameof(id));
+        }
+
+        using var document = await GetAsync(Route($"tracks/{id}"), ct);
+        return ParseTrack(document.RootElement);
+    }
+
     public void Dispose() => _requestGate.Dispose();
 
     private static string RangeName(TimeRange range) => range switch

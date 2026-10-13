@@ -16,6 +16,7 @@ internal static class Program
         await SpotifyApiChecks.RunAsync(checks);
         await CatalogControllerChecks.RunAsync(checks);
         await RecommendationChecks.RunAsync(checks);
+        await SocialChecks.RunAsync(checks);
         if (args.Contains("--native"))
             await NativeBridgeChecks.RunAsync(checks);
         Console.WriteLine($"PASS: {checks.Passed} checks");
