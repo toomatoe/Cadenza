@@ -69,7 +69,7 @@ Each suggestion keeps its top contributing term as a **reason**: "Because you sa
 
 - A glass header card with the **discovery dial** and a **Refresh** button.
 - Shelves such as **"More like your recent favourites"**, **"Deeper cuts from artists you love"** and **"Something new"**, each a row of the standard 208px cards with a one-line reason caption.
-- Per card: Play, Add to queue, 👍 / "Not interested" (as icons, not emoji), and a "Why?" tooltip with the score breakdown.
+- Per card: Play, Add to queue, Like and "Not interested" (Fluent icons), and a "Why?" tooltip with the score breakdown.
 - An empty state for new accounts: "Listen to a few tracks and we'll start suggesting."
 
 ## Architecture
