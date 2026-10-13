@@ -173,7 +173,7 @@
                                     <ItemsControl ItemsSource="{x:Bind UpcomingTracks}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="core:QueueEntry">
                                         <Button Tag="{x:Bind Id}" Click="UpcomingPlay_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderBrush="Transparent" CornerRadius="14" Padding="8">
                                             <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource ArtTile}"><Image Source="{x:Bind Track.ArtworkUrl, Converter={StaticResource ArtworkConverter}, ConverterParameter=80}" Stretch="UniformToFill"/></Border>
+                                                <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource ArtTile}"><Image Source="{Binding Track.ArtworkUrl, Converter={StaticResource ArtworkConverter}, ConverterParameter=80}" Stretch="UniformToFill"/></Border>
                                                 <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{x:Bind Track.Name}" FontSize="14" FontWeight="Medium" TextTrimming="CharacterEllipsis"/><TextBlock Text="{x:Bind Track.Artist}" FontSize="12" Foreground="{ThemeResource MutedText}" TextTrimming="CharacterEllipsis"/></StackPanel>
                                                 <TextBlock Grid.Column="2" Text="{x:Bind Track.Duration}" FontSize="12" Foreground="{ThemeResource MutedText}" VerticalAlignment="Center"/>
                                             </Grid>
@@ -202,7 +202,7 @@
                                 <Border CornerRadius="14" Background="{StaticResource ArtTile}" BorderBrush="{StaticResource ArtEdge}" BorderThickness="1">
                                     <Grid>
                                         <Viewbox Width="112" Height="112"><Grid Width="112" Height="112"><Ellipse Fill="{StaticResource VinylFill}" Stroke="#99FFFFFF" StrokeThickness="1"/><Ellipse Width="38" Height="38" Fill="{ThemeResource Accent}"/><Ellipse Width="9" Height="9" Fill="{StaticResource VinylFill}"/></Grid></Viewbox>
-                                        <Image Source="{x:Bind ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill"/>
+                                        <Image Source="{Binding ArtworkUrl, Converter={StaticResource ArtworkConverter}}" Stretch="UniformToFill"/>
 
                                         <Button Tag="{x:Bind}" Click="PlayTrack_Click" Style="{StaticResource AccentButtonStyle}" Width="46" Height="46" Padding="0" CornerRadius="23" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,10" AutomationProperties.Name="Play track in Cadenza" ToolTipService.ToolTip="Play"><FontIcon Glyph="&#xE768;" FontSize="14"/></Button>
                                     </Grid>
