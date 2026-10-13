@@ -12,6 +12,10 @@ namespace Cadenza.Desktop.Views;
 
 public partial class MainWindow
 {
+    // Keep queue rows separate from the Spotify catalog to avoid recursive list updates.
+    public ObservableCollection<Track> QueueTracks { get; } = [];
+    private bool renderingQueue;
+
     private void Add_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is not Track track) return;
@@ -38,14 +42,29 @@ public partial class MainWindow
     }
     private void RenderQueue(int selection = -1)
     {
-        Tracks.Clear(); foreach (var track in queue.Tracks) Tracks.Add(track);
-        if (selection >= 0 && selection < Tracks.Count) TrackList.SelectedIndex = selection;
-        UpdateQueueLabel(); UpdateEmpty();
+        if (renderingQueue) return;
+        renderingQueue = true;
+        try
+        {
+            // Reset the selection before replacing rows so selection notifications
+            // cannot query stale indexes during list virtualization.
+            TrackList.SelectedIndex = -1;
+            QueueTracks.Clear();
+            foreach (var track in queue.Tracks) QueueTracks.Add(track);
+            if (selection >= 0 && selection < QueueTracks.Count)
+                TrackList.SelectedIndex = selection;
+        }
+        finally { renderingQueue = false; }
+        UpdateQueueLabel();
+        UpdateEmpty();
     }
-    private void QueueSelection_Changed(object sender, SelectionChangedEventArgs e) => UpdateQueueControls();
+    private void QueueSelection_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!renderingQueue) UpdateQueueControls();
+    }
     private void UpdateQueueControls()
     {
-        if (QueuePlayButton is null) return;
+        if (QueuePlayButton is null || renderingQueue) return;
         var count = queue.Entries.Count;
         var index = view == "Queue" ? TrackList.SelectedIndex : -1;
         QueueUpButton.IsEnabled = index > 0;
