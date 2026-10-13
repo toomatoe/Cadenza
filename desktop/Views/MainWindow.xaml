@@ -2,18 +2,21 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:core="using:Cadenza.Core.Models" xmlns:controls="using:Cadenza.Desktop.Controls" Title="Cadenza">
-    <Grid x:Name="Root" Margin="16,0,16,16" RequestedTheme="Light" Background="Transparent" KeyDown="Root_KeyDown" SizeChanged="Root_SizeChanged">
-        <Grid.RowDefinitions><RowDefinition Height="36"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Grid.ColumnDefinitions><ColumnDefinition x:Name="SidebarColumn" Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-
-        <Border x:Name="SolidBackground" Grid.RowSpan="3" Grid.ColumnSpan="2" Background="{ThemeResource SolidWindow}" IsHitTestVisible="False" />
-        <Border Grid.RowSpan="3" Grid.ColumnSpan="2" Background="{ThemeResource WindowWash}" IsHitTestVisible="False" />
+    <!-- The background layers fill the whole window; only the content below is inset. Keeping them
+         inside the inset grid left a strip of untinted Acrylic, with a visible seam, around the edges. -->
+    <Grid x:Name="WindowSurface" RequestedTheme="Light" Background="Transparent">
+        <Border x:Name="SolidBackground" Background="{ThemeResource SolidWindow}" IsHitTestVisible="False" />
+        <Border Background="{ThemeResource WindowWash}" IsHitTestVisible="False" />
         <!-- Soft light behind the glass panels, as in the design mockup. -->
-        <Grid Grid.RowSpan="3" Grid.ColumnSpan="2" IsHitTestVisible="False">
+        <Grid IsHitTestVisible="False">
             <Rectangle Fill="{ThemeResource GlowPrimary}" />
             <Rectangle Fill="{ThemeResource GlowHighlight}" />
             <Rectangle Fill="{ThemeResource GlowLower}" />
         </Grid>
+
+    <Grid x:Name="Root" Margin="16,0,16,16" RequestedTheme="Light" Background="Transparent" KeyDown="Root_KeyDown" SizeChanged="Root_SizeChanged">
+        <Grid.RowDefinitions><RowDefinition Height="36"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition x:Name="SidebarColumn" Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
         <Grid x:Name="AppTitleBar" Grid.ColumnSpan="2" Background="Transparent"><TextBlock Text="Cadenza" FontSize="12" Foreground="{ThemeResource MutedText}" Margin="22,0,0,0" VerticalAlignment="Center"/></Grid>
 
@@ -324,5 +327,6 @@
                 </StackPanel>
             </Grid>
         </Border>
+    </Grid>
     </Grid>
 </Window>
