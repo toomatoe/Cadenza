@@ -8,6 +8,12 @@
 
         <Border x:Name="SolidBackground" Grid.RowSpan="3" Grid.ColumnSpan="2" Background="{ThemeResource SolidWindow}" IsHitTestVisible="False" />
         <Border Grid.RowSpan="3" Grid.ColumnSpan="2" Background="{ThemeResource WindowWash}" IsHitTestVisible="False" />
+        <!-- Soft light behind the glass panels, as in the design mockup. -->
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="2" IsHitTestVisible="False">
+            <Rectangle Fill="{ThemeResource GlowPrimary}" />
+            <Rectangle Fill="{ThemeResource GlowHighlight}" />
+            <Rectangle Fill="{ThemeResource GlowLower}" />
+        </Grid>
 
         <Grid x:Name="AppTitleBar" Grid.ColumnSpan="2" Background="Transparent"><TextBlock Text="Cadenza" FontSize="12" Foreground="{ThemeResource MutedText}" Margin="22,0,0,0" VerticalAlignment="Center"/></Grid>
 

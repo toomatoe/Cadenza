@@ -16,8 +16,8 @@ namespace Cadenza.Desktop.Services;
 public sealed class TransparentAcrylicBackdrop : SystemBackdrop
 {
     private static readonly Color s_darkTint = Color.FromArgb(255, 32, 36, 43);
-    private static readonly Color s_lightTint = Color.FromArgb(255, 245, 248, 255);
-    private static readonly Color s_lightFallback = Color.FromArgb(255, 231, 237, 247);
+    private static readonly Color s_lightTint = Color.FromArgb(255, 214, 232, 250);
+    private static readonly Color s_lightFallback = Color.FromArgb(255, 221, 235, 248);
 
     private DesktopAcrylicController? _controller;
     private bool _dark;
@@ -57,7 +57,7 @@ public sealed class TransparentAcrylicBackdrop : SystemBackdrop
         }
 
         _controller.TintColor = _dark ? s_darkTint : s_lightTint;
-        _controller.TintOpacity = _dark ? 0.20f : 0.15f;
+        _controller.TintOpacity = _dark ? 0.20f : 0.22f;
         _controller.LuminosityOpacity = 0.35f;
         _controller.FallbackColor = _dark ? s_darkTint : s_lightFallback;
     }
