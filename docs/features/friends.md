@@ -1,6 +1,6 @@
-# Friends tab (design proposal)
+# Friends tab
 
-**Status:** proposal; nothing built yet. This is the largest of the planned features because it needs a server. Review the open questions at the end before implementation starts.
+**Status:** first release built (phases 1–3). See "What was built"; the sections around it are the original proposal.
 
 ## Goal
 
@@ -73,6 +73,27 @@ Deployment gets its own guide: `server/DEPLOY-RASPBERRY-PI.md`.
 - Followers load the same track through their own engine and seek to `positionMs + (now − serverTimestamp)`. They re-sync when drift exceeds about 1.5 s.
 - Followers who aren't Premium, or can't play the track in their region, see a message and can still chat.
 
+## What was built (first release)
+
+Phases 1–3 are built: accounts, friend lists, one-to-one chat, share cards, queue gifts, block and report.
+
+| Area | As built | Changed from the proposal because |
+| --- | --- | --- |
+| Real-time | Plain **WebSockets** (`/api/live`), one per device, with 30 s keep-alives and client reconnect backoff (2 s doubling to 60 s). | SignalR's client package would add weight to the desktop app; `ClientWebSocket` is built into .NET. |
+| Database | **SQLite** in one file, through `Microsoft.Data.Sqlite.Core`, with no ORM. WAL mode, foreign keys and cascade deletes. | No database server to run on the Pi; plenty for an invite-only group. |
+| Accounts | **Invite code + device token.** Joining needs a single-use invite (valid 7 days, at most 5 open per person). The server returns a random 256-bit token, stores only its SHA-256 hash, and the app keeps the token in Windows Credential Manager. Whoever invited you becomes your first friend. The first account uses a bootstrap invite printed in the server log. | Passkeys or magic links need an identity or email service. Invite-only matches "you and your friends". |
+| Server | ASP.NET Core minimal API (`server/`), with contracts shared from `core/Social`. Built-in rate limiting: 30 messages per minute and 20 slow actions (joins, invites, friend requests, reports) per hour. | — |
+| Client | `core/Social` (`SocialClient`, `SocialConnection`) and the desktop Friends page (`MainWindow.Friends.cs`). It connects at startup only if you've joined, and adds **no NuGet packages** to the app. | — |
+| Shares | Messages carry only a Spotify track ID. Each client looks up the name and artwork with its own Spotify session (`SpotifyApi.TrackAsync`) and caches up to 200 tracks for the session. | — |
+
+**Safety, as built:** only friends can message or read a conversation. Blocking removes the friendship, stops messages both ways, and makes you look like a username that doesn't exist. Reports store a copy of the message for the owner to review (see `server/DEPLOY-RASPBERRY-PI.md`). Queue gifts default to **ask first**. "Leave Cadenza Friends" deletes the account and everything tied to it. Message text is capped at 2,000 characters.
+
+**Not built yet:** "now listening" presence and sprites in the friends list (phase 4), listen together (phase 5), and the games (phase 6).
+
+**Tests:** `tests/Suites/SocialChecks.cs` starts the real server on a random local port with a temporary database, and drives it with the real client and WebSocket. It covers invites, friend requests, live delivery, history paging, validation, reports, blocks, sign-out and account deletion.
+
+**Known caveat:** the bundled SQLite build (`SQLitePCLRaw` 2.1.11) is flagged for CVE-2025-6965, and no patched 2.x release exists yet. The bug needs attacker-controlled SQL to trigger, and this server only runs fixed, parameterized statements, so the advisory is suppressed with a note in the project file. Remove the suppression when a patched release ships. On the Pi, the system's `libsqlite3` could be used instead.
+
 ## Page design (follows docs/UI-GUIDE.md)
 
 - **Left column:** a glass list of friends with their profile sprites, names and opt-in "now listening" line; requests at the top.
@@ -98,9 +119,9 @@ Deployment gets its own guide: `server/DEPLOY-RASPBERRY-PI.md`.
 ## Open questions
 
 1. ~~**Hosting:**~~ **Decided: the owner's Raspberry Pi** behind Cloudflare Tunnel. Still open: who reviews reports (assumed: the owner)?
-2. **Accounts:** passkeys, email magic link, or both?
-3. **Audience:** just you and friends for now (simpler: invite-only), or open sign-up?
-4. **Encryption:** is TLS plus encryption at rest acceptable for the first release, with end-to-end encryption later?
+2. ~~**Accounts:**~~ **Decided for now:** invite code + device token (see "What was built"). Passkeys can come later.
+3. ~~**Audience:**~~ **Decided:** invite-only.
+4. **Encryption:** TLS in transit (Cloudflare), optional LUKS at rest. End-to-end encryption remains a later option.
 5. **Onboarding friction:** each friend needs Spotify Premium and their own developer Client ID. Is that acceptable for the intended audience?
 
 ## Sources

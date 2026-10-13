@@ -5,6 +5,9 @@
   <Folder Name="/desktop/">
     <Project Path="desktop/Cadenza.Desktop.csproj" />
   </Folder>
+  <Folder Name="/server/">
+    <Project Path="server/Cadenza.Server.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Cadenza.Tests.csproj" />
   </Folder>

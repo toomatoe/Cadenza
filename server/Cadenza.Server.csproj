@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Framework-dependent; publish with -r linux-arm64 for the Raspberry Pi (see DEPLOY-RASPBERRY-PI.md). -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- CVE-2025-6965 (bundled SQLite < 3.50.2) needs attacker-controlled SQL to trigger. This server runs only
+         fixed, parameterized statements, and no patched SQLitePCLRaw 2.x exists yet. Remove when one does. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.5" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.11" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../core/Cadenza.Core.csproj" /></ItemGroup>
+</Project>
