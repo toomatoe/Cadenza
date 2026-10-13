@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Cadenza.Core.Models;
+using Cadenza.Core.Sprites;
 using Cadenza.Desktop.Converters;
 using Cadenza.Desktop.Models;
 using Microsoft.UI.Text;
@@ -118,7 +119,11 @@ public sealed partial class MainWindow
             return;
         }
 
-        if (!_likedTrackIds.Add(_playingTrack.Id))
+        if (_likedTrackIds.Add(_playingTrack.Id))
+        {
+            ReactSprite(SpriteGlyph.Heart);
+        }
+        else
         {
             _likedTrackIds.Remove(_playingTrack.Id);
         }

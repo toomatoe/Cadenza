@@ -1,6 +1,6 @@
 # Profile sprite (design proposal)
 
-**Status:** proposal; nothing built yet. Review the open questions at the end before implementation starts.
+**Status:** implemented (first release). Six original companions, colour and accent swatches, four accessories, playback moods, sidebar placement and a Settings → Profile editor.
 
 ## Goal
 
@@ -69,3 +69,12 @@ It should feel at home in the frosted ice-blue look (docs/UI-GUIDE.md): the spri
 2. **Species list:** which animals, and should rarer ones unlock through listening milestones?
 3. **Placement:** sidebar only, or also a tiny version in the player bar?
 4. Should friends be able to see your sprite's current mood, i.e. "listening now"? That shares playback state, so it would be opt-in.
+
+## What was built (first release)
+
+- **Original art, not a downloaded pack.** The owner allowed creative freedom, so the companions are drawn for Cadenza as 24×24 text grids in `core/Sprites/SpriteArt.cs` and released under **CC0**. That avoids third-party licence terms entirely, and the character-per-colour format makes palette swaps trivial. 24×24 was chosen over 32×32 for a chunkier, more readable look at sidebar size.
+- **Companions:** cat, fox, frog, bunny, chick, axolotl. **Accessories:** none, headphones, beanie, scarf, flower. **Colours:** 9 body and 6 accent swatches ("A" keeps the species' own colours).
+- **Composition:** `SpriteComposer` (pure, unit-tested) builds each frame: body shade derived from the chosen colour, accessories placed from per-species head anchors, every species aligned to the same ground line, and mood glyphs drawn above.
+- **Rendering:** `desktop/Controls/PixelSprite` writes the frame into a `WriteableBitmap` scaled by a whole number of *physical* pixels for the current display scale, so art stays crisp at 100%, 125% and 150%. It runs at 10 fps, stops while the window is hidden, and holds a still frame when Windows animations are off.
+- **Moods:** idle (blinks), playing (bobs and floats notes), paused (eyes closed, "z"), liking a track (heart), playback failure (question mark).
+- **Where:** next to the wordmark in the sidebar (click to edit) and in Settings → Profile with a live preview. Saved in `preferences.json` as `Sprite`; older files load the default companion, Mochi the cat with headphones.

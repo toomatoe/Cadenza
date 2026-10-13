@@ -206,6 +206,7 @@ public sealed partial class MainWindow
         HeroPlayLabel.Text = playing ? "Pause" : "Play";
         AutomationProperties.SetName(HeroPlayButton, HeroPlayLabel.Text);
         RefreshHero();
+        UpdateSpriteMood();
     }
 
     private void UpdateViewSurfaces()

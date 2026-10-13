@@ -161,6 +161,12 @@ After any change to backgrounds, margins, borders or panels, look closely at **a
 
 ---
 
+## 5a. Profile companion
+
+- The pixel-art companion (`PixelSprite`) must stay **crisp**: integer scaling in physical pixels, never `Stretch` or fractional sizes. New art must be 24×24 in `core/Sprites/SpriteArt.cs` using the documented palette keys, and must be original or CC0.
+- It is decorative and personal: it may bring its own colours, but keep it small (sidebar about 48px, preview about 120px) and never let it carry information unavailable elsewhere.
+- Animation is low frame rate, pauses when hidden, and respects Windows animation settings.
+
 ## 6. Accessibility (non-negotiable)
 
 - Every icon-only or icon-and-text button needs `AutomationProperties.Name`. WinUI can't derive a name from a `StackPanel`.

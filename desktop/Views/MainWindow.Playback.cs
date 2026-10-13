@@ -2,6 +2,7 @@ using Cadenza.Core.Controllers;
 using Cadenza.Core.Models;
 using Cadenza.Core.Services.Playback;
 using Cadenza.Core.Services.Spotify;
+using Cadenza.Core.Sprites;
 using Cadenza.Desktop.Converters;
 using Cadenza.Desktop.Models;
 using Microsoft.UI.Xaml;
@@ -203,6 +204,7 @@ public sealed partial class MainWindow
             PlaybackLabel.Text = "Playback failed";
             ShowPlayGlyph(false);
             Message(PlaybackErrors.Describe(update.ErrorCode), InfoBarSeverity.Error);
+            ReactSprite(SpriteGlyph.Question);
             return;
         }
 

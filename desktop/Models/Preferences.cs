@@ -1,4 +1,5 @@
 using Cadenza.Core.Services.Spotify;
+using Cadenza.Core.Sprites;
 
 namespace Cadenza.Desktop.Models;
 
@@ -8,9 +9,11 @@ namespace Cadenza.Desktop.Models;
 /// <param name="RedirectUri">Loopback redirect registered in the Spotify developer app.</param>
 /// <param name="SolidAppearance">Legacy flag kept so older preference files still load.</param>
 /// <param name="Appearance">Window material; null falls back to <paramref name="SolidAppearance"/>.</param>
+/// <param name="Sprite">The profile companion; null (older files) uses the default companion.</param>
 public sealed record Preferences(
     string ClientId = "",
     int ArtistSpacing = 2,
     string RedirectUri = SpotifyAuth.RedirectUri,
     bool SolidAppearance = false,
-    AppearanceMode? Appearance = null);
+    AppearanceMode? Appearance = null,
+    SpriteProfile? Sprite = null);
