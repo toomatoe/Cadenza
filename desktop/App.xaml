@@ -20,8 +20,29 @@
                     <SolidColorBrush x:Key="Accent" Color="#2A74CF" />
                     <SolidColorBrush x:Key="Ink" Color="#10243D" />
                     <SolidColorBrush x:Key="MutedText" Color="#465D77" />
-                    <SolidColorBrush x:Key="SolidWindow" Color="#E7EDF7" />
-                    <SolidColorBrush x:Key="WindowWash" Color="#70EEF4FF" />
+                    <LinearGradientBrush x:Key="SolidWindow" StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#EEF5FC" Offset="0" />
+                        <GradientStop Color="#DDEBF8" Offset="0.55" />
+                        <GradientStop Color="#D2E4F5" Offset="1" />
+                    </LinearGradientBrush>
+                    <!-- Translucent ice-blue wash: tints the Acrylic blue while the blurred desktop still shows through. -->
+                    <LinearGradientBrush x:Key="WindowWash" StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#59DCEBF9" Offset="0" />
+                        <GradientStop Color="#4CC9DFF5" Offset="0.55" />
+                        <GradientStop Color="#59B8D5F2" Offset="1" />
+                    </LinearGradientBrush>
+                    <RadialGradientBrush x:Key="GlowPrimary" Center="0.08,0.05" GradientOrigin="0.08,0.05" RadiusX="0.55" RadiusY="0.7">
+                        <GradientStop Color="#8C9FCBF2" Offset="0" />
+                        <GradientStop Color="#009FCBF2" Offset="1" />
+                    </RadialGradientBrush>
+                    <RadialGradientBrush x:Key="GlowHighlight" Center="0.92,0.3" GradientOrigin="0.92,0.3" RadiusX="0.45" RadiusY="0.6">
+                        <GradientStop Color="#99FFFFFF" Offset="0" />
+                        <GradientStop Color="#00FFFFFF" Offset="1" />
+                    </RadialGradientBrush>
+                    <RadialGradientBrush x:Key="GlowLower" Center="0.5,1" GradientOrigin="0.5,1" RadiusX="0.5" RadiusY="0.55">
+                        <GradientStop Color="#8086BDEE" Offset="0" />
+                        <GradientStop Color="#0086BDEE" Offset="1" />
+                    </RadialGradientBrush>
                     <SolidColorBrush x:Key="GlassSurface" Color="#66FFFFFF" />
                     <AcrylicBrush x:Key="PlaylistFanSurface" TintColor="#F4F8FF" TintOpacity="0.55" TintLuminosityOpacity="0.75" FallbackColor="#E7EDF7" />
                     <SolidColorBrush x:Key="PlaylistCaption" Color="#E6F4F8FF" />
@@ -38,6 +59,9 @@
                     <SolidColorBrush x:Key="MutedText" Color="#B6C3D4" />
                     <SolidColorBrush x:Key="SolidWindow" Color="#20242B" />
                     <SolidColorBrush x:Key="WindowWash" Color="#0C4A8EDB" />
+                    <RadialGradientBrush x:Key="GlowPrimary" Center="0.08,0.05" GradientOrigin="0.08,0.05" RadiusX="0.55" RadiusY="0.7"><GradientStop Color="#404A8EDB" Offset="0" /><GradientStop Color="#004A8EDB" Offset="1" /></RadialGradientBrush>
+                    <RadialGradientBrush x:Key="GlowHighlight" Center="0.92,0.3" GradientOrigin="0.92,0.3" RadiusX="0.45" RadiusY="0.6"><GradientStop Color="#14FFFFFF" Offset="0" /><GradientStop Color="#00FFFFFF" Offset="1" /></RadialGradientBrush>
+                    <RadialGradientBrush x:Key="GlowLower" Center="0.5,1" GradientOrigin="0.5,1" RadiusX="0.5" RadiusY="0.55"><GradientStop Color="#334A8EDB" Offset="0" /><GradientStop Color="#004A8EDB" Offset="1" /></RadialGradientBrush>
                     <SolidColorBrush x:Key="GlassSurface" Color="#182D3F58" />
                     <AcrylicBrush x:Key="PlaylistFanSurface" TintColor="#202B3C" TintOpacity="0.65" TintLuminosityOpacity="0.65" FallbackColor="#202B3C" />
                     <SolidColorBrush x:Key="PlaylistCaption" Color="#E6202B3C" />
@@ -54,6 +78,9 @@
                     <SolidColorBrush x:Key="MutedText" Color="{ThemeResource SystemColorWindowTextColor}" />
                     <SolidColorBrush x:Key="SolidWindow" Color="{ThemeResource SystemColorWindowColor}" />
                     <SolidColorBrush x:Key="WindowWash" Color="Transparent" />
+                    <SolidColorBrush x:Key="GlowPrimary" Color="Transparent" />
+                    <SolidColorBrush x:Key="GlowHighlight" Color="Transparent" />
+                    <SolidColorBrush x:Key="GlowLower" Color="Transparent" />
                     <SolidColorBrush x:Key="GlassSurface" Color="{ThemeResource SystemColorWindowColor}" />
                     <SolidColorBrush x:Key="PlaylistFanSurface" Color="{ThemeResource SystemColorWindowColor}" />
                     <SolidColorBrush x:Key="PlaylistCaption" Color="{ThemeResource SystemColorWindowColor}" />
@@ -76,6 +103,11 @@
             <SolidColorBrush x:Key="VinylFill" Color="#14283D"/>
             <Style TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{ThemeResource Ink}" />
+                <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
+            </Style>
+
+            <!-- Text inside a button: no fixed Foreground, so it follows the button's visual states (disabled, accent). -->
+            <Style x:Key="ButtonLabelStyle" TargetType="TextBlock">
                 <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
             </Style>
 

@@ -135,7 +135,9 @@ Duplicates are welcome. The queue holds up to 500 tracks, and a bulk add that wo
 | `core/Controllers/` | Catalog request coordination and model updates |
 | `core/Services/` | Spotify services, playback bridge, and service contracts |
 | `core/Security/`, `core/Exceptions/` | PKCE helper and service exceptions |
+| `core/Recommendations/`, `core/Sprites/`, `core/Social/` | "For you" scoring, profile companion art, and the Friends client and contracts |
 | `native/` | Rust DLL and command/event contract |
+| `server/` | Optional Cadenza Friends server (ASP.NET Core + SQLite); see `server/DEPLOY-RASPBERRY-PI.md` |
 | `tests/` | Small entry point, with Suites, Fixtures, and Infrastructure folders |
 
 Preferences live in a small JSON file for now. We?ll consider SQLite when the app has more data to keep between sessions. Spotify Web API data stays in C#; audio/session work belongs in Rust. Async functions do not cross the ABI: commands return promptly and C# Tasks complete when events arrive.

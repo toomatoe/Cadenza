@@ -41,7 +41,8 @@ internal static class CatalogControllerChecks
         }
 
         model.Tracks.Clear();
-        for (var index = 0; index < CatalogModel.ItemLimit - 1; index++) model.Tracks.Add(Song(index.ToString(), "artist"));
+        for (var index = 0; index < CatalogModel.ItemLimit - 1; index++)
+            model.Tracks.Add(Song(index, "artist"));
         catalog.Tracks = Enumerable.Range(0, SpotifyApi.PageSize).Select(index => Song($"extra-{index}", "artist")).ToArray();
         await controller.LoadTracksAsync(TrackSource.SavedLibrary, "", true, CancellationToken.None);
         checks.Check(model.Tracks.Count == CatalogModel.ItemLimit && !model.HasMoreTracks, "Partial final page respects the exact track bound");
@@ -61,7 +62,7 @@ internal static class CatalogControllerChecks
             catalog.BeforeReturn = null;
         }
 
-        catalog.Playlists = Enumerable.Range(0, 8).Select(index => new Playlist(index.ToString(), "Pinned", 1)).ToArray();
+        catalog.Playlists = Enumerable.Range(0, 8).Select(index => new Playlist(index.ToString(System.Globalization.CultureInfo.InvariantCulture), "Pinned", 1)).ToArray();
         checks.Check((await controller.LoadPinnedPlaylistsAsync(CancellationToken.None)).Count == 6, "Pinned playlist preview remains bounded");
         controller.Reset();
         checks.Check(model.Tracks.Count == 0 && model.Playlists.Count == 0 && !model.HasMoreTracks && !model.HasMorePlaylists && model.TrackOffset == 0 && model.PlaylistOffset == 0 && model.LastSearchQuery.Length == 0, "Disconnect resets catalog data and paging state");

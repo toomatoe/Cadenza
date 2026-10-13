@@ -1,16 +1,19 @@
-using System.Net;
-using System.Text;
-
 namespace Cadenza.Tests.Fixtures;
 
+/// <summary>Returns queued responses and records each request's URL and bearer token.</summary>
 internal sealed class FakeHandler : HttpMessageHandler
 {
-    public readonly Queue<HttpResponseMessage> Responses = new();
-    public readonly List<string> Requests = [];
-    public readonly List<string?> Bearers = [];
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    public Queue<HttpResponseMessage> Responses { get; } = new();
+
+    public List<string> Requests { get; } = [];
+
+    public List<string?> Bearers { get; } = [];
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        ct.ThrowIfCancellationRequested(); Requests.Add(request.RequestUri!.AbsoluteUri); Bearers.Add(request.Headers.Authorization?.Parameter);
+        cancellationToken.ThrowIfCancellationRequested();
+        Requests.Add(request.RequestUri!.AbsoluteUri);
+        Bearers.Add(request.Headers.Authorization?.Parameter);
         return Task.FromResult(Responses.Dequeue());
     }
 }

@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = []
-playback = ["dep:librespot-core", "dep:librespot-playback", "dep:tokio", "dep:zeroize", "dep:vergen", "dep:log"]
+playback = ["dep:librespot-core", "dep:librespot-playback", "dep:rodio", "dep:tokio", "dep:zeroize", "dep:vergen", "dep:log"]
 
 [dependencies]
 log = { version = "0.4", optional = true }
@@ -19,6 +19,8 @@ librespot-core = { version = "=0.8.0", default-features = false, features = ["ru
 librespot-playback = { version = "=0.8.0", default-features = false, features = ["rustls-tls-webpki-roots"], optional = true }
 tokio = { version = "1", features = ["rt-multi-thread", "time", "macros"], optional = true }
 zeroize = { version = "1", optional = true }
+# The rodio librespot already uses, plus its Symphonia decoders (also already compiled in) for library files.
+rodio = { version = "0.21.1", default-features = false, features = ["playback", "mp3", "flac", "vorbis"], optional = true }
 
 [target.'cfg(windows)'.dependencies]
 librespot-playback = { version = "=0.8.0", default-features = false, features = ["rodio-backend", "rustls-tls-webpki-roots"], optional = true }

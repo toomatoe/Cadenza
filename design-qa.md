@@ -1,3 +1,5 @@
+> **Historical log.** Current UI rules and vision live in [UI-GUIDE.md](docs/UI-GUIDE.md). Where this file disagrees, the guide wins.
+
 # Claude design restoration
 
 ## October 12 sidebar, song cards, and queue correction

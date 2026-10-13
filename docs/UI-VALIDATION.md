@@ -1,3 +1,5 @@
+> **Historical log.** Current UI rules and vision live in [UI-GUIDE.md](UI-GUIDE.md). Where this file disagrees, the guide wins.
+
 > Design restoration: the original saved HTML now grounds the library structure. See design-qa.md for captured evidence, executed checks, and differences. Hero/Up next, playlist fan, Recently added filters, bundled Sora/DM Sans, square artwork and caption bands are restored. Debug/Release builds and 69 checks passed; native filter, queue-edit, scroll and compact-layout checks passed without audio playback.
 
 > Acrylic tuning: uses a custom DesktopAcrylicController with Thin material, 15% light tint (20% dark), and 35% luminosity. Light panel fills are reduced from 28% to 16%. Debug build including native audio passed with zero warnings and errors, and was launched. Visual readability over varied backgrounds remains to be verified.
@@ -11,7 +13,7 @@ The reference is the user's light, wallpaper-backed library screenshot. The prod
 
 - `desktop/Views/MainWindow.xaml`: albums directly below the heading/search, restrained card fills, square artwork, rounded sidebar and player, native focus visuals. Removed the library hero and animated playlist fan; playlists remain accessible from the sidebar and Playlists page.
 - `MainWindow.Catalog.cs`, `.Queue.cs`, `.Account.cs`, `.Playback.cs`, and `.xaml.cs`: removed rendering updates for those deleted decorative surfaces. Playback commands and event handling were preserved.
-- `desktop/Models/AppearanceModeModel.cs`, `PreferencesModel.cs`: Wallpaper, Mica, and Solid appearance choices, with legacy Solid preferences preserved.
+- `desktop/Models/AppearanceMode.cs`, `Preferences.cs`: Wallpaper, Mica, and Solid appearance choices, with legacy Solid preferences preserved.
 - `desktop/Services/WallpaperProvider.cs`: one cached native-decoded wallpaper image per window, read through the Windows wallpaper API. Decode target is 1024 × 768. No polling or movement tracking. Changes to the desktop wallpaper appear on the next launch. It uses the wallpaper returned by Windows, not separate monitor-specific images.
 - `MainWindow.Appearance.cs`, `desktop/App.xaml`: shared brushes, Solid fallback when effects are disabled, high-contrast suppression, and failure fallback when wallpaper cannot load.
 

@@ -1,10 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
-  <ItemGroup><ProjectReference Include="../core/Cadenza.Core.csproj" /></ItemGroup>
+  <ItemGroup>
+    <!-- Inherited from the server's SQLite dependency; see the note in server/Cadenza.Server.csproj. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../core/Cadenza.Core.csproj" />
+    <ProjectReference Include="../server/Cadenza.Server.csproj" />
+  </ItemGroup>
 </Project>

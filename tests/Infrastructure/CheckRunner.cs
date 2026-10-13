@@ -6,7 +6,8 @@ internal sealed class CheckRunner
 
     public void Check(bool condition, string message)
     {
-        if (!condition) throw new InvalidOperationException(message);
+        if (!condition)
+            throw new InvalidOperationException(message);
         Passed++;
     }
 

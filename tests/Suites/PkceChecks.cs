@@ -1,9 +1,6 @@
-using System.Net;
-using System.Text;
 using Cadenza.Core.Security;
 using Cadenza.Core.Services.Spotify;
 using Cadenza.Tests.Infrastructure;
-using static Cadenza.Tests.Fixtures.TestData;
 
 namespace Cadenza.Tests.Suites;
 
