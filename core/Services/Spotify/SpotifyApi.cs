@@ -1,8 +1,10 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Cadenza.Core.Exceptions;
 using Cadenza.Core.Models;
+using Cadenza.Core.Recommendations;
 using Cadenza.Core.Services.Contracts;
 
 namespace Cadenza.Core.Services.Spotify;
@@ -15,6 +17,9 @@ public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth) : IMusicCatalo
 {
     /// <summary>Items requested per page.</summary>
     public const int PageSize = 10;
+
+    /// <summary>Largest page Spotify allows for top items, recent plays and saved tracks.</summary>
+    public const int MaxPageSize = 50;
 
     private const string BaseUrl = "https://api.spotify.com/v1/";
     private const int MaxRateLimitRetries = 2;
@@ -74,7 +79,66 @@ public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth) : IMusicCatalo
         return new Page<Playlist>(result, offset, HasMore(root));
     }
 
+    /// <summary>The listener's top artists for a time range (needs the user-top-read scope).</summary>
+    public async Task<IReadOnlyList<ArtistRef>> TopArtistsAsync(TimeRange range, CancellationToken ct)
+    {
+        using var document = await GetAsync(Route($"me/top/artists?limit={MaxPageSize}&time_range={RangeName(range)}"), ct);
+        return document.RootElement.GetProperty("items").EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.Object && Text(item, "name").Length > 0)
+            .Select(item => new ArtistRef(Text(item, "id"), Text(item, "name")))
+            .ToArray();
+    }
+
+    /// <summary>The listener's top tracks for a time range (needs the user-top-read scope).</summary>
+    public async Task<IReadOnlyList<Track>> TopTracksAsync(TimeRange range, CancellationToken ct)
+    {
+        using var document = await GetAsync(Route($"me/top/tracks?limit={MaxPageSize}&time_range={RangeName(range)}"), ct);
+        return ParseItems(document.RootElement, trackProperty: null, timeProperty: null).Select(item => item.Track).ToArray();
+    }
+
+    /// <summary>Up to 50 recently played tracks (needs the user-read-recently-played scope).</summary>
+    public async Task<IReadOnlyList<DatedTrack>> RecentlyPlayedAsync(CancellationToken ct)
+    {
+        using var document = await GetAsync(Route($"me/player/recently-played?limit={MaxPageSize}"), ct);
+        return ParseItems(document.RootElement, "track", "played_at").Select(item => new DatedTrack(item.Track, item.At)).ToArray();
+    }
+
+    /// <summary>The most recently saved tracks with the date each was saved, up to <paramref name="max"/>.</summary>
+    public async Task<IReadOnlyList<DatedTrack>> SavedTracksWithDatesAsync(int max, CancellationToken ct)
+    {
+        var result = new List<DatedTrack>();
+        for (var offset = 0; offset < max; offset += MaxPageSize)
+        {
+            using var document = await GetAsync(Route($"me/tracks?limit={MaxPageSize}&offset={offset}"), ct);
+            result.AddRange(ParseItems(document.RootElement, "track", "added_at").Select(item => new DatedTrack(item.Track, item.At)));
+            if (!HasMore(document.RootElement))
+            {
+                break;
+            }
+        }
+
+        return result.Take(max).ToArray();
+    }
+
+    /// <summary>Tracks credited to an artist, found through search (artist top-tracks is restricted for new apps).</summary>
+    public async Task<IReadOnlyList<Track>> SearchArtistTracksAsync(string artistName, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(artistName);
+        var query = Uri.EscapeDataString($"artist:\"{artistName.Replace("\"", "", StringComparison.Ordinal)}\"");
+        using var document = await GetAsync(Route($"search?q={query}&type=track&limit={PageSize}"), ct);
+        return ParseItems(document.RootElement.GetProperty("tracks"), trackProperty: null, timeProperty: null)
+            .Select(item => item.Track)
+            .ToArray();
+    }
+
     public void Dispose() => _requestGate.Dispose();
+
+    private static string RangeName(TimeRange range) => range switch
+    {
+        TimeRange.ShortTerm => "short_term",
+        TimeRange.MediumTerm => "medium_term",
+        _ => "long_term"
+    };
 
     private static string Route(FormattableString route) => FormattableString.Invariant(route);
 
@@ -120,7 +184,35 @@ public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth) : IMusicCatalo
             item.GetProperty("duration_ms").GetInt32(),
             $"https://open.spotify.com/track/{id}",
             item.TryGetProperty("explicit", out var explicitContent) && explicitContent.ValueKind == JsonValueKind.True,
-            Artwork(album));
+            Artwork(album),
+            artists.Length > 0 ? Text(artists[0], "name") : "");
+    }
+
+    /// <summary>Parses an "items" array, keeping valid tracks and an optional timestamp property per item.</summary>
+    private static List<(Track Track, DateTimeOffset At)> ParseItems(JsonElement root, string? trackProperty, string? timeProperty)
+    {
+        var result = new List<(Track, DateTimeOffset)>();
+        foreach (var value in root.GetProperty("items").EnumerateArray())
+        {
+            var item = value;
+            if (trackProperty is not null && !value.TryGetProperty(trackProperty, out item))
+            {
+                continue;
+            }
+
+            if (item.ValueKind != JsonValueKind.Object || Text(item, "type") != "track" || Text(item, "id").Length == 0)
+            {
+                continue;
+            }
+
+            var at = timeProperty is not null && DateTimeOffset.TryParse(
+                Text(value, timeProperty), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
+                ? parsed
+                : DateTimeOffset.MinValue;
+            result.Add((ParseTrack(item), at));
+        }
+
+        return result;
     }
 
     private async Task<JsonDocument> GetAsync(string route, CancellationToken ct)

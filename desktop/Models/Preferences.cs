@@ -10,10 +10,12 @@ namespace Cadenza.Desktop.Models;
 /// <param name="SolidAppearance">Legacy flag kept so older preference files still load.</param>
 /// <param name="Appearance">Window material; null falls back to <paramref name="SolidAppearance"/>.</param>
 /// <param name="Sprite">The profile companion; null (older files) uses the default companion.</param>
+/// <param name="Discovery">The "For you" discovery dial: 0 sticks to known artists, 1 favours new ones.</param>
 public sealed record Preferences(
     string ClientId = "",
     int ArtistSpacing = 2,
     string RedirectUri = SpotifyAuth.RedirectUri,
     bool SolidAppearance = false,
     AppearanceMode? Appearance = null,
-    SpriteProfile? Sprite = null);
+    SpriteProfile? Sprite = null,
+    double Discovery = 0.3);

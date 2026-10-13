@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Cadenza.Core.Models;
+using Cadenza.Core.Recommendations;
 using Cadenza.Core.Sprites;
 using Cadenza.Desktop.Converters;
 using Cadenza.Desktop.Models;
@@ -122,6 +123,7 @@ public sealed partial class MainWindow
         if (_likedTrackIds.Add(_playingTrack.Id))
         {
             ReactSprite(SpriteGlyph.Heart);
+            RecordListening(ListeningEventKind.Liked, _playingTrack);
         }
         else
         {
