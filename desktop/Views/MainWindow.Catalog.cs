@@ -162,6 +162,7 @@ public partial class MainWindow
         CatalogTools.Visibility = view == "Library" ? Visibility.Collapsed : Visibility.Visible;
         PlaylistCards.Visibility = view == "Playlists" && selectedPlaylist is null ? Visibility.Visible : Visibility.Collapsed;
         PlaylistDetail.Visibility = view == "Playlists" && selectedPlaylist is not null ? Visibility.Visible : Visibility.Collapsed;
+        TrackList.ItemsSource = view == "Queue" ? QueueTracks : Tracks;
         TrackPanel.Visibility = view == "Search" || view == "Queue" || (view == "Playlists" && selectedPlaylist is not null) ? Visibility.Visible : Visibility.Collapsed;
         UpdateQueueControls();
         SearchPanel.Visibility = view == "Settings" || view == "Playlists" ? Visibility.Collapsed : Visibility.Visible;
@@ -171,7 +172,7 @@ public partial class MainWindow
         EmptyAction.Content = view == "Queue" ? "Browse library" : "Connect Spotify";
         EmptyAction.Tag = view == "Queue" ? "Library" : "Settings";
         EmptyAction.Visibility = view == "Queue" || !auth.IsConnected ? Visibility.Visible : Visibility.Collapsed;
-        var empty = view == "Playlists" && selectedPlaylist is null ? playlists.Count == 0 : Tracks.Count == 0;
+        var empty = view == "Queue" ? QueueTracks.Count == 0 : view == "Playlists" && selectedPlaylist is null ? playlists.Count == 0 : Tracks.Count == 0;
         EmptyState.Visibility = view != "Settings" && empty ? Visibility.Visible : Visibility.Collapsed;
     }
     private async void PlaylistCard_Click(object sender, ItemClickEventArgs e)
