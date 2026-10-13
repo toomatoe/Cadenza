@@ -1,6 +1,6 @@
-# Recommendations tab (design proposal)
+# Recommendations tab
 
-**Status:** proposal; nothing built yet. Review the open questions at the end before implementation starts.
+**Status:** implemented. "Algorithm as built" below is the exact behaviour; the earlier sections are the original proposal.
 
 ## Goal
 
@@ -64,6 +64,78 @@ score(c) =  w_sim · Σ_seeds  affinity(seed) · similarity(seed, c)      // clo
 - **Weights** are named constants with sensible defaults, tunable in an "advanced" panel. Adjusting counters and weights from feedback is arithmetic, not model training.
 
 Each suggestion keeps its top contributing term as a **reason**: "Because you saved *X*", "Similar to *Artist* (ListenBrainz)", "New to you", "In your playlist *Y*".
+
+## Algorithm as built (audit)
+
+This is exactly what `core/Recommendations/` does. It is checked by `tests/Suites/RecommendationChecks.cs`. There is **no machine learning, no model training and no generative AI**: it is weighted counting, a lookup in open similarity data, a linear score and a greedy sort. The same inputs always give the same list.
+
+**1. Taste profile (`TasteProfile`), on the device.** Each artist gets an affinity, which is a sum of weighted, time-decayed signals. Decay is `0.5^(age / half-life)`.
+
+| Signal | Weight | Half-life |
+|---|---|---|
+| Saved track (latest 200) | +1.0 to its lead artist | 120 days |
+| Spotify top artist, short / medium / long term | +3 / +2 / +1, × a rank factor running from 1.0 (rank 1) down to 0.2 (last) | none (Spotify already windows it) |
+| Spotify top track | +0.75 × that range's weight × rank factor, to its lead artist | none |
+| Recently played | +0.4 | 14 days |
+| Liked in Cadenza | +2.0 | 60 days |
+| Played to the end | +0.5 | 60 days |
+| Skipped within 30 s | −0.75 | 60 days |
+| "Not interested" | −1.5 to the artist; the track is never shown again | 60 days |
+
+Affinity is normalised to 0–1 by dividing by the largest positive value. Negative affinities count as 0 and also exclude the artist.
+
+**2. Seeds.** The 8 artists with the highest affinity.
+
+**3. Similar artists (`ListenBrainzSimilarArtists`).** For each seed:
+
+- Its MusicBrainz ID is looked up. A match needs a search score of 90 or more and an exact name match.
+- Up to 25 similar artists are fetched from ListenBrainz's public similar-artists dataset (`session_based_days_7500_session_300_contribution_5_threshold_10_limit_100_filter_True_skip_30`). That dataset counts how often two artists are played in the same listening session across ListenBrainz users. It is collaborative co-occurrence statistics that ListenBrainz computes and publishes; Cadenza does not compute it.
+- Scores are divided by the top score, so they run from 0 to 1.
+
+Only artist names and IDs are sent, never anything about the user. MusicBrainz is called at most once every 1.1 s. Results are cached for 14 days, so after the first run a refresh makes almost no network calls.
+
+For each candidate artist, `similarity = Σ over seeds of seedAffinity × similarity(seed, candidate)`, divided by the largest such sum. An artist close to several favourites ranks higher. The seed with the largest contribution becomes the "Similar to …" reason.
+
+**4. Candidate tracks (`SpotifyTrackResolver`).**
+
+- The 20 most similar artists plus the top 6 seeds (for "deeper cuts") are each searched on Spotify.
+- Up to 3 tracks per artist are kept, and only where that artist is the lead artist.
+- Anything already saved, top, recently played or rejected is dropped.
+
+**5. Score.** With discovery dial *d* (0–1, default 0.3) and *f* = the artist's normalised affinity:
+
+```
+score = 1.0 · similarity
+      + 0.8 · (1 − d) · f                 familiarity
+      + 0.8 · d · 1 / (1 + 4f)            novelty
+      − 0.6 if suggested in the last 3 refreshes
+      − 0.5 if the artist's affinity is negative
+```
+
+**6. Diversity re-rank.**
+
+- The engine repeatedly picks the highest score, after subtracting 0.35 for each track already picked from the same artist, with a hard cap of 2 per artist. It stops at 24 picks.
+- It then makes sure at least 3 picks are by artists new to the listener (*f* ≤ 0.05). To do that, it swaps out the weakest familiar picks for the best unpicked new-artist tracks. These are the exploration slots, which keep the list out of a filter bubble.
+
+**7. Shelves and reasons.**
+
+| Shelf | When | Reason shown |
+|---|---|---|
+| Deeper cuts | Familiar artists | "You listen to X a lot" |
+| More like your favourites | New artists that ranked on their own | "Similar to {seed}" |
+| Something new | Exploration picks | "New to you · close to {seed}" |
+
+Every card's "Why?" shows the four score terms.
+
+**Failure behaviour.** If ListenBrainz or MusicBrainz is unreachable, only deeper cuts are shown, with a warning. If the extra Spotify scopes are missing, the page asks to reconnect.
+
+**Cost.**
+
+- No new packages: the engine uses only `HttpClient` and `System.Text.Json` from the BCL.
+- Nothing runs until the page is opened or refreshed. There are no timers and no background work.
+- Disk use is two small JSON files in `%LOCALAPPDATA%\Cadenza`:
+  - the similarity cache, which expires after 14 days;
+  - the event log, capped at 2,000 events.
 
 ## Page design (follows docs/UI-GUIDE.md)
 
