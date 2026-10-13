@@ -36,7 +36,14 @@ It should feel at home in the frosted ice-blue look (docs/UI-GUIDE.md): the spri
 - **Layered sprite sheets** (PNG), one row per animation: `body_<species>.png`, `accessory_<name>.png`. Layers are composited at runtime.
 - **Palette swap:** the body art uses a fixed set of "key" colours that are replaced with the chosen body and accent colours when loading, so one sheet serves every colour scheme.
 - **Animation:** 4–8 frames per state at 8–10 fps.
-- **Source of the art:** commissioned, self-drawn (Aseprite or LibreSprite), or a permissively licensed pack (CC0 or CC-BY with attribution). The licence must allow redistribution in an open-source app; record it in `desktop/Assets/Sprites/LICENSE.txt`.
+- **Source of the art (decided): open-source packs.** Prefer **CC0** (no attribution required); CC-BY is acceptable with credits. Record each pack's name, author, URL and licence in `desktop/Assets/Sprites/LICENSE.txt` and in an About/credits line in Settings. Avoid CC-BY-NC or "free for personal use" packs: Cadenza is an open-source app that others redistribute.
+- **Candidate packs to evaluate** (check the licence and size on each page before use):
+  - [50 monochrome 32×32 critters](https://opengameart.org/node/188128) (OpenGameArt, CC0). Monochrome art suits palette swapping well.
+  - [Animated Birds 32×32](https://opengameart.org/node/158256) (OpenGameArt, CC0).
+  - [Multicolored dog 32×32](https://sushicreatespixels.itch.io/multicolored-dog-32-x-32-frontsides) (itch.io, CC0).
+  - [Blob](https://caz-bee.itch.io/blob) (itch.io, CC0, includes idle animation and `.aseprite` sources).
+  - [CC0 2D platform creatures](https://opengameart.org/content/cc0-2d-platform-creatures-characters) and the curated [good CC0 stuff](https://opengameart.org/content/good-cc0-stuff) list.
+- Packs rarely share a style or include every animation we want, so expect to adapt them: unify the palette, and add missing frames (dozing, heart pop) in LibreSprite or Aseprite. Edited CC0 art stays redistributable.
 
 ## Technical design
 
@@ -58,7 +65,7 @@ It should feel at home in the frosted ice-blue look (docs/UI-GUIDE.md): the spri
 
 ## Open questions
 
-1. **Art:** who makes it (you, a commission, or an open-licence pack), and is 32×32 the right size?
+1. ~~**Art:** who makes it?~~ **Decided: open-source (CC0-first) packs**, adapted as needed. Still open: is 32×32 the right size?
 2. **Species list:** which animals, and should rarer ones unlock through listening milestones?
 3. **Placement:** sidebar only, or also a tiny version in the player bar?
 4. Should friends be able to see your sprite's current mood, i.e. "listening now"? That shares playback state, so it would be opt-in.
