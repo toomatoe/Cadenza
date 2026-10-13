@@ -16,8 +16,10 @@ public sealed record Track
         int durationMs,
         string url,
         bool explicitContent,
-        string artworkUrl = "")
+        string artworkUrl = "",
+        string leadArtist = "")
     {
+        LeadArtist = leadArtist.Length > 0 ? leadArtist : artist;
         Id = id;
         Name = name;
         Artist = artist;
@@ -35,6 +37,9 @@ public sealed record Track
 
     /// <summary>All artist names, comma separated.</summary>
     public string Artist { get; }
+
+    /// <summary>The first credited artist's name; used to match artists across services.</summary>
+    public string LeadArtist { get; }
 
     /// <summary>The lead artist's ID, used for shuffle spacing.</summary>
     public string ArtistId { get; }

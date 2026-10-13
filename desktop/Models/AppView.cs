@@ -4,8 +4,10 @@ namespace Cadenza.Desktop.Models;
 public enum AppView
 {
     Library,
+    Recommendations,
     Search,
     Playlists,
     Queue,
+    Friends,
     Settings
 }

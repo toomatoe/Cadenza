@@ -1,7 +1,9 @@
 using Cadenza.Core.Controllers;
 using Cadenza.Core.Models;
+using Cadenza.Core.Recommendations;
 using Cadenza.Core.Services.Playback;
 using Cadenza.Core.Services.Spotify;
+using Cadenza.Core.Sprites;
 using Cadenza.Desktop.Converters;
 using Cadenza.Desktop.Models;
 using Microsoft.UI.Xaml;
@@ -203,6 +205,7 @@ public sealed partial class MainWindow
             PlaybackLabel.Text = "Playback failed";
             ShowPlayGlyph(false);
             Message(PlaybackErrors.Describe(update.ErrorCode), InfoBarSeverity.Error);
+            ReactSprite(SpriteGlyph.Question);
             return;
         }
 
@@ -231,6 +234,7 @@ public sealed partial class MainWindow
         if (update.State == PlaybackState.Ended && _endedStamp != update.TrackStamp)
         {
             _endedStamp = update.TrackStamp;
+            RecordListening(ListeningEventKind.Completed, _playingTrack);
             if (_playbackBusy)
             {
                 _advanceAfterOperation = true;
@@ -343,7 +347,11 @@ public sealed partial class MainWindow
 
     private Task PlayNextAsync(CancellationToken ct) => PlayQueueEntryAsync(0, ct);
 
-    private async void Next_Click(object sender, RoutedEventArgs e) => await PlaybackWorkAsync(PlayNextAsync);
+    private async void Next_Click(object sender, RoutedEventArgs e)
+    {
+        RecordSkipIfEarly();
+        await PlaybackWorkAsync(PlayNextAsync);
+    }
 
     private async void Stop_Click(object sender, RoutedEventArgs e) => await PlaybackWorkAsync(async ct =>
     {
