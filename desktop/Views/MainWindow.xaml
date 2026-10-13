@@ -99,7 +99,7 @@
                 </Grid>
 
                 <Border x:Name="TrackPanel" Grid.Row="1" Visibility="Collapsed" Style="{StaticResource GlassCardStyle}" Padding="8">
-                    <ListView x:Name="TrackList" SelectionChanged="QueueSelection_Changed" SelectionMode="Single" HorizontalContentAlignment="Stretch" ItemsSource="{x:Bind Tracks}" AutomationProperties.Name="Tracks">
+                    <ListView x:Name="TrackList" SelectionChanged="QueueSelection_Changed" SelectionMode="Single" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Tracks">
                         <ListView.ItemContainerStyle><Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}"><Setter Property="CornerRadius" Value="14"/><Setter Property="Margin" Value="0,2"/></Style></ListView.ItemContainerStyle>
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="core:Track">
