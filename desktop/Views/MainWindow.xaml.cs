@@ -38,6 +38,7 @@ public sealed partial class MainWindow : Window
     private NativeEngine? _engine;
     private bool _playbackBusy;
     private bool _nativeConnected;
+    private bool _playingFile;
     private bool _adjustingPosition;
     private bool _advanceAfterOperation;
     private Track? _playingTrack;

@@ -56,6 +56,68 @@ public sealed class SocialClient(HttpClient http, Uri server)
     public Task ReportAsync(long messageId, string reason, CancellationToken ct) =>
         SendAsync<object>(HttpMethod.Post, "api/reports", new ReportRequest(messageId, reason), ct);
 
+    /// <summary>Uploads a music file to the shared library; returns the existing entry if the same file is already there.</summary>
+    public async Task<LibraryTrack> UploadMusicAsync(string path, UploadMetadata metadata, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(metadata);
+        if (MusicFormats.Validate(metadata) is { } problem)
+        {
+            throw new SocialException(400, problem);
+        }
+
+        await using var file = File.OpenRead(path);
+        if (file.Length > MusicFormats.MaxUploadBytes)
+        {
+            throw new SocialException(413, $"{Path.GetFileName(path)} is larger than {MusicFormats.MaxUploadBytes / (1024 * 1024)} MB.");
+        }
+
+        using var content = new MultipartFormDataContent
+        {
+            { JsonContent.Create(metadata, options: SocialRules.Json), "metadata" },
+            { new StreamContent(file), "file", Path.GetFileName(path) },
+        };
+        return await SendAsync<LibraryTrack>(HttpMethod.Post, "api/music", content, ct);
+    }
+
+    /// <summary>Searches the shared library by title, artist or album; an empty query lists the newest songs.</summary>
+    public Task<IReadOnlyList<LibraryTrack>> SearchMusicAsync(string query, CancellationToken ct) =>
+        SendAsync<IReadOnlyList<LibraryTrack>>(HttpMethod.Get, "api/music?q=" + Escape(query ?? ""), null, ct);
+
+    public Task DeleteMusicAsync(string id, CancellationToken ct) =>
+        SendAsync<object>(HttpMethod.Delete, $"api/music/{Escape(id)}", null, ct);
+
+    /// <summary>Downloads a library song to <paramref name="destination"/> (written to a temporary file first).</summary>
+    public async Task DownloadMusicAsync(string id, string destination, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(Server, $"api/music/{Escape(id)}/file"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token);
+        HttpResponseMessage response;
+        try
+        {
+            response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        }
+        catch (HttpRequestException error)
+        {
+            throw new SocialException("Cadenza Friends is offline right now, so library songs can't play.", error);
+        }
+
+        using (response)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new SocialException((int)response.StatusCode, await ReadErrorAsync(response, ct));
+            }
+
+            var partial = destination + ".part";
+            await using (var output = File.Create(partial))
+            {
+                await response.Content.CopyToAsync(output, ct);
+            }
+
+            File.Move(partial, destination, overwrite: true);
+        }
+    }
+
     private static string Escape(string value) => Uri.EscapeDataString(value);
 
     private async Task<T> SendAsync<T>(HttpMethod method, string route, object? body, CancellationToken ct)
@@ -66,7 +128,11 @@ public sealed class SocialClient(HttpClient http, Uri server)
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         }
 
-        if (body is not null)
+        if (body is HttpContent content)
+        {
+            request.Content = content;
+        }
+        else if (body is not null)
         {
             request.Content = JsonContent.Create(body, body.GetType(), options: SocialRules.Json);
         }

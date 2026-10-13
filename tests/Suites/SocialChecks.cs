@@ -1,5 +1,6 @@
 using Cadenza.Core.Social;
 using Cadenza.Server;
+using Cadenza.Tests.Fixtures;
 using Cadenza.Tests.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ internal static class SocialChecks
             builder.WebHost.UseUrls("http://127.0.0.1:0");
             builder.Configuration["Cadenza:Database"] = Path.Combine(folder.FullName, "test.db");
             builder.Configuration["Cadenza:BootstrapInvite"] = OwnerInvite;
+            builder.Configuration["Cadenza:MusicFolder"] = Path.Combine(folder.FullName, "music");
             builder.Logging.ClearProviders();
         });
         await app.StartAsync();
@@ -102,6 +104,8 @@ internal static class SocialChecks
         checks.Check(history.Count == 2 && history[^1].Id == gift.Id && history[^1].TrackId == TrackId, "History is oldest first and keeps only the track ID");
         checks.Check((await carol.MessagesAsync(bobJoin.User.Id, gift.Id, ct)).All(message => message.Id < gift.Id), "History pages backwards");
 
+        await CheckLibraryAsync(checks, http, server, owner, carol);
+
         await carol.ReportAsync(gift.Id, "testing reports", ct);
         await checks.ThrowsAsync<SocialException>(() => bob.ReportAsync(gift.Id, "my own", ct), "You can only report messages sent to you");
 
@@ -118,6 +122,51 @@ internal static class SocialChecks
         await bob.DeleteAccountAsync(ct);
         checks.Check((await CaptureAsync(() => bob.MeAsync(ct)))?.IsSignedOut == true, "Deleting your account revokes its token");
         checks.Check((await owner.FriendsAsync(ct)).Friends.All(friend => friend.Username != "bob"), "…and removes you from friends lists");
+    }
+
+    private static async Task CheckLibraryAsync(CheckRunner checks, HttpClient http, Uri server, SocialClient owner, SocialClient carol)
+    {
+        var ct = CancellationToken.None;
+        var folder = Directory.CreateTempSubdirectory("cadenza-upload-");
+        try
+        {
+            var bytes = MusicSamples.Mp3("Night Drive", "Neon Owls");
+            var song = Path.Combine(folder.FullName, "night.mp3");
+            await File.WriteAllBytesAsync(song, bytes, ct);
+            var uploaded = await owner.UploadMusicAsync(song, new UploadMetadata("Night Drive", "Neon Owls", "", 26_122), ct);
+            checks.Check(uploaded is { Title: "Night Drive", Format: "mp3", UploadedBy: "owner" }, "Songs upload to the shared library");
+
+            var again = await carol.UploadMusicAsync(song, new UploadMetadata("Copy", "Someone", "", 0), ct);
+            checks.Check(again.Id == uploaded.Id, "The same file uploaded twice is stored once");
+
+            var found = await carol.SearchMusicAsync("neon night", ct);
+            checks.Check(found.Count == 1 && found[0].Id == uploaded.Id, "Anyone on the server can find a song by title and artist");
+            checks.Check((await carol.SearchMusicAsync("100%", ct)).Count == 0, "Search treats % literally");
+
+            var copy = Path.Combine(folder.FullName, "copy.mp3");
+            await carol.DownloadMusicAsync(uploaded.Id, copy, ct);
+            checks.Check((await File.ReadAllBytesAsync(copy, ct)).SequenceEqual(bytes), "Songs download byte for byte");
+
+            using var range = new HttpRequestMessage(HttpMethod.Get, new Uri(server, $"api/music/{uploaded.Id}/file"));
+            range.Headers.Authorization = new("Bearer", carol.Token);
+            range.Headers.Range = new(0, 9);
+            using var partial = await http.SendAsync(range, ct);
+            checks.Check(partial.StatusCode == System.Net.HttpStatusCode.PartialContent && (await partial.Content.ReadAsByteArrayAsync(ct)).Length == 10,
+                "Song files support range requests for seeking");
+
+            var fake = Path.Combine(folder.FullName, "fake.mp3");
+            await File.WriteAllTextAsync(fake, "<html>not music</html>", ct);
+            var refused = await CaptureAsync(() => owner.UploadMusicAsync(fake, new UploadMetadata("Fake", "Nobody", "", 0), ct));
+            checks.Check(refused?.StatusCode == 415, "Files that aren't music are refused");
+
+            checks.Check((await CaptureAsync(() => carol.DeleteMusicAsync(uploaded.Id, ct)))?.StatusCode == 403, "Only the uploader can remove a song");
+            await owner.DeleteMusicAsync(uploaded.Id, ct);
+            checks.Check((await carol.SearchMusicAsync("neon", ct)).Count == 0, "Removed songs leave the library");
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
     }
 
     private static async Task<SocialException?> CaptureAsync(Func<Task> action)

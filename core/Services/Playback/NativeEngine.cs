@@ -10,13 +10,13 @@ using Cadenza.Core.Services.Spotify;
 namespace Cadenza.Core.Services.Playback;
 
 /// <summary>
-/// Managed side of the Rust audio engine (ABI 2, see native/README.md). Commands are submitted with a
+/// Managed side of the Rust audio engine (ABI 3, see native/README.md). Commands are submitted with a
 /// request ID and complete when the native worker reports them; playback events arrive separately
 /// through <see cref="PlaybackChanged"/> on a background thread.
 /// </summary>
 public sealed partial class NativeEngine : IAsyncDisposable
 {
-    private const uint SupportedAbiVersion = 2;
+    private const uint SupportedAbiVersion = 3;
     private const int NativeEventSize = 24;
     private const int MaxPayloadBytes = 8192;
     private const int MaxEventsPerPoll = 32;
@@ -83,7 +83,8 @@ public sealed partial class NativeEngine : IAsyncDisposable
         Pause = 5,
         Seek = 6,
         Volume = 7,
-        Stop = 8
+        Stop = 8,
+        LoadFile = 9
     }
 
     private enum Status
@@ -125,6 +126,36 @@ public sealed partial class NativeEngine : IAsyncDisposable
         }
 
         return SubmitAsync(Opcode.LoadTrack, ct, "spotify:track:" + id);
+    }
+
+    /// <summary>Loads and starts a music file from disk (MP3, FLAC or Ogg Vorbis). Needs no Spotify session.</summary>
+    /// <returns>A stamp that identifies this load's playback events.</returns>
+    public Task<uint> LoadFileAsync(string path, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        if (!Path.IsPathFullyQualified(path) || path.AsSpan().IndexOfAny('\r', '\n', '\0') >= 0)
+        {
+            throw new ArgumentException("Invalid music file path.", nameof(path));
+        }
+
+        return LoadFileCoreAsync(path, ct);
+    }
+
+    // The engine's generic status messages talk about Spotify; say what went wrong with the file instead.
+    private async Task<uint> LoadFileCoreAsync(string path, CancellationToken ct)
+    {
+        try
+        {
+            return await SubmitAsync(Opcode.LoadFile, ct, path);
+        }
+        catch (ArgumentException error)
+        {
+            throw new InvalidOperationException("The song file is missing. Try playing it again.", error);
+        }
+        catch (NotSupportedException error)
+        {
+            throw new InvalidOperationException("That song's file isn't an MP3, FLAC or Ogg file Cadenza can play.", error);
+        }
     }
 
     public Task<uint> ResumeAsync(CancellationToken ct) => SubmitAsync(Opcode.Resume, ct);

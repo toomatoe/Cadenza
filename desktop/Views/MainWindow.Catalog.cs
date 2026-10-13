@@ -174,6 +174,11 @@ public sealed partial class MainWindow
         }
 
         await _catalogController.LoadTracksAsync(source, queryOrPlaylistId, append, ct);
+        if (source == TrackSource.Search && !append)
+        {
+            await AddLibraryResultsAsync(queryOrPlaylistId, ct);
+        }
+
         _hasMore = _catalog.HasMoreTracks;
         MoreButton.Visibility = ToVisibility(_hasMore);
         if (Tracks.Count >= CatalogModel.ItemLimit)

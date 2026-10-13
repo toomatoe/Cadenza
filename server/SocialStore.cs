@@ -54,7 +54,20 @@ public sealed class SocialStore
             text TEXT NOT NULL,
             reason TEXT NOT NULL,
             created_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS music (
+            id TEXT PRIMARY KEY,
+            uploader TEXT REFERENCES users(id) ON DELETE SET NULL,
+            uploader_name TEXT NOT NULL,
+            title TEXT NOT NULL,
+            artist TEXT NOT NULL,
+            album TEXT NOT NULL,
+            duration_ms INTEGER NOT NULL,
+            format TEXT NOT NULL,
+            sha256 TEXT NOT NULL UNIQUE,
+            created_at INTEGER NOT NULL);
         """;
+
+    private const string MusicColumns = "SELECT id, title, artist, album, duration_ms, format, uploader_name FROM music";
 
     private readonly string _connectionString;
 
@@ -324,7 +337,75 @@ public sealed class SocialStore
         return FindUserOrThrow(connection, userId);
     }
 
-    /// <summary>Deletes the account with its friendships, blocks, invites and messages (reports keep their copy).</summary>
+    /// <summary>The library song with this file hash, if someone already uploaded it.</summary>
+    public LibraryTrack? FindMusicByHash(string sha256)
+    {
+        using var connection = Open();
+        return MusicRows(connection, MusicColumns + " WHERE sha256 = $hash", ("$hash", sha256)).FirstOrDefault();
+    }
+
+    public LibraryTrack? FindMusic(string id)
+    {
+        using var connection = Open();
+        return MusicRows(connection, MusicColumns + " WHERE id = $id", ("$id", id)).FirstOrDefault();
+    }
+
+    public LibraryTrack AddMusic(SocialUser uploader, string id, UploadMetadata metadata, string format, string sha256, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(uploader);
+        ArgumentNullException.ThrowIfNull(metadata);
+        using var connection = Open();
+        Execute(connection, """
+            INSERT INTO music (id, uploader, uploader_name, title, artist, album, duration_ms, format, sha256, created_at)
+            VALUES ($id, $uploader, $name, $title, $artist, $album, $duration, $format, $hash, $now)
+            """,
+            ("$id", id), ("$uploader", uploader.Id), ("$name", uploader.Username), ("$title", metadata.Title.Trim()),
+            ("$artist", metadata.Artist.Trim()), ("$album", (metadata.Album ?? "").Trim()), ("$duration", metadata.DurationMs),
+            ("$format", format), ("$hash", sha256), ("$now", now.ToUnixTimeSeconds()));
+        return new LibraryTrack(id, metadata.Title.Trim(), metadata.Artist.Trim(), (metadata.Album ?? "").Trim(), metadata.DurationMs, format, uploader.Username);
+    }
+
+    /// <summary>
+    /// Every word of the query must appear in the title, artist or album (case-insensitive). An empty
+    /// query lists the newest uploads.
+    /// </summary>
+    public IReadOnlyList<LibraryTrack> SearchMusic(string? query, int limit)
+    {
+        var words = (query ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Take(8).ToArray();
+        var conditions = words.Select((_, i) => $"(title || ' ' || artist || ' ' || album) LIKE $w{i} ESCAPE '\\'");
+        var sql = MusicColumns + (words.Length > 0 ? " WHERE " + string.Join(" AND ", conditions) : "") + " ORDER BY created_at DESC LIMIT $limit";
+        var parameters = words
+            .Select((word, i) => ($"$w{i}", (object?)("%" + word.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal) + "%")))
+            .Append(("$limit", Math.Clamp(limit, 1, SocialRules.PageSize)))
+            .ToArray();
+        using var connection = Open();
+        return MusicRows(connection, sql, parameters);
+    }
+
+    /// <summary>Removes a song if <paramref name="userId"/> uploaded it; returns whether it did.</summary>
+    public bool RemoveMusic(string userId, string id)
+    {
+        using var connection = Open();
+        return Execute(connection, "DELETE FROM music WHERE id = $id AND uploader = $me", ("$id", id), ("$me", userId)) > 0;
+    }
+
+    private static List<LibraryTrack> MusicRows(SqliteConnection connection, string sql, params (string Name, object? Value)[] parameters)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        Bind(command, parameters);
+        var rows = new List<LibraryTrack>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            rows.Add(new LibraryTrack(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3),
+                reader.GetInt32(4), reader.GetString(5), reader.GetString(6)));
+        }
+
+        return rows;
+    }
+
+    /// <summary>Deletes the account with its friendships, blocks, invites and messages (reports keep their copy, and songs stay in the shared library).</summary>
     public void DeleteAccount(string userId)
     {
         using var connection = Open();

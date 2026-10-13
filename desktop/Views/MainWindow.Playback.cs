@@ -111,6 +111,12 @@ public sealed partial class MainWindow
 
     private async Task PlayTrackAsync(Track track, CancellationToken ct)
     {
+        if (!track.IsSpotify)
+        {
+            await PlayLibraryTrackAsync(track, ct);
+            return;
+        }
+
         if (!_auth.IsConnected)
         {
             throw new InvalidOperationException("Connect Spotify in Settings first.");
@@ -137,6 +143,13 @@ public sealed partial class MainWindow
         }
 
         ct.ThrowIfCancellationRequested();
+        _playingFile = false;
+        ShowLoadedTrack(engine, track, stamp);
+    }
+
+    /// <summary>Updates the player bar once the engine has accepted a track (Spotify or library file).</summary>
+    private void ShowLoadedTrack(NativeEngine engine, Track track, uint stamp)
+    {
         _playingStamp = stamp;
         _playingTrack = track;
         _playbackState = PlaybackState.Loading;
@@ -306,7 +319,7 @@ public sealed partial class MainWindow
             {
                 await PlaySelectionAsync(ct);
             }
-            else if (!_nativeConnected || _playbackState is PlaybackState.Ended or PlaybackState.Failed or PlaybackState.Stopped)
+            else if (!EngineReady || _playbackState is PlaybackState.Ended or PlaybackState.Failed or PlaybackState.Stopped)
             {
                 await PlayTrackAsync(_playingTrack, ct);
             }
@@ -355,9 +368,9 @@ public sealed partial class MainWindow
 
     private async void Stop_Click(object sender, RoutedEventArgs e) => await PlaybackWorkAsync(async ct =>
     {
-        if (_engine is not null && _nativeConnected)
+        if (EngineReady && _engine is { } engine)
         {
-            await _engine.StopAsync(ct);
+            await engine.StopAsync(ct);
         }
     });
 
@@ -375,9 +388,9 @@ public sealed partial class MainWindow
         _adjustingPosition = false;
         await PlaybackWorkAsync(async ct =>
         {
-            if (_engine is not null && _nativeConnected && _playingTrack is not null)
+            if (EngineReady && _engine is { } engine && _playingTrack is not null)
             {
-                await _engine.SeekAsync(position, ct);
+                await engine.SeekAsync(position, ct);
             }
         });
     }
@@ -388,7 +401,7 @@ public sealed partial class MainWindow
 
     private Task SetVolumeAsync() => PlaybackWorkAsync(async ct =>
     {
-        if (_engine is not null && _nativeConnected)
+        if (_engine is not null)
         {
             await _engine.SetVolumeAsync((uint)VolumeSlider.Value, ct);
         }
@@ -401,6 +414,7 @@ public sealed partial class MainWindow
         var previous = _engine;
         _engine = null;
         _nativeConnected = false;
+        _playingFile = false;
         _playingTrack = null;
         _playingStamp = 0;
         _endedStamp = 0;

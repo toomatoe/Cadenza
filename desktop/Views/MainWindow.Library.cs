@@ -162,7 +162,7 @@ public sealed partial class MainWindow
     {
         if (HeroTrack is { } track)
         {
-            OpenInBrowser(track.Url);
+            OpenOnSpotify(track);
         }
     }
 

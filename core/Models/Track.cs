@@ -17,9 +17,11 @@ public sealed record Track
         string url,
         bool explicitContent,
         string artworkUrl = "",
-        string leadArtist = "")
+        string leadArtist = "",
+        MusicSource source = MusicSource.Spotify)
     {
         LeadArtist = leadArtist.Length > 0 ? leadArtist : artist;
+        Source = source;
         Id = id;
         Name = name;
         Artist = artist;
@@ -54,6 +56,11 @@ public sealed record Track
     public bool Explicit { get; }
 
     public string ArtworkUrl { get; }
+
+    public MusicSource Source { get; }
+
+    /// <summary>True for Spotify tracks, which have an open.spotify.com page and can be shared by ID.</summary>
+    public bool IsSpotify => Source == MusicSource.Spotify;
 
     /// <summary>Duration formatted as m:ss.</summary>
     public string Duration => TimeSpan.FromMilliseconds(DurationMs).ToString(@"m\:ss", CultureInfo.InvariantCulture);

@@ -62,6 +62,7 @@ ExecStart=/usr/local/bin/dotnet /opt/cadenza/Cadenza.Server.dll
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=Urls=http://localhost:5080
 Environment=Cadenza__Database=/var/lib/cadenza/cadenza.db
+Environment=Cadenza__MusicFolder=/var/lib/cadenza/music
 Restart=on-failure
 RestartSec=5
 
@@ -118,6 +119,14 @@ WebSockets pass through the tunnel automatically. The server sends keep-alives e
 
 In Cadenza, everyone uses `https://friends.example.com` as the server address.
 
+## 5a. The shared music library
+
+Songs people add from Cadenza (Library → **Add songs**) are stored in `Cadenza__MusicFolder`, one file per song named by ID, and listed in the database. Plan for space: an album of MP3s is about 100 MB, and FLAC is 3–4 times that. Put the folder on a USB drive if you can (for example `Environment=Cadenza__MusicFolder=/mnt/ssd/cadenza/music`, and add that path to `ReadWritePaths`).
+
+- Uploads are limited to 95 MB per file, because Cloudflare's free plan accepts 100 MB per request.
+- Music streams through the same tunnel as chat. Cloudflare's terms discourage using its network mainly for large media files. For a few friends that's a judgement call. If it becomes a concern, serve the server over **Tailscale** instead: it's free for personal use, and each person installs Tailscale and uses the Pi's Tailscale address as the server.
+- For phone apps or a web player, you can run Navidrome next to it and point it at the same folder, read-only.
+
 ## 6. Nightly backups
 
 `/usr/local/bin/cadenza-backup`:
@@ -126,6 +135,7 @@ In Cadenza, everyone uses `https://friends.example.com` as the server address.
 #!/bin/sh
 set -e
 sqlite3 /var/lib/cadenza/cadenza.db ".backup '/var/backups/cadenza/cadenza-$(date +%F).db'"
+rsync -a /var/lib/cadenza/music/ /var/backups/cadenza/music/
 find /var/backups/cadenza -name 'cadenza-*.db' -mtime +14 -delete
 ```
 

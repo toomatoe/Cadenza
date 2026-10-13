@@ -1,4 +1,5 @@
 //! Session and player live entirely behind the worker. No password or audio cache.
+use super::local::LocalPlayer;
 use super::{Command, Event, INVALID, OK, UNSUPPORTED};
 use librespot_core::{
     authentication::Credentials, config::SessionConfig, session::Session, spotify_uri::SpotifyUri,
@@ -41,6 +42,8 @@ pub(super) struct Playback {
     current: Option<SpotifyUri>,
     last: Event,
     reported_failure: bool,
+    // A library file playing instead of Spotify; Spotify events are ignored meanwhile.
+    local: Option<LocalPlayer>,
 }
 impl Playback {
     pub(super) fn new(running: Arc<AtomicBool>) -> Self {
@@ -57,6 +60,7 @@ impl Playback {
             current: None,
             last: Event::default(),
             reported_failure: false,
+            local: None,
         }
     }
     pub(super) fn command(&mut self, command: &Command) -> (i32, u32) {
@@ -66,6 +70,25 @@ impl Playback {
         }
         if command.opcode == 2 {
             return (self.authenticate(text), 0);
+        }
+        if command.opcode == 9 {
+            return self.load_file(text);
+        }
+        if command.opcode == 7 {
+            // Volume is kept even before anything plays, and applies to either player.
+            let Ok(value @ 0..=100) = text.parse::<u32>() else {
+                return (INVALID, 0);
+            };
+            self.volume.store(value, Ordering::Relaxed);
+            if let Some(local) = self.local.as_mut() {
+                local.command(7, text);
+            }
+            return (OK, 0);
+        }
+        if let Some(local) = self.local.as_mut()
+            && (4..=8).contains(&command.opcode)
+        {
+            return (local.command(command.opcode, text), 0);
         }
         let Some(player) = self.player.as_ref() else {
             return (NOT_CONNECTED, 0);
@@ -82,6 +105,7 @@ impl Playback {
                 if let Some(events) = &mut self.events {
                     while events.try_recv().is_ok() {}
                 }
+                self.local = None;
                 super::diagnostics::clear();
                 self.stamp = self.stamp.wrapping_add(1).max(1);
                 self.native_request = None;
@@ -109,19 +133,29 @@ impl Playback {
                 }
                 Err(_) => (INVALID, 0),
             },
-            7 => match text.parse::<u32>() {
-                Ok(value) if value <= 100 => {
-                    self.volume.store(value, Ordering::Relaxed);
-                    (OK, 0)
-                }
-                _ => (INVALID, 0),
-            },
             8 => {
                 player.stop();
                 (OK, 0)
             }
             4..=6 => (NOT_CONNECTED, 0),
             _ => (UNSUPPORTED, 0),
+        }
+    }
+    /// Plays a file from disk. Works without a Spotify session; stops Spotify playback if there is one.
+    fn load_file(&mut self, path: &str) -> (i32, u32) {
+        self.local = None;
+        if let Some(player) = self.player.as_ref() {
+            player.stop();
+        }
+        self.current = None;
+        self.native_request = None;
+        self.stamp = self.stamp.wrapping_add(1).max(1);
+        match LocalPlayer::open(path, self.volume.load(Ordering::Relaxed), self.stamp) {
+            Ok(local) => {
+                self.local = Some(local);
+                (OK, self.stamp)
+            }
+            Err(status) => (status, 0),
         }
     }
     fn authenticate(&mut self, text: &str) -> i32 {
@@ -217,6 +251,9 @@ impl Playback {
         OK
     }
     pub(super) fn poll(&mut self) -> Option<Event> {
+        if let Some(local) = self.local.as_mut() {
+            return local.poll();
+        }
         self.events.as_ref()?;
         let mut update = None;
         while let Ok(event) = self.events.as_mut()?.try_recv() {
@@ -441,7 +478,7 @@ mod tests {
     #[test]
     fn rejects_commands_without_a_session() {
         let mut player = Playback::new(Arc::new(AtomicBool::new(true)));
-        for opcode in 3..=8 {
+        for opcode in [3, 4, 5, 6, 8] {
             assert_eq!(
                 player
                     .command(&Command {

@@ -1,5 +1,7 @@
+using System.Text.Json;
 using System.Threading.RateLimiting;
 using Cadenza.Core.Social;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Http.Json;
 
@@ -15,6 +17,11 @@ public static class ServerApp
     public const string SlowPolicy = "slow";
     public const int MessagesPerMinute = 30;
     public const int SlowActionsPerHour = 20;
+    public const string UploadPolicy = "upload";
+    public const int UploadsPerHour = 200;
+
+    // Multipart boundaries and the metadata field on top of the file itself.
+    private const long UploadOverheadBytes = 1024 * 1024;
 
     private const string UserItem = "cadenza-user";
 
@@ -35,6 +42,9 @@ public static class ServerApp
         });
         builder.Services.AddSingleton(_ => new SocialStore(builder.Configuration["Cadenza:Database"] ?? "cadenza.db"));
         builder.Services.AddSingleton<ConnectionHub>();
+        builder.Services.AddSingleton(services => new MusicLibrary(
+            services.GetRequiredService<SocialStore>(),
+            builder.Configuration["Cadenza:MusicFolder"] ?? "music"));
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
@@ -47,6 +57,8 @@ public static class ServerApp
                 PartitionKey(context), _ => new FixedWindowRateLimiterOptions { PermitLimit = MessagesPerMinute, Window = TimeSpan.FromMinutes(1) }));
             options.AddPolicy(SlowPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
                 PartitionKey(context), _ => new FixedWindowRateLimiterOptions { PermitLimit = SlowActionsPerHour, Window = TimeSpan.FromHours(1) }));
+            options.AddPolicy(UploadPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+                PartitionKey(context), _ => new FixedWindowRateLimiterOptions { PermitLimit = UploadsPerHour, Window = TimeSpan.FromHours(1) }));
         });
 
         var app = builder.Build();
@@ -141,6 +153,49 @@ public static class ServerApp
             await hub.SendAsync(me.Id, pushed, context.RequestAborted);
             return message;
         }).RequireRateLimiting(SendPolicy);
+
+        // The shared library: anyone with an account can search and play every song.
+        api.MapGet("/music", (string? q, SocialStore store) => store.SearchMusic(q, SocialRules.PageSize));
+        api.MapGet("/music/{id}/file", (string id, SocialStore store, MusicLibrary library) =>
+            store.FindMusic(id) is { } track
+                ? Results.File(library.PathFor(track.Id, track.Format), MusicFormats.ContentType(track.Format), enableRangeProcessing: true)
+                : throw new SocialRuleException(StatusCodes.Status404NotFound, "That song is no longer in the library."));
+        api.MapPost("/music", async (HttpContext context, MusicLibrary library, TimeProvider clock) =>
+        {
+            // The form is read here rather than bound, so the size limit can be raised for this request only.
+            if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
+            {
+                limit.MaxRequestBodySize = MusicFormats.MaxUploadBytes + UploadOverheadBytes;
+            }
+
+            if (!context.Request.HasFormContentType)
+            {
+                throw new SocialRuleException("Expected a music file upload.");
+            }
+
+            var form = await context.Request.ReadFormAsync(context.RequestAborted);
+            var file = form.Files.GetFile("file") ?? throw new SocialRuleException("Expected a music file upload.");
+            UploadMetadata? metadata;
+            try
+            {
+                metadata = JsonSerializer.Deserialize<UploadMetadata>(form["metadata"].ToString(), SocialRules.Json);
+            }
+            catch (JsonException)
+            {
+                metadata = null;
+            }
+
+            return await library.SaveAsync(
+                Me(context),
+                file,
+                metadata ?? throw new SocialRuleException("Song details are missing."),
+                clock.GetUtcNow(),
+                context.RequestAborted);
+        }).RequireRateLimiting(UploadPolicy);
+        api.MapDelete("/music/{id}", (HttpContext context, string id, MusicLibrary library) =>
+            library.Delete(Me(context).Id, id)
+                ? Results.NoContent()
+                : throw new SocialRuleException(StatusCodes.Status403Forbidden, "Only the person who added a song can remove it."));
 
         api.MapPost("/reports", (HttpContext context, ReportRequest request, SocialStore store, TimeProvider clock) =>
         {
