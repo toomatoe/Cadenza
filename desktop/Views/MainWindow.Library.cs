@@ -96,23 +96,23 @@ public partial class MainWindow
         PlaylistFan.Children.Clear();
         var items = PinnedPlaylists.Take(3).ToArray();
         var count = items.Length + 1;
-        var step = expanded ? 164.0 : 116.0;
-        PlaylistFan.Width = Math.Min((count - 1) * step + 164, Math.Max(164, Root.ActualWidth - 300));
+        var step = expanded ? 190.0 : 90.0;
+        PlaylistFan.Width = Math.Min((count - 1) * step + 180, Math.Max(180, Root.ActualWidth - 280));
         for (var i = 0; i < count; i++)
         {
             var playlist = i < items.Length ? items[i] : null;
             var button = new Button
             {
-                Width = 164, Height = 176, Padding = new Thickness(0), CornerRadius = new CornerRadius(12),
+                Width = 180, Height = 200, Padding = new Thickness(0), CornerRadius = new CornerRadius(12),
                 HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center,
                 HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch,
                 Margin = new Thickness(i * step, 0, 0, 0), Tag = playlist,
                 Background = AppearanceBrush("PlaylistFanSurface"), BorderBrush = AppearanceBrush("GlassEdge"), BorderThickness = new Thickness(1),
                 RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5),
-                RenderTransform = new RotateTransform { Angle = 0 }
+                RenderTransform = new RotateTransform { Angle = expanded ? 0 : (i - (count - 1) / 2.0) * 8 }
             };
-            var grid = new Grid(); grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(36) });
-            var record = new Grid { Width = 84, Height = 84 };
+            var grid = new Grid(); grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(40) });
+            var record = new Grid { Width = 100, Height = 100 };
             var colors = new[] { Windows.UI.Color.FromArgb(255, 47, 111, 169), Windows.UI.Color.FromArgb(255, 61, 133, 190), Windows.UI.Color.FromArgb(255, 82, 154, 207), Windows.UI.Color.FromArgb(255, 86, 162, 213) };
             record.Children.Add(new Ellipse { Fill = new SolidColorBrush(colors[i % colors.Length]) });
             var center = new Border { Width = 36, Height = 36, CornerRadius = new CornerRadius(18), Background = AppearanceBrush("Accent") };
@@ -133,14 +133,14 @@ public partial class MainWindow
     {
         var count = PlaylistFan.Children.Count;
         if (count == 0) return;
-        var available = Math.Max(164, Root.ActualWidth - 320);
-        var step = count == 1 ? 0 : Math.Min(expanded ? 164 : 116, Math.Max(0, (available - 164) / (count - 1)));
-        PlaylistFan.Width = 164 + step * (count - 1);
+        var available = Math.Max(180, Root.ActualWidth - 300);
+        var step = count == 1 ? 0 : Math.Min(expanded ? 190 : 90, (available - 180) / (count - 1));
+        PlaylistFan.Width = 180 + step * (count - 1);
         for (var i = 0; i < count; i++)
         {
             if (PlaylistFan.Children[i] is not Button button) continue;
             button.Margin = new Thickness(i * step, 0, 0, 0);
-            button.RenderTransform = new RotateTransform { Angle = 0 };
+            button.RenderTransform = new RotateTransform { Angle = expanded ? 0 : (i - (count - 1) / 2.0) * 8 };
         }
     }
 
