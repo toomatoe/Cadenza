@@ -1,27 +1,45 @@
 # Music from other sources
 
-**Status:** design. Revised on 2026-10-13: start with importing music files on this PC (see "Decisions"); the Pi music server comes later.
+**Status:** the shared library is built (see "What was built"). The sections after it are the earlier research and design.
 
 ## Goal
 
-Let Cadenza play music that isn't on Spotify, chiefly **your own music library, stored on your Raspberry Pi** and streamed to any PC running Cadenza, plus SoundCloud later, in the same library, queue and player, so a session can mix sources freely.
+Let Cadenza play music that isn't on Spotify, in the same search, queue and player, so a session can mix sources freely.
 
 ## Decisions (owner feedback, 2026-10-13)
 
-- **First step: import your own music files into Cadenza on this PC.** These are files you've bought or downloaded (MP3, FLAC, OGG). No server is needed. The Pi music server becomes a later step for streaming the same library to other devices.
-- **Navidrome stays the pick for the later server step,** after the comparison below.
-- **Tailscale is deferred.** It's free for personal use, but it's only needed once the Pi streams music, so nothing gets installed on this PC now.
+- **Songs that aren't on Spotify are stored on the server** (the Raspberry Pi) in **one shared library**. Anyone with an account on that server finds them through the normal search bar.
+- People add songs by **uploading music files** they have (MP3, FLAC, Ogg Vorbis) from Cadenza.
 - **YouTube is links only; SoundCloud waits** until Artist Pro credentials are available.
+- **Navidrome is optional,** not required (see below). **Tailscale** isn't needed for this step.
 
-### Why local import is cheap
-The Rust engine already compiles in **Symphonia 0.5.5** with MP3, FLAC, Vorbis/OGG and tag reading, because librespot uses it. Playing your files reuses that decoder and the existing rodio output, so the app's size barely changes. AAC/M4A and Opus would need extra Symphonia features. They're small, but add them only if you ask.
+## What was built
 
-### Import design (phase 1)
-- **Import music…** (Library page and Settings) opens a file or folder picker. Cadenza keeps the files **where they are** and records them in a small local index (`%LOCALAPPDATA%\Cadenza\local-library.json`: path, size, modified time, tags). "Copy into Music\Cadenza" is an option, not the default, so nothing is duplicated.
-- Tags (title, artist, album, duration, embedded cover) are read once at import by the Rust engine through a new `ReadTags` call, and re-read only when a file's size or modified time changes. There's no background folder watching.
-- Local tracks appear in Library under a **This PC** filter, can go in the same queue as Spotify tracks, and show embedded art or the record placeholder.
-- Playback: a new `LoadFile` engine command decodes from disk with Symphonia into the same output. Volume, seek, pause and end-of-track events work as they do for Spotify.
-- Friends: a local track can't be shared as-is, because your friend doesn't have the file. Sharing it looks up the same song on Spotify and sends that ID if found; otherwise it sends the title and artist as text.
+| Part | How it works |
+| --- | --- |
+| **Uploading** | Library → **Add songs** opens a file picker (multiple files). Cadenza reads title, artist, album and duration from the file's tags (`core/Music/MusicFileReader.cs`, plain C#: ID3v2 + Xing/CBR for MP3, STREAMINFO + Vorbis comments for FLAC, Ogg Vorbis headers), falls back to an "Artist - Title" file name, and uploads to the Friends server. Files are checked by their first bytes, capped at 95 MB (Cloudflare's free plan allows 100 MB per request), and stored once: an identical file uploaded again returns the existing song. |
+| **Server** | The Friends server keeps files in its music folder (`Cadenza:MusicFolder`), named by ID, with details in SQLite. `GET /api/music?q=` searches title, artist and album (every word must match); `GET /api/music/{id}/file` streams with range requests; uploaders can remove their own songs. Uploads are rate-limited to 200 an hour. |
+| **Search** | When you've joined Cadenza Friends, matching library songs appear above the Spotify results, labelled "Cadenza library · added by …" (or their album). |
+| **Playback** | A library song is downloaded to a local cache (`%LOCALAPPDATA%\Cadenza\library-cache`, capped at 1 GB, least recently played removed first), then played by the Rust engine's new **opcode 9** (ABI 3). That uses rodio's Symphonia decoder for MP3, FLAC and Ogg Vorbis, which librespot already compiles in, so no new crates are added. Play, pause, seek, volume, the queue and end-of-track all work as they do for Spotify, and a library song plays without a Spotify session. |
+| **Friends** | Library songs have no Spotify ID, so sharing one sends a message telling your friend to search for it. |
+| **Weight** | No new NuGet packages in the app and no new Rust crates. Nothing runs until you search, upload or play a library song. |
+
+**Not in this step:** cover art for library songs (they show the record placeholder), M4A/AAC and Opus (they'd need extra Symphonia crates), editing song details after upload, and phone apps.
+
+**Your call:** in a shared library, everyone on the server can stream every song. Uploading copyrighted music you bought and letting others stream it can count as distributing it. The owner decided on a shared library knowing this.
+
+**Optional Navidrome:** point Navidrome at the same music folder (read-only) if you want phone apps or a web player. Its files are the uploaded originals, so their tags show up there too.
+
+**Network note:** music goes through the same Cloudflare Tunnel as chat. Cloudflare's terms discourage using its network mainly for large media files. For a small group, that's a judgement call; the alternative is Tailscale (see `server/DEPLOY-RASPBERRY-PI.md`).
+
+**Tests:**
+- Tag reading for all three formats, and the file-name fallback.
+- The playback cache's eviction order.
+- Format detection.
+- End-to-end against the real server: upload, de-duplication, search, byte-exact download, range requests, refusing non-music files, and that only the uploader can remove a song.
+- Rust: the file player rejects bad paths and non-audio files.
+
+Audible playback can't be checked automatically.
 
 ## What's possible, source by source
 
@@ -34,7 +52,7 @@ The Rust engine already compiles in **Symphonia 0.5.5** with MP3, FLAC, Vorbis/O
 | **Bandcamp** | **Links only.** | No public playback API. Purchased downloads go into your Pi library. |
 | **Open catalogues, internet radio** | **Maybe later.** | Creative-Commons catalogues (Jamendo, Internet Archive) and the open Radio Browser directory. |
 
-## Later: Navidrome on the Raspberry Pi
+## Research: Navidrome on the Raspberry Pi (optional now)
 
 Rather than writing our own music server, run **[Navidrome](https://www.navidrome.org/)**:
 
@@ -96,18 +114,17 @@ It runs next to the Friends server on the same Pi.
 
 ## Phases
 
-1. **Pi setup guide:** Navidrome + music drive + Tailscale (`server/DEPLOY-RASPBERRY-PI.md`, shared with Friends).
-2. **Track model and provider abstraction**, with Spotify behaviour unchanged (covered by tests).
-3. **Subsonic client:** browse and search the library in Cadenza.
-4. **Rust streaming playback:** Symphonia + HTTP range reads; mixed-source queue.
-5. Optional local files; then SoundCloud for users with Artist Pro credentials.
+1. ~~Shared library: upload, search, play~~ **Built.**
+2. Cover art from embedded tags; M4A/AAC if wanted.
+3. Optional Navidrome next to the Friends server for phone apps.
+4. SoundCloud for users with Artist Pro credentials.
 
 ## Open questions
 
-1. Is **Navidrome** OK, rather than a custom music server? (Recommended: it's mature, and gives you phone apps for free.)
-2. **Tailscale** for reaching the library: OK to install it on the Pi and your PCs?
-3. Is the library **private to you**, or should friends get accounts (see the copyright note)?
-4. Agree that **YouTube is links-only** and **SoundCloud waits** for Artist Pro credentials?
+1. ~~Navidrome?~~ Optional; not needed for the shared library.
+2. ~~Tailscale?~~ Not needed now; an alternative if Cloudflare's media terms become a concern.
+3. ~~Library private or shared?~~ **Decided: shared** with everyone on the server.
+4. ~~YouTube / SoundCloud?~~ **Decided:** YouTube links only; SoundCloud later.
 
 ## Sources
 

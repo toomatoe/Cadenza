@@ -37,7 +37,7 @@ public sealed partial class MainWindow
     {
         if (((HyperlinkButton)sender).Tag is Track track)
         {
-            OpenInBrowser(track.Url);
+            OpenOnSpotify(track);
         }
     }
 

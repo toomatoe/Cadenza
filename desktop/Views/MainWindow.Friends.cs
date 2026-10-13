@@ -244,6 +244,12 @@ public sealed partial class MainWindow
             return;
         }
 
+        if (!_playingTrack.IsSpotify)
+        {
+            await ShareLibraryTrackAsync(_playingTrack);
+            return;
+        }
+
         RememberSharedTrack(_playingTrack);
         if (await SendToFriendAsync(new SendMessageRequest(kind, kind == ChatMessageKind.Share ? ComposerBox.Text.Trim() : "", _playingTrack.Id)) &&
             kind == ChatMessageKind.Share)
@@ -327,7 +333,7 @@ public sealed partial class MainWindow
         {
             XamlRoot = Content.XamlRoot,
             Title = "Leave Cadenza Friends?",
-            Content = "This deletes your account, friends and messages from the server. Your music and library aren't affected.",
+            Content = "This deletes your account, friends and messages from the server. Songs you added stay in the shared library, and your music and Spotify library aren't affected.",
             PrimaryButtonText = "Delete my account",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Close,
@@ -341,6 +347,7 @@ public sealed partial class MainWindow
         {
             await _social!.DeleteAccountAsync(ct);
             ForgetFriendsAccount();
+            SongCache.Clear();
             Message("Your Cadenza Friends account was deleted.", InfoBarSeverity.Success);
             await ShowFriendsAsync();
         });

@@ -2,6 +2,8 @@
 #[cfg(feature = "playback")]
 mod diagnostics;
 #[cfg(feature = "playback")]
+mod local;
+#[cfg(feature = "playback")]
 mod playback;
 use std::collections::{HashMap, VecDeque};
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -59,7 +61,7 @@ fn guarded(action: impl FnOnce() -> i32) -> i32 {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn cadenza_abi_version() -> u32 {
-    2
+    3
 }
 
 #[unsafe(no_mangle)]
@@ -85,7 +87,7 @@ pub extern "C" fn cadenza_create() -> u64 {
                                     request_id: command.request_id,
                                     kind: 1,
                                     status: OK,
-                                    value: 2,
+                                    value: 3,
                                     reserved: 0,
                                 }
                             } else {
@@ -162,7 +164,7 @@ pub unsafe extern "C" fn cadenza_submit_text(
     length: usize,
 ) -> i32 {
     guarded(|| {
-        if payload.is_null() || length == 0 || length > 8192 || !(2..=8).contains(&opcode) {
+        if payload.is_null() || length == 0 || length > 8192 || !(2..=9).contains(&opcode) {
             return INVALID;
         }
         let bytes = unsafe { std::slice::from_raw_parts(payload, length) };

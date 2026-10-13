@@ -190,6 +190,7 @@
                                 <TextBlock Text="Recently added" Style="{StaticResource SectionTitleStyle}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                 <Button x:Name="AllTracksChip" Content="All" Tag="All" Click="LibraryFilter_Click" CornerRadius="18" Height="36" MinHeight="36" Padding="16,0"/>
                                 <Button x:Name="LikedTracksChip" Content="Liked" Tag="Liked" Click="LibraryFilter_Click" CornerRadius="18" Height="36" MinHeight="36" Padding="16,0"/>
+                                <Button Content="Add songs" Click="UploadMusic_Click" CornerRadius="18" Height="36" MinHeight="36" Padding="16,0" AutomationProperties.Name="Add songs to the shared library" ToolTipService.ToolTip="Upload MP3, FLAC or Ogg files that aren't on Spotify to your group's shared library"/>
                             </StackPanel>
                             <TextBlock x:Name="LikedEmpty" Text="No liked tracks yet. Tap the heart in the player to save one." Visibility="Collapsed" Foreground="{ThemeResource MutedText}"/>
                             <ItemsRepeater x:Name="LibraryCards" ItemsSource="{x:Bind LibraryTracks}" AutomationProperties.Name="Library album covers">
