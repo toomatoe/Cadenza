@@ -74,6 +74,7 @@ public sealed partial class MainWindow : Window
         RedirectUriBox.Text = _preferences.RedirectUri;
         SpacingBox.Value = _preferences.ArtistSpacing;
         InitializeAppearance();
+        InitializeProfile();
         UpdateViewSurfaces();
         UpdateQueueLabel();
         RefreshLibrary();
