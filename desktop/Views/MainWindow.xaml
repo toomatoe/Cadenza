@@ -21,7 +21,7 @@
                     <Button x:Name="NavPlaylists" Tag="Playlists" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Playlists"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE93C;" FontSize="16"/><TextBlock Text="Playlists"/></StackPanel></Button>
                     <Button x:Name="NavQueue" Tag="Queue" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Queue"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8FD;" FontSize="16"/><TextBlock Grid.Column="1" Text="Queue"/><Border Grid.Column="2" Background="{ThemeResource NavSelectedBrush}" CornerRadius="10" Padding="8,2"><TextBlock x:Name="QueueCountBadge" FontSize="11" Text="0"/></Border></Grid></Button>
                 </StackPanel>
-                <ScrollViewer x:Name="SidebarScroll" Grid.Row="2" VerticalScrollBarVisibility="Hidden" VerticalScrollMode="Enabled" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch" VerticalAnchorRatio="NaN" AutomationProperties.Name="Your playlists">
+                <ScrollViewer x:Name="SidebarScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch" VerticalAnchorRatio="NaN" AutomationProperties.Name="Your playlists">
                     <StackPanel x:Name="SidebarPlaylists" Visibility="Collapsed" Spacing="2">
                         <TextBlock Text="PLAYLISTS" Style="{StaticResource EyebrowTextStyle}" FontSize="10" Margin="12,0,0,6"/>
                         <ItemsControl ItemsSource="{x:Bind PinnedPlaylists}">
@@ -163,7 +163,7 @@
                         </Border>
                         <StackPanel x:Name="PlaylistDeck" Spacing="4">
                             <TextBlock Text="Your playlists" Style="{StaticResource SectionTitleStyle}"/>
-                            <Grid x:Name="PlaylistFan" Height="236" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                            <Grid x:Name="PlaylistFan" Height="204" HorizontalAlignment="Center" Margin="0,12,0,0"/>
                         </StackPanel>
                         <StackPanel Spacing="16">
                             <StackPanel Orientation="Horizontal" Spacing="10">
