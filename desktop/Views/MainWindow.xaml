@@ -23,7 +23,16 @@
         <Border Grid.Row="1" Margin="0,0,0,0" Style="{StaticResource GlassCardStyle}" CornerRadius="26" Padding="16,26,16,18">
             <Grid RowSpacing="24">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <StackPanel Spacing="4" Padding="10,0"><TextBlock Text="cadenza" FontFamily="{StaticResource HeadingFont}" FontSize="28" FontWeight="SemiBold" CharacterSpacing="-40"/><TextBlock Text="A space for your sound" FontSize="12" Foreground="{ThemeResource MutedText}"/></StackPanel>
+                <Grid Padding="10,0,0,0" ColumnSpacing="4" RowSpacing="4">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock Text="cadenza" FontFamily="{StaticResource HeadingFont}" FontSize="28" FontWeight="SemiBold" CharacterSpacing="-40" VerticalAlignment="Bottom"/>
+                    <!-- Profile companion; opens the profile editor in Settings. -->
+                    <Button x:Name="SidebarSpriteButton" Grid.Column="1" Click="SidebarSprite_Click" Style="{StaticResource IconButtonStyle}" Width="Auto" Height="Auto" Padding="2" CornerRadius="14" VerticalAlignment="Bottom">
+                        <controls:PixelSprite x:Name="SidebarSprite" DisplaySize="48"/>
+                    </Button>
+                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="A space for your sound" FontSize="12" Foreground="{ThemeResource MutedText}"/>
+                </Grid>
                 <StackPanel Grid.Row="1" Spacing="4">
                     <Button x:Name="NavLibrary" Tag="Library" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Library"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE8F1;" FontSize="16"/><TextBlock Text="Library"/></StackPanel></Button>
                     <Button x:Name="NavSearch" Tag="Search" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Search"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE721;" FontSize="16"/><TextBlock Text="Search"/></StackPanel></Button>
@@ -228,6 +237,30 @@
 
                 <ScrollViewer Grid.RowSpan="2" x:Name="SettingsPanel" Visibility="Collapsed" Padding="0,0,16,32" VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="18" MaxWidth="680" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource GlassCardStyle}" Padding="26">
+                            <Grid ColumnSpacing="28" RowSpacing="14">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Grid.ColumnSpan="2" Text="Profile" Style="{StaticResource SectionTitleStyle}"/>
+                                <Border Grid.Row="1" Width="148" Height="168" CornerRadius="16" Background="{ThemeResource CardSurface}" BorderBrush="{ThemeResource GlassEdge}" BorderThickness="1" VerticalAlignment="Top">
+                                    <controls:PixelSprite x:Name="ProfilePreview" DisplaySize="120"/>
+                                </Border>
+                                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="14">
+                                    <TextBox x:Name="SpriteNameBox" Header="Name" MaxLength="20" CornerRadius="12" TextChanged="SpriteName_TextChanged"/>
+                                    <ComboBox x:Name="SpeciesBox" Header="Companion" MinWidth="200" SelectionChanged="Species_SelectionChanged"/>
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Colour" FontSize="13"/>
+                                        <StackPanel x:Name="BodySwatches" Orientation="Horizontal" Spacing="8"/>
+                                    </StackPanel>
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Accent" FontSize="13"/>
+                                        <StackPanel x:Name="AccentSwatches" Orientation="Horizontal" Spacing="8"/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="AccessoryBox" Header="Accessory" MinWidth="200" SelectionChanged="Accessory_SelectionChanged"/>
+                                    <TextBlock Text="Your companion reacts to what's playing. Original pixel art, free to reuse (CC0)." Foreground="{ThemeResource MutedText}" FontSize="12" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
                         <Border Style="{StaticResource GlassCardStyle}" Padding="26">
                             <StackPanel Spacing="14">
                                 <TextBlock Text="Appearance" Style="{StaticResource SectionTitleStyle}"/>

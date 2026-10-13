@@ -12,6 +12,7 @@ internal static class Program
         QueueChecks.Run(checks);
         await QueueChecks.RunPlaybackAsync(checks);
         PlaybackErrorChecks.Run(checks);
+        SpriteChecks.Run(checks);
         await SpotifyApiChecks.RunAsync(checks);
         await CatalogControllerChecks.RunAsync(checks);
         if (args.Contains("--native"))
