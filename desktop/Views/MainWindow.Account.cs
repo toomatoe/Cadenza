@@ -68,6 +68,7 @@ public sealed partial class MainWindow
             UpdatePinnedPlaylists();
             _likedTrackIds.Clear();
             _librarySnapshot.Clear();
+            ForgetRecommendations();
             _selectedLibraryTrack = null;
             RefreshLibrary();
             RefreshPlaylistDeck();

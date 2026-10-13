@@ -41,6 +41,7 @@ public sealed partial class MainWindow
         PageTitle.Text = _view switch
         {
             AppView.Library => "Your library",
+            AppView.Recommendations => "For you",
             AppView.Queue => "Listening queue",
             _ => _view.ToString()
         };
@@ -52,6 +53,13 @@ public sealed partial class MainWindow
         if (_view == AppView.Settings)
         {
             EmptyState.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        if (_view == AppView.Recommendations)
+        {
+            EmptyState.Visibility = Visibility.Collapsed;
+            await ShowRecommendationsAsync(refresh: false);
             return;
         }
 
@@ -186,7 +194,7 @@ public sealed partial class MainWindow
     {
         var selected = AppearanceBrush("NavSelectedBrush");
         var idle = AppearanceBrush("NavIdleBrush");
-        foreach (var button in new[] { NavLibrary, NavSearch, NavPlaylists, NavQueue, NavSettings })
+        foreach (var button in new[] { NavLibrary, NavRecommendations, NavSearch, NavPlaylists, NavQueue, NavSettings })
         {
             var current = ParseView(button.Tag) == _view;
             button.Background = current ? selected : idle;
@@ -213,12 +221,13 @@ public sealed partial class MainWindow
     {
         var playlistOpen = _view == AppView.Playlists && _selectedPlaylist is not null;
         LibraryScroll.Visibility = ToVisibility(_view == AppView.Library);
-        CatalogTools.Visibility = ToVisibility(_view != AppView.Library);
+        CatalogTools.Visibility = ToVisibility(_view is not (AppView.Library or AppView.Recommendations));
+        RecommendationsPanel.Visibility = ToVisibility(_view == AppView.Recommendations);
         PlaylistCards.Visibility = ToVisibility(_view == AppView.Playlists && _selectedPlaylist is null);
         PlaylistDetail.Visibility = ToVisibility(playlistOpen);
         TrackPanel.Visibility = ToVisibility(_view is AppView.Search or AppView.Queue || playlistOpen);
         UpdateQueueControls();
-        SearchPanel.Visibility = ToVisibility(_view is not (AppView.Settings or AppView.Playlists));
+        SearchPanel.Visibility = ToVisibility(_view is not (AppView.Settings or AppView.Playlists or AppView.Recommendations));
     }
 
     private void UpdateEmpty()
@@ -228,7 +237,7 @@ public sealed partial class MainWindow
         EmptyAction.Tag = (queueView ? AppView.Library : AppView.Settings).ToString();
         EmptyAction.Visibility = ToVisibility(queueView || !_auth.IsConnected);
         var empty = _view == AppView.Playlists && _selectedPlaylist is null ? Playlists.Count == 0 : Tracks.Count == 0;
-        EmptyState.Visibility = ToVisibility(_view != AppView.Settings && empty);
+        EmptyState.Visibility = ToVisibility(_view is not (AppView.Settings or AppView.Recommendations) && empty);
     }
 
     private async void PlaylistCard_Click(object sender, ItemClickEventArgs e)
