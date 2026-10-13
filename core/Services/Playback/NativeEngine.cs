@@ -138,7 +138,24 @@ public sealed partial class NativeEngine : IAsyncDisposable
             throw new ArgumentException("Invalid music file path.", nameof(path));
         }
 
-        return SubmitAsync(Opcode.LoadFile, ct, path);
+        return LoadFileCoreAsync(path, ct);
+    }
+
+    // The engine's generic status messages talk about Spotify; say what went wrong with the file instead.
+    private async Task<uint> LoadFileCoreAsync(string path, CancellationToken ct)
+    {
+        try
+        {
+            return await SubmitAsync(Opcode.LoadFile, ct, path);
+        }
+        catch (ArgumentException error)
+        {
+            throw new InvalidOperationException("The song file is missing. Try playing it again.", error);
+        }
+        catch (NotSupportedException error)
+        {
+            throw new InvalidOperationException("That song's file isn't an MP3, FLAC or Ogg file Cadenza can play.", error);
+        }
     }
 
     public Task<uint> ResumeAsync(CancellationToken ct) => SubmitAsync(Opcode.Resume, ct);
