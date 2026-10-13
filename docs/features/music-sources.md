@@ -1,10 +1,27 @@
-# Music from other sources (design proposal)
+# Music from other sources
 
-**Status:** proposal; nothing built yet. Revised after the owner's feedback that personal music should be **stored on a server** (the owner's Raspberry Pi) rather than only on one PC.
+**Status:** design. Revised on 2026-10-13: start with importing music files on this PC (see "Decisions"); the Pi music server comes later.
 
 ## Goal
 
 Let Cadenza play music that isn't on Spotify, chiefly **your own music library, stored on your Raspberry Pi** and streamed to any PC running Cadenza, plus SoundCloud later, in the same library, queue and player, so a session can mix sources freely.
+
+## Decisions (owner feedback, 2026-10-13)
+
+- **First step: import your own music files into Cadenza on this PC.** These are files you've bought or downloaded (MP3, FLAC, OGG). No server is needed. The Pi music server becomes a later step for streaming the same library to other devices.
+- **Navidrome stays the pick for the later server step,** after the comparison below.
+- **Tailscale is deferred.** It's free for personal use, but it's only needed once the Pi streams music, so nothing gets installed on this PC now.
+- **YouTube is links only; SoundCloud waits** until Artist Pro credentials are available.
+
+### Why local import is cheap
+The Rust engine already compiles in **Symphonia 0.5.5** with MP3, FLAC, Vorbis/OGG and tag reading, because librespot uses it. Playing your files reuses that decoder and the existing rodio output, so the app's size barely changes. AAC/M4A and Opus would need extra Symphonia features. They're small, but add them only if you ask.
+
+### Import design (phase 1)
+- **Import music…** (Library page and Settings) opens a file or folder picker. Cadenza keeps the files **where they are** and records them in a small local index (`%LOCALAPPDATA%\Cadenza\local-library.json`: path, size, modified time, tags). "Copy into Music\Cadenza" is an option, not the default, so nothing is duplicated.
+- Tags (title, artist, album, duration, embedded cover) are read once at import by the Rust engine through a new `ReadTags` call, and re-read only when a file's size or modified time changes. There's no background folder watching.
+- Local tracks appear in Library under a **This PC** filter, can go in the same queue as Spotify tracks, and show embedded art or the record placeholder.
+- Playback: a new `LoadFile` engine command decodes from disk with Symphonia into the same output. Volume, seek, pause and end-of-track events work as they do for Spotify.
+- Friends: a local track can't be shared as-is, because your friend doesn't have the file. Sharing it looks up the same song on Spotify and sends that ID if found; otherwise it sends the title and artist as text.
 
 ## What's possible, source by source
 
@@ -17,7 +34,7 @@ Let Cadenza play music that isn't on Spotify, chiefly **your own music library, 
 | **Bandcamp** | **Links only.** | No public playback API. Purchased downloads go into your Pi library. |
 | **Open catalogues, internet radio** | **Maybe later.** | Creative-Commons catalogues (Jamendo, Internet Archive) and the open Radio Browser directory. |
 
-## Server: Navidrome on the Raspberry Pi (recommended)
+## Later: Navidrome on the Raspberry Pi
 
 Rather than writing our own music server, run **[Navidrome](https://www.navidrome.org/)**:
 
@@ -28,6 +45,25 @@ Rather than writing our own music server, run **[Navidrome](https://www.navidrom
 - Streams original files, or transcodes with ffmpeg on request. Transcoding is the main CPU cost on a Pi; prefer original-quality streaming on a home network.
 
 It runs next to the Friends server on the same Pi.
+
+### Navidrome vs the alternatives (checked 2026-10-13)
+
+| | Navidrome | gonic | Jellyfin |
+| --- | --- | --- | --- |
+| Focus | Music only | Music only, minimal | Video, music and books |
+| Latest release | v0.64.2 (2026-09-24) | v0.22.0 (2026-06-08) | v12.2 (2026-10-05) |
+| Community (GitHub stars) | ~24k | ~2.6k | ~58k |
+| Pi footprint | Single Go binary, official linux-arm64 builds, plus a `deluan/navidrome` Docker image with arm64 | Single Go binary, very light | Heavier .NET server; guides suggest 2–4 GB RAM |
+| Subsonic API (phone apps, and our client) | Yes | Yes | No (its own API) |
+| Web player, multi-user | Yes | No web player | Yes |
+
+**Verdict: Navidrome.**
+- It's light enough for the Pi, actively maintained, and runs as a native binary or with Docker.
+- It speaks the Subsonic API, which Cadenza would talk to and which phone apps already support.
+- gonic is lighter still, but it has no web UI and a much smaller community.
+- Jellyfin is built around video and doesn't speak Subsonic.
+- None of them uploads music from a browser well. You copy files into the music folder (a Samba share or `rsync`), and the server rescans it.
+
 
 | Concern | Plan |
 | --- | --- |
@@ -75,6 +111,7 @@ It runs next to the Friends server on the same Pi.
 
 ## Sources
 
+- Server comparison: [navidrome/navidrome](https://github.com/navidrome/navidrome/releases), [sentriz/gonic](https://github.com/sentriz/gonic), [jellyfin/jellyfin](https://github.com/jellyfin/jellyfin), [deluan/navidrome on Docker Hub](https://hub.docker.com/r/deluan/navidrome), [selfhosting.sh music servers](https://selfhosting.sh/best/music-streaming/)
 - Navidrome: [overview](https://www.navidrome.org/docs/overview/.), [documentation](https://www.navidrome.org/_print/docs/), [Armbian package](https://docs.armbian.com/software/navidrome/), [Pi multi-client streaming guide](https://pidiylab.com/navidrome-raspberry-pi-multi-client-streaming/)
 - SoundCloud API access: [developer blog (May 2026)](https://developers.soundcloud.com/blog/vibe-coding-ai-agent-docs-self-serve-api-keys), [register an app](https://developers.soundcloud.com/docs/api/register-app), [API Terms of Use](https://developers.soundcloud.com/docs/api/terms-of-use)
 - YouTube: [Required Minimum Functionality](https://developers.google.com/youtube/terms/required-minimum-functionality)
