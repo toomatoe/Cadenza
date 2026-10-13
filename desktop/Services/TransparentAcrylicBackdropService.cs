@@ -31,8 +31,8 @@ public class TransparentAcrylicBackdrop : SystemBackdrop
     {
         if (controller is null) return;
         controller.TintColor = dark ? Color.FromArgb(255, 32, 36, 43) : Color.FromArgb(255, 245, 248, 255);
-        controller.TintOpacity = dark ? 0.32f : 0.48f;
-        controller.LuminosityOpacity = dark ? 0.35f : 0.65f;
+        controller.TintOpacity = dark ? 0.20f : 0.15f;
+        controller.LuminosityOpacity = 0.35f;
         controller.FallbackColor = dark ? Color.FromArgb(255, 32, 36, 43) : Color.FromArgb(255, 231, 237, 247);
     }
 
