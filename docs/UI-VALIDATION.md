@@ -1,3 +1,5 @@
+> **Historical log.** Current UI rules and vision live in [UI-GUIDE.md](UI-GUIDE.md). Where this file disagrees, the guide wins.
+
 > Design restoration: the original saved HTML now grounds the library structure. See design-qa.md for captured evidence, executed checks, and differences. Hero/Up next, playlist fan, Recently added filters, bundled Sora/DM Sans, square artwork and caption bands are restored. Debug/Release builds and 69 checks passed; native filter, queue-edit, scroll and compact-layout checks passed without audio playback.
 
 > Acrylic tuning: uses a custom DesktopAcrylicController with Thin material, 15% light tint (20% dark), and 35% luminosity. Light panel fills are reduced from 28% to 16%. Debug build including native audio passed with zero warnings and errors, and was launched. Visual readability over varied backgrounds remains to be verified.
