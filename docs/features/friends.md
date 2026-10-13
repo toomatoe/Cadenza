@@ -42,12 +42,30 @@ Cadenza desktop (WinUI)  ── HTTPS + WebSocket (SignalR) ──►  Cadenza s
  Spotify Web API / librespot                                  PostgreSQL
 ```
 
-- **Server:** ASP.NET Core minimal APIs + **SignalR** for real-time chat, presence and sync. C# end to end, sharing models with `core/`. Hosting options: Azure App Service, Fly.io, or a small VPS. Costs to be estimated.
+- **Server:** ASP.NET Core minimal APIs + **SignalR** for real-time chat, presence and sync. C# end to end, sharing models with `core/`. Hosted on the owner's Raspberry Pi (see below).
 - **Database:** PostgreSQL holding users, friendships (pending, accepted, blocked), conversations, messages, share payloads (Spotify ID + type) and reports.
 - **Accounts:** a Cadenza account separate from Spotify, via **passkeys** or an email magic link. **Don't send users' Spotify tokens to the server.** The display name and profile sprite are chosen in Cadenza.
 - **Friend discovery:** add by username or by invite link or code; there's no contact-list upload.
 - **Messages:** TLS in transit, encrypted at rest. End-to-end encryption is a later option (it complicates moderation and multi-device sync).
 - **Client:** a `core/Social/` library (API client, SignalR connection, models) and a desktop `AppView.Friends` page with a `MainWindow.Friends.cs` partial.
+
+### Hosting: the owner's Raspberry Pi (decided)
+
+The server runs on the owner's **Raspberry Pi (16 GB RAM, 128 GB storage)**. That is plenty for an invite-only group: chat, presence and listen-together sync are small, infrequent messages, and audio never passes through the server (each client streams from Spotify itself).
+
+| Concern | Plan |
+| --- | --- |
+| **OS and runtime** | 64-bit Raspberry Pi OS (or Ubuntu Server arm64) with the .NET 10 ARM64 runtime. The server is published as a framework-dependent `linux-arm64` app. |
+| **Reaching it from the internet** | **Cloudflare Tunnel** (`cloudflared`): an outbound-only connection, so **no ports are opened on the home router** and the home IP isn't exposed. Cloudflare provides HTTPS; WebSockets (SignalR) pass through. Needs a domain on Cloudflare (a cheap one is fine). Alternative: Tailscale Funnel. |
+| **Kestrel** | Listens on `localhost` only; the tunnel forwards to it. Use the forwarded-headers middleware for the real scheme and client IP. Keep SignalR keep-alives under Cloudflare's idle timeout. |
+| **Database** | PostgreSQL. **Store its data on a USB SSD if possible**: database writes wear out SD cards. SQLite is an acceptable first step if setup simplicity matters more. |
+| **Process management** | `systemd` units for the server and `cloudflared`, restarting on failure and starting on boot. Docker Compose is an option, not a requirement. |
+| **Backups** | Nightly `pg_dump`, kept for 14 days, copied off the Pi (another disk or cloud storage). Test restoring once. |
+| **Updates and security** | Unattended OS security updates; SSH by key only (or SSH only over Tailscale); the server runs as an unprivileged user; dependencies updated with each release. |
+| **Availability** | Home power or internet outages take the service offline. The client must degrade gracefully: music keeps working, chat shows "offline", and messages retry. |
+| **Limits** | Home upload bandwidth and a single machine. Fine for tens of users; revisit before any public launch. |
+
+Deployment gets its own guide: `server/DEPLOY-RASPBERRY-PI.md`.
 
 ### Listen together (sync design sketch)
 
@@ -79,7 +97,7 @@ Cadenza desktop (WinUI)  ── HTTPS + WebSocket (SignalR) ──►  Cadenza s
 
 ## Open questions
 
-1. **Hosting and cost:** are you OK running and paying for a small server? Who operates it and handles reports?
+1. ~~**Hosting:**~~ **Decided: the owner's Raspberry Pi** behind Cloudflare Tunnel. Still open: who reviews reports (assumed: the owner)?
 2. **Accounts:** passkeys, email magic link, or both?
 3. **Audience:** just you and friends for now (simpler: invite-only), or open sign-up?
 4. **Encryption:** is TLS plus encryption at rest acceptable for the first release, with end-to-end encryption later?
