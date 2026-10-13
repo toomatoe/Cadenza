@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using Cadenza.Core.Models;
 using Cadenza.Desktop.Models;
@@ -8,6 +9,14 @@ namespace Cadenza.Desktop.Views;
 
 public sealed partial class MainWindow
 {
+    private bool _renderingQueue;
+
+    /// <summary>
+    /// Queue rows, kept apart from the catalog's <see cref="Tracks"/> so rendering the queue never
+    /// rewrites search or playlist results (and can't trigger re-entrant list updates).
+    /// </summary>
+    public ObservableCollection<Track> QueueTracks { get; } = [];
+
     private void Add_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is Track track)
@@ -57,27 +66,50 @@ public sealed partial class MainWindow
 
     private void RenderQueue(int selection = -1)
     {
-        Tracks.Clear();
-        foreach (var track in _queue.Tracks)
+        if (_renderingQueue)
         {
-            Tracks.Add(track);
+            return;
         }
 
-        if (selection >= 0 && selection < Tracks.Count)
+        _renderingQueue = true;
+        try
         {
-            TrackList.SelectedIndex = selection;
+            // Clear the selection before replacing rows, so selection events can't read stale
+            // indexes while the list virtualizes.
+            TrackList.SelectedIndex = -1;
+            QueueTracks.Clear();
+            foreach (var track in _queue.Tracks)
+            {
+                QueueTracks.Add(track);
+            }
+
+            if (selection >= 0 && selection < QueueTracks.Count)
+            {
+                TrackList.SelectedIndex = selection;
+            }
+        }
+        finally
+        {
+            _renderingQueue = false;
         }
 
         UpdateQueueLabel();
         UpdateEmpty();
+        UpdateQueueControls();
     }
 
-    private void QueueSelection_Changed(object sender, SelectionChangedEventArgs e) => UpdateQueueControls();
+    private void QueueSelection_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_renderingQueue)
+        {
+            UpdateQueueControls();
+        }
+    }
 
     private void UpdateQueueControls()
     {
-        // Called during InitializeComponent before the toolbar exists.
-        if (QueuePlayButton is null)
+        // Called during InitializeComponent before the toolbar exists, and skipped mid-render.
+        if (QueuePlayButton is null || _renderingQueue)
         {
             return;
         }

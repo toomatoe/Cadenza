@@ -69,11 +69,23 @@
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Bottom"><TextBlock Text="YOUR MUSIC, YOUR MOMENT" Style="{StaticResource EyebrowTextStyle}"/><TextBlock x:Name="PageTitle" Text="Your library" FontFamily="{StaticResource HeadingFont}" FontSize="40" FontWeight="SemiBold" CharacterSpacing="-20" Margin="0,4,0,0"/></StackPanel>
-                <Grid x:Name="SearchPanel" Background="{ThemeResource GlassSurface}" CornerRadius="24" Grid.Column="1" ColumnSpacing="0" VerticalAlignment="Bottom">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="1" x:Name="SearchBox" PlaceholderText="Find your next favourite   ·   Ctrl+K" TextChanged="Search_TextChanged" KeyDown="Search_KeyDown" AutomationProperties.Name="Search Spotify" Background="Transparent" BorderThickness="0" CornerRadius="24" MinHeight="48" Width="330" Padding="8,13,16,0" FontSize="14" VerticalContentAlignment="Center"/>
-                    <Button Grid.Column="0" Click="Search_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Search" ToolTipService.ToolTip="Search"><FontIcon Glyph="&#xE721;" FontSize="16"/></Button>
-                </Grid>
+                <Border x:Name="SearchPanel" Grid.Column="1" VerticalAlignment="Bottom" Background="{ThemeResource GlassSurface}" BorderBrush="{ThemeResource GlassEdge}" BorderThickness="1" CornerRadius="24" Height="48" Width="368">
+                    <Grid VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Button Click="Search_Click" Style="{StaticResource IconButtonStyle}" Background="Transparent" BorderThickness="0" Width="44" Height="44" VerticalAlignment="Center" AutomationProperties.Name="Search" ToolTipService.ToolTip="Search"><FontIcon Glyph="&#xE721;" FontSize="16"/></Button>
+                        <!-- The TextBox draws no border or fill of its own, so the glass pill is the only surface. -->
+                        <TextBox Grid.Column="1" x:Name="SearchBox" PlaceholderText="Search your music   ·   Ctrl+K" TextChanged="Search_TextChanged" KeyDown="Search_KeyDown" AutomationProperties.Name="Search Spotify and the Cadenza library" Background="Transparent" BorderThickness="0" CornerRadius="0" VerticalAlignment="Center" Padding="8,5,12,6" FontSize="14">
+                            <TextBox.Resources>
+                                <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent"/>
+                                <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent"/>
+                                <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent"/>
+                                <SolidColorBrush x:Key="TextControlBackground" Color="Transparent"/>
+                                <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent"/>
+                                <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent"/>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </Grid>
+                </Border>
             </Grid>
             <InfoBar x:Name="Notice" Grid.Row="1" IsOpen="False" IsClosable="True" HorizontalAlignment="Stretch" CornerRadius="14"/>
             <Grid Grid.Row="2">
@@ -98,7 +110,7 @@
                 </Grid>
 
                 <Border x:Name="TrackPanel" Grid.Row="1" Visibility="Collapsed" Style="{StaticResource GlassCardStyle}" Padding="8">
-                    <ListView x:Name="TrackList" SelectionChanged="QueueSelection_Changed" SelectionMode="Single" HorizontalContentAlignment="Stretch" ItemsSource="{x:Bind Tracks}" AutomationProperties.Name="Tracks">
+                    <ListView x:Name="TrackList" SelectionChanged="QueueSelection_Changed" SelectionMode="Single" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Tracks">
                         <ListView.ItemContainerStyle><Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}"><Setter Property="CornerRadius" Value="14"/><Setter Property="Margin" Value="0,2"/></Style></ListView.ItemContainerStyle>
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="core:Track">
@@ -170,7 +182,7 @@
                                     <Grid><TextBlock Text="UP NEXT" Style="{StaticResource EyebrowTextStyle}" VerticalAlignment="Center"/><Button Content="Open queue" Tag="Queue" Click="Navigate_Click" HorizontalAlignment="Right" Background="Transparent" BorderBrush="Transparent" Foreground="{ThemeResource Accent}" FontSize="13" MinHeight="32" Padding="10,6"/></Grid>
                                     <TextBlock x:Name="HeroQueueEmpty" Text="Nothing queued. Add tracks with the + button." Foreground="{ThemeResource MutedText}" FontSize="13" TextWrapping="Wrap" Margin="8,18"/>
                                     <ItemsControl ItemsSource="{x:Bind UpcomingTracks}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="core:QueueEntry">
-                                        <Button DataContext="{x:Bind}" Tag="{x:Bind Id}" Click="UpcomingPlay_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderBrush="Transparent" CornerRadius="14" Padding="8">
+                                        <Button Tag="{x:Bind Id}" Click="UpcomingPlay_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="Transparent" BorderBrush="Transparent" CornerRadius="14" Padding="8">
                                             <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                                 <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource ArtTile}"><Image Source="{Binding Track.ArtworkUrl, Converter={StaticResource ArtworkConverter}, ConverterParameter=80}" Stretch="UniformToFill"/></Border>
                                                 <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{x:Bind Track.Name}" FontSize="14" FontWeight="Medium" TextTrimming="CharacterEllipsis"/><TextBlock Text="{x:Bind Track.Artist}" FontSize="12" Foreground="{ThemeResource MutedText}" TextTrimming="CharacterEllipsis"/></StackPanel>
@@ -196,7 +208,7 @@
                             <ItemsRepeater x:Name="LibraryCards" ItemsSource="{x:Bind LibraryTracks}" AutomationProperties.Name="Library album covers">
                                 <ItemsRepeater.Layout><UniformGridLayout MinItemWidth="208" MinItemHeight="266" MinColumnSpacing="16" MinRowSpacing="16" ItemsStretch="None" ItemsJustification="SpaceBetween" Orientation="Horizontal"/></ItemsRepeater.Layout>
 <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="core:Track">
-                        <Border DataContext="{x:Bind}" Style="{StaticResource AlbumCardStyle}" CornerRadius="22">
+                        <Border Style="{StaticResource AlbumCardStyle}" CornerRadius="22">
                             <StackPanel>
                                 <controls:SquareArtwork Margin="12,12,12,10">
                                 <Border CornerRadius="14" Background="{StaticResource ArtTile}" BorderBrush="{StaticResource ArtEdge}" BorderThickness="1">
@@ -259,7 +271,7 @@
                                     <ItemsRepeater ItemsSource="{x:Bind Cards}" AutomationProperties.Name="{x:Bind Title}">
                                         <ItemsRepeater.Layout><UniformGridLayout MinItemWidth="208" MinItemHeight="290" MinColumnSpacing="16" MinRowSpacing="16" ItemsStretch="None" ItemsJustification="SpaceBetween" Orientation="Horizontal"/></ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="models:RecommendationCard">
-                                    <Border DataContext="{x:Bind}" Style="{StaticResource AlbumCardStyle}" CornerRadius="22" Width="208">
+                                    <Border Style="{StaticResource AlbumCardStyle}" CornerRadius="22" Width="208">
                                         <StackPanel>
                                             <controls:SquareArtwork Margin="12,12,12,10">
                                                 <Border CornerRadius="14" Background="{StaticResource ArtTile}" BorderBrush="{StaticResource ArtEdge}" BorderThickness="1">
@@ -350,7 +362,7 @@
                                     <ItemsRepeater ItemsSource="{x:Bind ChatItems}" AutomationProperties.Name="Messages">
                                         <ItemsRepeater.Layout><StackLayout Spacing="8"/></ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="models:ChatItem">
-                                            <Border DataContext="{x:Bind}" HorizontalAlignment="{x:Bind Alignment}" MaxWidth="420" Padding="12,8" CornerRadius="16" Background="{ThemeResource GlassSurface}" BorderBrush="{ThemeResource GlassEdge}" BorderThickness="1">
+                                            <Border HorizontalAlignment="{x:Bind Alignment}" MaxWidth="420" Padding="12,8" CornerRadius="16" Background="{ThemeResource GlassSurface}" BorderBrush="{ThemeResource GlassEdge}" BorderThickness="1">
                                                 <Border.ContextFlyout><MenuFlyout><MenuFlyoutItem Text="Report message" Tag="{x:Bind}" Click="ReportMessage_Click"/></MenuFlyout></Border.ContextFlyout>
                                                 <StackPanel Spacing="6">
                                                     <TextBlock Text="{x:Bind Text}" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>

@@ -238,6 +238,7 @@ public sealed partial class MainWindow
         RecommendationsPanel.Visibility = ToVisibility(_view == AppView.Recommendations);
         PlaylistCards.Visibility = ToVisibility(_view == AppView.Playlists && _selectedPlaylist is null);
         PlaylistDetail.Visibility = ToVisibility(playlistOpen);
+        TrackList.ItemsSource = _view == AppView.Queue ? QueueTracks : Tracks;
         TrackPanel.Visibility = ToVisibility(_view is AppView.Search or AppView.Queue || playlistOpen);
         UpdateQueueControls();
         SearchPanel.Visibility = ToVisibility(_view is not (AppView.Settings or AppView.Playlists or AppView.Recommendations or AppView.Friends));
@@ -249,7 +250,7 @@ public sealed partial class MainWindow
         EmptyAction.Content = queueView ? "Browse library" : "Connect Spotify";
         EmptyAction.Tag = (queueView ? AppView.Library : AppView.Settings).ToString();
         EmptyAction.Visibility = ToVisibility(queueView || !_auth.IsConnected);
-        var empty = _view == AppView.Playlists && _selectedPlaylist is null ? Playlists.Count == 0 : Tracks.Count == 0;
+        var empty = queueView ? QueueTracks.Count == 0 : _view == AppView.Playlists && _selectedPlaylist is null ? Playlists.Count == 0 : Tracks.Count == 0;
         EmptyState.Visibility = ToVisibility(_view is not (AppView.Settings or AppView.Recommendations or AppView.Friends) && empty);
     }
 
