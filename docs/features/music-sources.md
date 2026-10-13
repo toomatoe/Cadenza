@@ -1,59 +1,80 @@
 # Music from other sources (design proposal)
 
-**Status:** proposal; nothing built yet. Review the open questions at the end before implementation starts.
+**Status:** proposal; nothing built yet. Revised after the owner's feedback that personal music should be **stored on a server** (the owner's Raspberry Pi) rather than only on one PC.
 
 ## Goal
 
-Let Cadenza play music that isn't on Spotify, such as **your own files** and **SoundCloud**, in the same library, queue and player, so a session can mix sources freely.
+Let Cadenza play music that isn't on Spotify, chiefly **your own music library, stored on your Raspberry Pi** and streamed to any PC running Cadenza, plus SoundCloud later, in the same library, queue and player, so a session can mix sources freely.
 
 ## What's possible, source by source
 
 | Source | Verdict | Why |
 | --- | --- | --- |
-| **Local files** (MP3, FLAC, AAC/M4A, OGG/Opus, WAV) | **Yes, first.** | Your own files; no terms to break, works offline, no API keys. |
-| **SoundCloud** | **Yes, with conditions.** | API sign-up reopened in May 2026, but **only for Artist Pro subscribers**, who self-serve a Client ID and secret. Use is bound by the SoundCloud API Terms of Use, which can change at any time. Some tracks set `streamable = false` and can't be played through the API. Each Cadenza user would bring their own SoundCloud credentials, as with Spotify today. |
-| **YouTube / YouTube Music** | **No playback.** | YouTube's API rules centre on its own embedded player ("Required Minimum Functionality"). Extracting or downloading audio streams, which is how unofficial players work (e.g. yt-dlp), breaks YouTube's terms. An embedded web player would contradict Cadenza's "no embedded browser" principle and the audio-first design. YouTube Music has no public API. **Allowed:** "Open on YouTube" links in share cards. |
-| **Bandcamp** | **Links only.** | No public API for playback. Purchased downloads can be played as local files. |
-| **Free and open catalogues** (Jamendo, Internet Archive, Free Music Archive) | **Maybe later.** | Creative-Commons music with public APIs; check each API's terms. |
-| **Internet radio** (Radio Browser directory) | **Maybe later.** | An open directory of public streams; easy to add once HTTP streaming exists. |
+| **Your own files on the Pi** (MP3, FLAC, AAC/M4A, OGG/Opus, WAV) | **Yes, first.** | Your own music; stored once on the Pi and streamed to every device. No third-party terms. |
+| **Local files on this PC** | **Yes, small add-on.** | Same playback path, read from disk instead of the network; useful offline. |
+| **SoundCloud** | **Yes, with conditions.** | API sign-up reopened in May 2026, but **only for Artist Pro subscribers**. Use is bound by SoundCloud's API Terms, and some tracks set `streamable = false`. |
+| **YouTube / YouTube Music** | **No playback.** | YouTube's API rules centre on its own embedded player; extracting audio streams (e.g. yt-dlp) breaks its terms; an embedded browser contradicts Cadenza's design. **Allowed:** "Open on YouTube" links. |
+| **Bandcamp** | **Links only.** | No public playback API. Purchased downloads go into your Pi library. |
+| **Open catalogues, internet radio** | **Maybe later.** | Creative-Commons catalogues (Jamendo, Internet Archive) and the open Radio Browser directory. |
 
-## Architecture
+## Server: Navidrome on the Raspberry Pi (recommended)
 
-Today every track is a Spotify track played by librespot. The change is to make sources pluggable.
+Rather than writing our own music server, run **[Navidrome](https://www.navidrome.org/)**:
 
-- **Track identity:** `Track` gains a `Source` (Spotify, Local, SoundCloud) and a source-specific `SourceId` (Spotify ID, file path, SoundCloud track ID). Spotify-only fields become optional. The queue, library and player work with any source.
-- **Providers (C#):** `IMusicProvider` with search, library listing and "resolve to playable", implemented by `SpotifyProvider` (the existing `SpotifyApi`), `LocalLibraryProvider` and `SoundCloudProvider`. Recommendations and Friends address tracks by `(Source, SourceId)`.
-- **Playback (Rust engine):** add a **non-Spotify playback path** next to librespot:
-  - **Decoding:** [Symphonia](https://github.com/pdeljanov/Symphonia) (pure Rust; MP3, FLAC, AAC, Vorbis, Opus, WAV), output through the existing **rodio** sink, sharing volume, seek and the play/pause/end events.
-  - **Local files:** decode from disk.
-  - **SoundCloud:** stream from the HTTP or HLS URL the API returns. HLS needs a small playlist-and-segment fetcher feeding the decoder.
-  - **ABI:** a new opcode such as `LoadUri` (`file:///…` or `https://…`), keeping ABI-version checks in place. Spotify keeps using librespot.
-- **Local library:** the user picks music folders in Settings. Cadenza scans and indexes tags (title, artist, album, artwork, duration) into a local index, and watches for changes. Tag reading via TagLib# (C#) or [lofty](https://github.com/Serial-ATA/lofty-rs) (Rust).
-- **Credentials:** SoundCloud tokens go in Windows Credential Manager, like Spotify's.
+- Open source (GPL-3.0), lightweight, with official Raspberry Pi (arm64) builds and Docker images.
+- Indexes a music folder (tags, artwork, albums, artists), with an embedded SQLite database.
+- Multi-user: per-user favourites, play counts and playlists; per-library access control.
+- Speaks the **Subsonic API**, a long-standing open protocol with dozens of compatible clients, including phone apps, so the same library works away from the PC too.
+- Streams original files, or transcodes with ffmpeg on request. Transcoding is the main CPU cost on a Pi; prefer original-quality streaming on a home network.
+
+It runs next to the Friends server on the same Pi.
+
+| Concern | Plan |
+| --- | --- |
+| **Storage** | The 128 GB card holds the OS and apps. Keep the music on a **USB SSD or HDD** for capacity, speed, and to spare the SD card. |
+| **Getting music onto it** | A network share (Samba) or `rsync`/`scp` into the music folder. Navidrome rescans automatically. |
+| **Reaching it from Cadenza** | **Tailscale** (a private WireGuard network) for the music library: only your own devices, and people you share with, can reach it, and it isn't public. Using Cloudflare Tunnel for media streaming risks Cloudflare's content-delivery terms, so keep Cloudflare Tunnel for the Friends API. |
+| **Backups** | The music library is the irreplaceable part: back it up to a second drive or cloud storage. |
+| **Sharing with friends** | Navidrome accounts can be given to friends, but **streaming your files to other people can amount to distributing copyrighted music.** Default to the library being private to you; any sharing is your decision and responsibility. |
+
+## Cadenza changes
+
+- **Track identity:** `Track` gains a `Source` (Spotify, Library, LocalFile, SoundCloud) and a source-specific `SourceId`. Spotify-only fields become optional, and the queue, library and player work with any source.
+- **Providers (C#):** `IMusicProvider` (search, browse, resolve to a playable stream), implemented by:
+  - `SpotifyProvider`: the existing `SpotifyApi`.
+  - `SubsonicProvider`: talks to Navidrome via the Subsonic API (`search3`, `getAlbumList2`, `getAlbum`, `getCoverArt`, `stream`, `star`, `scrobble`), using salted-token authentication.
+  - `LocalFileProvider`: optional, for files on this PC.
+- **Playback (Rust engine):** a **non-Spotify playback path** next to librespot:
+  - **Decoding:** [Symphonia](https://github.com/pdeljanov/Symphonia) (pure Rust: MP3, FLAC, AAC, Vorbis, Opus, WAV) into the existing **rodio** output, sharing volume, seek and the play/pause/end events.
+  - **Streams:** HTTP range requests against Navidrome's `stream` endpoint, so seeking doesn't download the whole file. Local files are decoded from disk.
+  - **ABI:** a new `LoadUri` opcode (`https://…` or `file:///…`), behind the existing ABI-version check. Spotify keeps using librespot.
+- **Credentials:** the server URL, username and token go in Windows Credential Manager, like Spotify's.
+- **Recommendations:** library tracks can be scored with the same engine and can resolve recommendations to library copies.
 
 ## UI (follows docs/UI-GUIDE.md)
 
-- A small **source badge** (Spotify, file, SoundCloud) on cards and track rows; the artwork style stays the same. Local files without embedded art use the record placeholder.
-- **Library:** a source filter next to All / Liked (All sources, Spotify, Local, SoundCloud).
-- **Search:** results grouped or filtered by source.
-- **Settings → Sources:** music folders (add, remove, rescan) and SoundCloud connect/disconnect, explaining the Artist Pro requirement.
-- The player bar and queue look the same whatever the source.
+- A small **source badge** (Spotify or Library) on cards and track rows; library tracks show their embedded cover art, or the record placeholder.
+- **Library page:** a source filter next to All / Liked.
+- **Search:** results from both Spotify and your library, labelled.
+- **Settings → Sources:** connect to your music server (URL, username, password → token), test the connection, and pick local folders.
 
 ## Phases
 
-1. **Track model and provider abstraction**, keeping Spotify behaviour unchanged (covered by tests).
-2. **Local files:** folder picker, scanner and index; a Symphonia decoding path in the Rust engine; playback, seek and queue across sources.
-3. **SoundCloud:** connect, search, likes, streaming (HTTP then HLS), handling of `streamable = false`.
-4. Later: open catalogues and internet radio.
+1. **Pi setup guide:** Navidrome + music drive + Tailscale (`server/DEPLOY-RASPBERRY-PI.md`, shared with Friends).
+2. **Track model and provider abstraction**, with Spotify behaviour unchanged (covered by tests).
+3. **Subsonic client:** browse and search the library in Cadenza.
+4. **Rust streaming playback:** Symphonia + HTTP range reads; mixed-source queue.
+5. Optional local files; then SoundCloud for users with Artist Pro credentials.
 
 ## Open questions
 
-1. Start with **local files**, then SoundCloud?
-2. **SoundCloud** needs each user to pay for **Artist Pro** to get API credentials. Is that acceptable, or should SoundCloud wait?
-3. Agree that **YouTube is links-only** (no playback)?
-4. Can local files be shared with **Friends**? Only as metadata, never the files themselves. Friends with the same track available on Spotify could play it there.
+1. Is **Navidrome** OK, rather than a custom music server? (Recommended: it's mature, and gives you phone apps for free.)
+2. **Tailscale** for reaching the library: OK to install it on the Pi and your PCs?
+3. Is the library **private to you**, or should friends get accounts (see the copyright note)?
+4. Agree that **YouTube is links-only** and **SoundCloud waits** for Artist Pro credentials?
 
 ## Sources
 
-- SoundCloud API access: [SoundCloud developer blog (May 2026)](https://developers.soundcloud.com/blog/vibe-coding-ai-agent-docs-self-serve-api-keys), [Register an app](https://developers.soundcloud.com/docs/api/register-app), [API sign-up changes](https://developers.soundcloud.com/blog/api-sign-up-changes), [API Terms of Use](https://developers.soundcloud.com/docs/api/terms-of-use), [Developer policies](https://developers.soundcloud.com/policies)
-- YouTube: [YouTube API Services – Required Minimum Functionality](https://developers.google.com/youtube/terms/required-minimum-functionality). The full API Terms of Service and Developer Policies should be read before any YouTube integration.
+- Navidrome: [overview](https://www.navidrome.org/docs/overview/.), [documentation](https://www.navidrome.org/_print/docs/), [Armbian package](https://docs.armbian.com/software/navidrome/), [Pi multi-client streaming guide](https://pidiylab.com/navidrome-raspberry-pi-multi-client-streaming/)
+- SoundCloud API access: [developer blog (May 2026)](https://developers.soundcloud.com/blog/vibe-coding-ai-agent-docs-self-serve-api-keys), [register an app](https://developers.soundcloud.com/docs/api/register-app), [API Terms of Use](https://developers.soundcloud.com/docs/api/terms-of-use)
+- YouTube: [Required Minimum Functionality](https://developers.google.com/youtube/terms/required-minimum-functionality)
