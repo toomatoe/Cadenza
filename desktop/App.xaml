@@ -19,17 +19,17 @@
                     <Color x:Key="SystemAccentColorDark3">#103866</Color>
                     <SolidColorBrush x:Key="Accent" Color="#2A74CF" />
                     <SolidColorBrush x:Key="Ink" Color="#10243D" />
-                    <SolidColorBrush x:Key="MutedText" Color="#465D77" />
+                    <SolidColorBrush x:Key="MutedText" Color="#334B66" />
                     <SolidColorBrush x:Key="SolidWindow" Color="#E7EDF7" />
-                    <SolidColorBrush x:Key="WindowWash" Color="#70EEF4FF" />
-                    <SolidColorBrush x:Key="GlassSurface" Color="#66FFFFFF" />
+                    <SolidColorBrush x:Key="WindowWash" Color="#36EEF4FF" />
+                    <SolidColorBrush x:Key="GlassSurface" Color="#D9FFFFFF" />
                     <AcrylicBrush x:Key="PlaylistFanSurface" TintColor="#F4F8FF" TintOpacity="0.55" TintLuminosityOpacity="0.75" FallbackColor="#E7EDF7" />
                     <SolidColorBrush x:Key="PlaylistCaption" Color="#E6F4F8FF" />
                     <SolidColorBrush x:Key="GlassEdge" Color="#D6FFFFFF" />
                     <SolidColorBrush x:Key="CaptionBand" Color="#4DFFFFFF" />
                     <SolidColorBrush x:Key="CaptionEdge" Color="#73FFFFFF" />
-                    <SolidColorBrush x:Key="CardSurface" Color="#66FFFFFF" />
-                    <SolidColorBrush x:Key="NavSelectedBrush" Color="#99FFFFFF" />
+                    <SolidColorBrush x:Key="CardSurface" Color="#D9FFFFFF" />
+                    <SolidColorBrush x:Key="NavSelectedBrush" Color="#E6FFFFFF" />
                     <SolidColorBrush x:Key="NavIdleBrush" Color="Transparent" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
