@@ -52,18 +52,19 @@
                 <Border x:Name="SearchPanel" Grid.Column="1" VerticalAlignment="Bottom"
                         Background="{ThemeResource GlassSurface}" BorderBrush="{ThemeResource GlassEdge}"
                         BorderThickness="1" CornerRadius="24" Height="48" Width="368">
-                    <Grid ColumnSpacing="0">
+                    <Grid ColumnSpacing="0" VerticalAlignment="Center">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <Button Grid.Column="0" Click="Search_Click" Style="{StaticResource IconButtonStyle}"
-                                Background="Transparent" BorderThickness="0" Width="44" Height="44"
+                                Background="Transparent" BorderThickness="0" Width="44" Height="44" VerticalAlignment="Center"
                                 AutomationProperties.Name="Search" ToolTipService.ToolTip="Search">
                             <FontIcon Glyph="&#xE721;" FontSize="16"/>
                         </Button>
                         <TextBox Grid.Column="1" x:Name="SearchBox" PlaceholderText="Search your music"
                                  TextChanged="Search_TextChanged" KeyDown="Search_KeyDown"
                                  AutomationProperties.Name="Search Spotify" Background="Transparent"
-                                 BorderThickness="0" CornerRadius="0" MinHeight="44"
-                                 Padding="4,0,12,0" FontSize="14" VerticalContentAlignment="Center">
+                                 BorderThickness="0" CornerRadius="0" Height="44" MinHeight="44"
+                                 VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                                 Padding="8,0,12,0" FontSize="14" VerticalContentAlignment="Center">
                             <TextBox.Resources>
                                 <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent"/>
                                 <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent"/>
