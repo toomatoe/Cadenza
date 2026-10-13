@@ -1,8 +1,14 @@
 namespace Cadenza.Core.Services.Playback;
 
+/// <summary>
+/// Maps native playback failure codes to user-facing messages. Codes 6–8 are engine statuses and
+/// 9–14 are diagnostic categories from native/diagnostics.rs.
+/// </summary>
 public static class PlaybackErrors
 {
+    /// <summary>Whether the playback session must be re-created before trying again.</summary>
     public static bool RequiresReconnect(int code) => code is 0 or 6 or 7 or 8 or 12 or 14;
+
     public static string Describe(int code) => code switch
     {
         6 => "The Spotify playback connection closed. Play the track again to reconnect.",

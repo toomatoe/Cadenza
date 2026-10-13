@@ -1,72 +1,78 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Cadenza.Core.Controllers;
 using Cadenza.Core.Models;
 using Cadenza.Core.Services.Playback;
 using Cadenza.Core.Services.Spotify;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;
-using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Input;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml;
 using Windows.System;
+using Windows.UI.Core;
 
 namespace Cadenza.Desktop.Views;
 
-public partial class MainWindow : Window
+/// <summary>
+/// The single application window. This file holds composition and lifecycle; the other
+/// MainWindow.*.cs partials group catalog, library, queue, playback, account and appearance behavior.
+/// </summary>
+[SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
+    Justification = "A WinUI Window is not IDisposable; owned resources are released in OnClosed.")]
+public sealed partial class MainWindow : Window
 {
-    private readonly CatalogModel catalog = new();
-    private readonly CatalogController catalogController;
-    public ObservableCollection<Track> Tracks => catalog.Tracks;
-    private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(30) };
-    private readonly ListeningQueue queue = new();
-    private readonly CancellationTokenSource lifetime = new();
-    private readonly SpotifyAuth auth;
-    private readonly SpotifyAuth playbackAuth;
-    private Preferences preferences;
-    private NativeEngine? engine;
-    private bool playbackBusy;
-    private bool nativeConnected;
-    private bool adjustingPosition;
-    private bool advanceAfterOperation;
-    private Track? playingTrack;
-    private uint playingStamp;
-    private uint endedStamp;
-    private bool awaitingTrackLoad;
-    private PlaybackState playbackState = PlaybackState.Stopped;
-    private CancellationTokenSource? playbackOperation;
-    private CancellationTokenSource? active;
-    private string view = "Library";
-    private bool hasMore;
-    private bool signingIn;
-    private bool closing;
-    private int generation;
-    public ObservableCollection<Playlist> Playlists => catalog.Playlists;
-    private ObservableCollection<Playlist> playlists => Playlists;
-    private Playlist? selectedPlaylist;
-    public ObservableCollection<Playlist> PinnedPlaylists { get; } = [];
+    private readonly CatalogModel _catalog = new();
+    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
+    private readonly ListeningQueue _queue = new();
+    private readonly CancellationTokenSource _lifetime = new();
+    private readonly SpotifyAuth _auth;
+    private readonly SpotifyAuth _playbackAuth;
+    private readonly SpotifyApi _spotifyApi;
+    private readonly CatalogController _catalogController;
+
+    private Preferences _preferences;
+    private NativeEngine? _engine;
+    private bool _playbackBusy;
+    private bool _nativeConnected;
+    private bool _adjustingPosition;
+    private bool _advanceAfterOperation;
+    private Track? _playingTrack;
+    private uint _playingStamp;
+    private uint _endedStamp;
+    private bool _awaitingTrackLoad;
+    private PlaybackState _playbackState = PlaybackState.Stopped;
+    private CancellationTokenSource? _playbackOperation;
+    private CancellationTokenSource? _active;
+    private AppView _view = AppView.Library;
+    private bool _hasMore;
+    private bool _signingIn;
+    private bool _closing;
+    private int _generation;
+    private Playlist? _selectedPlaylist;
 
     public MainWindow()
     {
-        preferences = PreferencesStore.Load();
-        auth = new SpotifyAuth(http, new WindowsTokenStore());
-        playbackAuth = new SpotifyAuth(http, new WindowsTokenStore(), SpotifyAuth.PlaybackScope);
-        catalogController = new CatalogController(new SpotifyApi(http, auth), catalog);
+        _preferences = PreferencesStore.Load();
+        _auth = new SpotifyAuth(_http, new WindowsTokenStore());
+        _playbackAuth = new SpotifyAuth(_http, new WindowsTokenStore(), SpotifyAuth.PlaybackScope);
+        _spotifyApi = new SpotifyApi(_http, _auth);
+        _catalogController = new CatalogController(_spotifyApi, _catalog);
+
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
-        AppWindow.TitleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 16, 36, 61);
-        AppWindow.TitleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 110, 126, 148);
-        AppWindow.TitleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(120, 255, 255, 255);
-        AppWindow.TitleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 16, 36, 61);
-        AppWindow.TitleBar.ButtonBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
-        AppWindow.TitleBar.ButtonInactiveBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
+        // Caption button foreground colors follow the theme and are set in ApplyAppearance.
+        AppWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+        AppWindow.TitleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 900));
-        ClientIdBox.Text = preferences.ClientId;
-        RedirectUriBox.Text = preferences.RedirectUri;
-        SpacingBox.Value = preferences.ArtistSpacing;
+
+        ClientIdBox.Text = _preferences.ClientId;
+        RedirectUriBox.Text = _preferences.RedirectUri;
+        SpacingBox.Value = _preferences.ArtistSpacing;
         InitializeAppearance();
         UpdateViewSurfaces();
         UpdateQueueLabel();
@@ -75,61 +81,145 @@ public partial class MainWindow : Window
         PlaylistFan.PointerEntered += (_, _) => SetPlaylistFanExpanded(true);
         PlaylistFan.PointerExited += (_, _) => SetPlaylistFanExpanded(false);
 
-        Root.Loaded += async (_, _) =>
-        {
-            if (preferences.ClientId.Length == 0) return;
-            await RunAsync(async ct =>
-            {
-                await auth.RestoreAsync(preferences.ClientId, ct);
-                ConnectionLabel.Text = auth.IsConnected ? "Spotify sign-in saved" : "Spotify disconnected";
-                if (auth.IsConnected) { await LoadTracksAsync(false, ct); await LoadPinnedPlaylistsAsync(ct); }
-            });
-        };
+        Root.Loaded += Root_Loaded;
         Closed += OnClosed;
+    }
+
+    public ObservableCollection<Track> Tracks => _catalog.Tracks;
+
+    public ObservableCollection<Playlist> Playlists => _catalog.Playlists;
+
+    public ObservableCollection<Playlist> PinnedPlaylists { get; } = [];
+
+    private static AppView ParseView(object tag) => Enum.Parse<AppView>((string)tag);
+
+    private async void Root_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (_preferences.ClientId.Length == 0)
+        {
+            return;
+        }
+
+        await RunAsync(async ct =>
+        {
+            await _auth.RestoreAsync(_preferences.ClientId, ct);
+            ConnectionLabel.Text = _auth.IsConnected ? "Spotify sign-in saved" : "Spotify disconnected";
+            if (_auth.IsConnected)
+            {
+                await LoadTracksAsync(false, ct);
+                await LoadPinnedPlaylistsAsync(ct);
+            }
+        });
     }
 
     private void Message(string text, InfoBarSeverity severity = InfoBarSeverity.Informational)
     {
-        if (closing) return;
-        Notice.Message = text; Notice.Severity = severity; Notice.IsOpen = true;
+        if (_closing)
+        {
+            return;
+        }
+
+        Notice.Message = text;
+        Notice.Severity = severity;
+        Notice.IsOpen = true;
     }
+
+    /// <summary>Runs view work, cancelling the previous request and reporting only the latest failure.</summary>
     private async Task RunAsync(Func<CancellationToken, Task> work)
     {
-        if (closing) return;
-        active?.Cancel();
-        using var operation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
-        active = operation;
-        var ticket = ++generation;
+        if (_closing)
+        {
+            return;
+        }
+
+        _active?.Cancel();
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _active = operation;
+        var ticket = ++_generation;
         Loading.IsActive = true;
-        try { await work(operation.Token); }
-        catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
-        catch (OperationCanceledException) { if (ticket == generation) Message("The request timed out. Please retry.", InfoBarSeverity.Warning); }
+        try
+        {
+            await work(operation.Token);
+        }
+        catch (OperationCanceledException) when (operation.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException)
+        {
+            if (ticket == _generation)
+            {
+                Message("The request timed out. Please retry.", InfoBarSeverity.Warning);
+            }
+        }
         catch (Exception error)
         {
-            if (ticket == generation && !closing)
-                Message(error is HttpRequestException ? "Couldn't reach Spotify. Check your connection and retry." : error.Message, InfoBarSeverity.Error);
+            if (ticket == _generation && !_closing)
+            {
+                Message(
+                    error is HttpRequestException ? "Couldn't reach Spotify. Check your connection and retry." : error.Message,
+                    InfoBarSeverity.Error);
+            }
         }
         finally
         {
-            if (ticket == generation && !closing) { Loading.IsActive = false; active = null; }
+            if (ticket == _generation && !_closing)
+            {
+                Loading.IsActive = false;
+                _active = null;
+            }
         }
     }
+
     private void CancelViewWork()
     {
-        active?.Cancel(); active = null; generation++; Loading.IsActive = false;
+        _active?.Cancel();
+        _active = null;
+        _generation++;
+        Loading.IsActive = false;
     }
+
+    private void OpenInBrowser(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception error) when (error is Win32Exception or InvalidOperationException)
+        {
+            Message("Windows couldn't open the Spotify link.", InfoBarSeverity.Warning);
+        }
+    }
+
     private void Root_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        var control = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control);
-        if (e.Key == VirtualKey.K && control.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
-        { SearchBox.Focus(FocusState.Keyboard); e.Handled = true; }
+        var control = InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control);
+        if (e.Key == VirtualKey.K && control.HasFlag(CoreVirtualKeyStates.Down))
+        {
+            SearchBox.Focus(FocusState.Keyboard);
+            e.Handled = true;
+        }
     }
+
     private async void OnClosed(object sender, WindowEventArgs args)
     {
-        closing = true; lifetime.Cancel(); active?.Cancel();
+        _closing = true;
+        _lifetime.Cancel();
+        _active?.Cancel();
         DisposeAppearance();
-        queue.Forget(); Tracks.Clear(); playlists.Clear();
-        try { await ResetPlaybackAsync(); }
-        finally { http.Dispose(); lifetime.Dispose(); }
+        _queue.Forget();
+        Tracks.Clear();
+        Playlists.Clear();
+        try
+        {
+            await ResetPlaybackAsync();
+        }
+        finally
+        {
+            _spotifyApi.Dispose();
+            _auth.Dispose();
+            _playbackAuth.Dispose();
+            _http.Dispose();
+            _lifetime.Dispose();
+        }
     }
 }

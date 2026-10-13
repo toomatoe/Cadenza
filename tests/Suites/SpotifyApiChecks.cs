@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using Cadenza.Core.Exceptions;
 using Cadenza.Core.Models;
 using Cadenza.Core.Services.Spotify;
@@ -44,12 +43,14 @@ internal static class SpotifyApiChecks
         checks.Check(albumCover.Items[0].ArtworkUrl == "https://i.scdn.co/album", "Track album artwork retained for library and player");
         checks.Check(search.Items[0].ArtworkUrl == "", "Tracks without artwork retain fallback");
         handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.Forbidden));
-        try { await api.SavedTracksAsync(0, CancellationToken.None); throw new Exception("403 accepted"); }
+        try
+        { await api.SavedTracksAsync(0, CancellationToken.None); throw new InvalidOperationException("403 accepted"); }
         catch (SpotifyApiException error) { checks.Check(error.StatusCode == 403, "Actionable API access error"); }
         var rateLimited = new HttpResponseMessage((HttpStatusCode)429);
         rateLimited.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(90));
         handler.Responses.Enqueue(rateLimited);
-        try { await api.SavedTracksAsync(0, CancellationToken.None); throw new Exception("Long rate limit ignored"); }
+        try
+        { await api.SavedTracksAsync(0, CancellationToken.None); throw new InvalidOperationException("Long rate limit ignored"); }
         catch (SpotifyApiException error) { checks.Check(error.StatusCode == 429, "Respect long rate limit without retry storm"); }
         await auth.DisconnectAsync(CancellationToken.None);
         checks.Check(tokenStore.Value is null && !auth.IsConnected, "Disconnect deletes saved credentials");

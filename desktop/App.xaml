@@ -79,6 +79,11 @@
                 <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
             </Style>
 
+            <!-- Text inside a button: no fixed Foreground, so it follows the button's visual states (disabled, accent). -->
+            <Style x:Key="ButtonLabelStyle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
+            </Style>
+
             <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
                 <Setter Property="CornerRadius" Value="14" />
                 <Setter Property="Padding" Value="14,9" />

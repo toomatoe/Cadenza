@@ -6,7 +6,10 @@ namespace Cadenza.Core.Services.Contracts;
 public interface IMusicCatalog
 {
     Task<Page<Track>> SearchAsync(string query, int offset, CancellationToken ct);
+
     Task<Page<Track>> SavedTracksAsync(int offset, CancellationToken ct);
+
     Task<Page<Track>> PlaylistTracksAsync(string id, int offset, CancellationToken ct);
+
     Task<Page<Playlist>> PlaylistsAsync(int offset, CancellationToken ct);
 }
