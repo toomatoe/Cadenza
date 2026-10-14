@@ -94,11 +94,11 @@ Affinity is normalised to 0–1 by dividing by the largest positive value. Negat
 
 Only artist names and IDs are sent, never anything about the user. MusicBrainz is called at most once every 1.1 s. Results are cached for 14 days, so after the first run a refresh makes almost no network calls.
 
-For each candidate artist, `similarity = Σ over seeds of seedAffinity × similarity(seed, candidate)`, divided by the largest such sum. An artist close to several favourites ranks higher. The seed with the largest contribution becomes the "Similar to …" reason.
+For each candidate artist, `similarity = Σ over seeds of √seedAffinity × similarity(seed, candidate)`, divided by the largest such sum. The square root narrows the gap between your top artist and the rest: an artist at 10% of your favourite's affinity counts for about 32%. So one artist with many saved tracks doesn't drown out the others. All seeds are looked up in parallel. An artist close to several favourites ranks higher. The seed with the largest contribution becomes the "Similar to …" reason.
 
 **4. Candidate tracks (`SpotifyTrackResolver`).**
 
-- The 20 most similar artists plus the top 6 seeds (for "deeper cuts") are each searched on Spotify.
+- The 20 most similar artists plus the top 6 seeds (for "deeper cuts") are each searched on Spotify. Each artist's results are cached on disk for 7 days (`CachedTrackResolver`, at most 400 artists), so a refresh skips most searches.
 - Up to 3 tracks per artist are kept, and only where that artist is the lead artist.
 - Anything already saved, top, recently played or rejected is dropped.
 
@@ -114,7 +114,12 @@ score = 1.0 · similarity
 
 **6. Diversity re-rank.**
 
-- The engine repeatedly picks the highest score, after subtracting 0.35 for each track already picked from the same artist, with a hard cap of 2 per artist. It stops at 24 picks.
+- The engine repeatedly picks the highest score, after two subtractions:
+  - 0.35 for each track already picked from the same artist;
+  - 0.2 for each track already picked through the same "Similar to" seed.
+
+  There's a hard cap of 2 per artist and 5 per seed, and it stops at 24 picks.
+- **The pick order is the display order.** An earlier version re-sorted the final list by raw score, which undid the re-rank and stacked one seed's neighbours at the top.
 - It then makes sure at least 3 picks are by artists new to the listener (*f* ≤ 0.05). To do that, it swaps out the weakest familiar picks for the best unpicked new-artist tracks. These are the exploration slots, which keep the list out of a filter bubble.
 
 **7. Shelves and reasons.**
@@ -133,8 +138,10 @@ Every card's "Why?" shows the four score terms.
 
 - No new packages: the engine uses only `HttpClient` and `System.Text.Json` from the BCL.
 - Nothing runs until the page is opened or refreshed. There are no timers and no background work.
-- Disk use is two small JSON files in `%LOCALAPPDATA%\Cadenza`:
+- Disk use is four small JSON files in `%LOCALAPPDATA%\Cadenza`:
   - the similarity cache, which expires after 14 days;
+  - the artist-track cache, which expires after 7 days;
+  - the last suggestions (`recommendations-last.json`), shown instantly when you reopen the page within 12 hours. **Refresh** always recomputes;
   - the event log, capped at 2,000 events.
 
 ## Page design (follows docs/UI-GUIDE.md)

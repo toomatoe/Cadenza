@@ -27,6 +27,7 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
     private readonly HttpClient _http;
     private readonly string? _cachePath;
     private readonly SemaphoreSlim _musicBrainzGate = new(1, 1);
+    private readonly Lock _cacheLock = new();
     private readonly Func<DateTimeOffset> _clock;
     private DateTimeOffset _lastMusicBrainzCall = DateTimeOffset.MinValue;
     private Cache _cache = new();
@@ -49,9 +50,12 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
             return [];
         }
 
-        if (_cache.Similar.TryGetValue(mbid, out var cached) && Fresh(cached.Fetched))
+        lock (_cacheLock)
         {
-            return cached.Artists;
+            if (_cache.Similar.TryGetValue(mbid, out var cached) && Fresh(cached.Fetched))
+            {
+                return cached.Artists;
+            }
         }
 
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(SimilarArtistsUrl + mbid + "&algorithm=" + Algorithm));
@@ -78,8 +82,11 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
             .OrderByDescending(entry => entry.Score)
             .Select(entry => new SimilarArtist(entry.Name, entry.Id, max > 0 ? entry.Score / max : 0))
             .ToArray();
-        _cache.Similar[mbid] = new CachedSimilar(_clock(), artists);
-        SaveCache();
+        lock (_cacheLock)
+        {
+            _cache.Similar[mbid] = new CachedSimilar(_clock(), artists);
+            SaveCache();
+        }
         return artists;
     }
 
@@ -89,9 +96,12 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
     private async Task<string?> FindArtistIdAsync(string artistName, CancellationToken ct)
     {
         var key = TasteProfile.Key(artistName);
-        if (_cache.ArtistIds.TryGetValue(key, out var cached) && Fresh(cached.Fetched))
+        lock (_cacheLock)
         {
-            return cached.Id;
+            if (_cache.ArtistIds.TryGetValue(key, out var cached) && Fresh(cached.Fetched))
+            {
+                return cached.Id;
+            }
         }
 
         await _musicBrainzGate.WaitAsync(ct);
@@ -122,8 +132,11 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
                 }
             }
 
-            _cache.ArtistIds[key] = new CachedId(_clock(), id);
-            SaveCache();
+            lock (_cacheLock)
+            {
+                _cache.ArtistIds[key] = new CachedId(_clock(), id);
+                SaveCache();
+            }
             return id;
         }
         finally

@@ -12,7 +12,66 @@ internal static class RecommendationChecks
     {
         CheckProfile(checks);
         await CheckEngineAsync(checks);
+        await CheckBalanceAsync(checks);
+        await CheckCachesAsync(checks);
         CheckHistory(checks);
+    }
+
+    /// <summary>One favourite with many saved tracks must not take over the list.</summary>
+    private static async Task CheckBalanceAsync(CheckRunner checks)
+    {
+        SimilarArtist[] Neighbours(string prefix) =>
+            Enumerable.Range(1, 10).Select(i => new SimilarArtist($"{prefix}{i}", $"{prefix}{i}", 1.0 - (i * 0.04))).ToArray();
+        var similar = new FakeSimilar(new Dictionary<string, SimilarArtist[]>
+        {
+            ["Alpha"] = Neighbours("A"),
+            ["Beta"] = Neighbours("B"),
+            ["Gamma"] = Neighbours("G"),
+        });
+        var saved = Enumerable.Range(1, 30).Select(i => Dated(Song($"alpha-saved-{i}", "Alpha"), i))
+            .Concat([Dated(Song("beta-saved", "Beta"), 1), Dated(Song("gamma-saved", "Gamma"), 1)])
+            .ToArray();
+        var profile = TasteProfile.Build(Inputs(saved, [], []), s_now);
+        var result = await new RecommendationEngine(similar, new FakeResolver()).RecommendAsync(profile, 0.3, new HashSet<string>(), CancellationToken.None);
+
+        var seedsInTopTen = result.Items.Take(10).Select(item => item.Reason).Where(reason => reason.StartsWith("Similar to ", StringComparison.Ordinal)).Distinct().Count();
+        checks.Check(seedsInTopTen >= 2, "The top ten draws on more than one favourite artist");
+        checks.Check(result.Items.Count(item => item.Reason == "Similar to Alpha") <= RecommendationEngine.MaxPerSeed,
+            "One favourite fills at most MaxPerSeed suggestions");
+        checks.Check(result.Items.Any(item => item.Reason == "Similar to Gamma"), "Lighter favourites still get suggestions");
+    }
+
+    private static async Task CheckCachesAsync(CheckRunner checks)
+    {
+        var folder = Directory.CreateTempSubdirectory("cadenza-recs-");
+        try
+        {
+            var now = s_now;
+            var counting = new CountingResolver();
+            var path = Path.Combine(folder.FullName, "tracks.json");
+            var cached = new CachedTrackResolver(counting, path, () => now);
+            await cached.FindTracksAsync("Alpha", CancellationToken.None);
+            var again = await new CachedTrackResolver(counting, path, () => now).FindTracksAsync("alpha ", CancellationToken.None);
+            checks.Check(counting.Calls == 1 && again.Count == 5 && again[0].LeadArtist == "Alpha",
+                "Artist track searches are cached on disk across restarts");
+            now += CachedTrackResolver.Lifetime + TimeSpan.FromMinutes(1);
+            await cached.FindTracksAsync("Alpha", CancellationToken.None);
+            checks.Check(counting.Calls == 2, "Cached searches expire after a week");
+
+            var snapshotPath = Path.Combine(folder.FullName, "last.json");
+            var track = Song("snap-1", "Alpha");
+            var made = new RecommendationResult([new Recommendation(track, RecommendationShelf.DeeperCuts, "You listen to Alpha a lot", new ScoreBreakdown(0.5, 0.2, 0.1, 0))], []);
+            RecommendationSnapshot.Save(snapshotPath, made, s_now);
+            var loaded = RecommendationSnapshot.Load(snapshotPath, s_now.AddHours(1));
+            checks.Check(loaded?.Result.Items is [{ Track.Id: "snap-1", Shelf: RecommendationShelf.DeeperCuts, Score.Similarity: 0.5 }],
+                "The last suggestions are saved and reloaded");
+            checks.Check(RecommendationSnapshot.Load(snapshotPath, s_now + RecommendationSnapshot.FreshFor + TimeSpan.FromMinutes(1)) is null,
+                "Old saved suggestions are ignored");
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
     }
 
     private static void CheckProfile(CheckRunner checks)
@@ -130,6 +189,17 @@ internal static class RecommendationChecks
     {
         public Task<IReadOnlyList<SimilarArtist>> GetSimilarAsync(string artistName, CancellationToken ct) =>
             Task.FromException<IReadOnlyList<SimilarArtist>>(new HttpRequestException("offline"));
+    }
+
+    private sealed class CountingResolver : ITrackResolver
+    {
+        public int Calls { get; private set; }
+
+        public Task<IReadOnlyList<Track>> FindTracksAsync(string artistName, CancellationToken ct)
+        {
+            Calls++;
+            return new FakeResolver().FindTracksAsync(artistName, ct);
+        }
     }
 
     /// <summary>Every artist has five tracks; Alpha's first two are the saved ones.</summary>

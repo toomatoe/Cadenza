@@ -26,12 +26,18 @@ public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, 
     public const int MaxPerArtist = 2;
     public const int ExplorationSlots = 3;
 
+    /// <summary>At most this many picks may come from one favourite artist's neighbours.</summary>
+    public const int MaxPerSeed = 5;
+
     public const double SimilarityWeight = 1.0;
     public const double FamiliarityWeight = 0.8;
     public const double NoveltyWeight = 0.8;
     public const double RecentlySuggestedPenalty = 0.6;
     public const double NegativeArtistPenalty = 0.5;
     public const double SameArtistPenalty = 0.35;
+
+    /// <summary>Subtracted per earlier pick sharing the same "Similar to" seed, so one favourite can't take over the list.</summary>
+    public const double SameSeedPenalty = 0.2;
 
     /// <summary>Artists with at most this normalised affinity count as "new to you".</summary>
     public const double NewArtistThreshold = 0.05;
@@ -102,19 +108,22 @@ public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, 
     {
         var seedKeys = seeds.Select(seed => TasteProfile.Key(seed.Name)).ToHashSet();
         var result = new Dictionary<string, SimilarCandidate>();
-        foreach (var (seedName, seedWeight) in seeds)
+
+        // Look up every seed at once (the provider throttles MusicBrainz itself), then combine
+        // in seed order so the result stays deterministic.
+        var lookups = await Task.WhenAll(seeds.Select(seed => TryGetSimilarAsync(seed.Name, ct)));
+        for (var i = 0; i < seeds.Count; i++)
         {
-            IReadOnlyList<SimilarArtist> similar;
-            try
-            {
-                similar = await similarArtists.GetSimilarAsync(seedName, ct);
-            }
-            catch (HttpRequestException)
+            var (seedName, seedAffinity) = seeds[i];
+            if (lookups[i] is not { } similar)
             {
                 warnings.Add($"Couldn't reach the similar-artist service for {seedName}.");
                 continue;
             }
 
+            // Square root narrows the gap between your top artist and the rest, so one favourite
+            // with many saved tracks doesn't drown out the others.
+            var seedWeight = Math.Sqrt(seedAffinity);
             foreach (var artist in similar.Take(SimilarPerSeed))
             {
                 var key = TasteProfile.Key(artist.Name);
@@ -136,6 +145,18 @@ public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, 
         }
 
         return result;
+    }
+
+    private async Task<IReadOnlyList<SimilarArtist>?> TryGetSimilarAsync(string seedName, CancellationToken ct)
+    {
+        try
+        {
+            return await similarArtists.GetSimilarAsync(seedName, ct);
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
     }
 
     private static Scored Score(
@@ -160,30 +181,40 @@ public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, 
     }
 
     /// <summary>
-    /// Greedy diversity re-rank: repeatedly take the best remaining track after a penalty for each pick
-    /// already made from the same artist, capped at <see cref="MaxPerArtist"/>; then make sure at least
-    /// <see cref="ExplorationSlots"/> picks are artists new to the listener.
+    /// Greedy diversity re-rank: repeatedly take the best remaining track after penalties for earlier
+    /// picks by the same artist and from the same seed, capped at <see cref="MaxPerArtist"/> and
+    /// <see cref="MaxPerSeed"/>; then make sure at least <see cref="ExplorationSlots"/> picks are
+    /// artists new to the listener. The pick order is the display order.
     /// </summary>
     private static List<Scored> Rerank(List<Scored> candidates)
     {
         var picks = new List<Scored>();
         var perArtist = new Dictionary<string, int>();
+        var perSeed = new Dictionary<string, int>();
         var remaining = candidates.ToList();
+        double Adjusted(Scored candidate) =>
+            candidate.Score.Total
+            - (SameArtistPenalty * perArtist.GetValueOrDefault(candidate.ArtistKey))
+            - (candidate.BestSeed is { } seed ? SameSeedPenalty * perSeed.GetValueOrDefault(seed) : 0);
         while (picks.Count < ResultCount && remaining.Count > 0)
         {
             var best = remaining
-                .Select(candidate => (Candidate: candidate, Adjusted: candidate.Score.Total - (SameArtistPenalty * perArtist.GetValueOrDefault(candidate.ArtistKey))))
-                .OrderByDescending(pair => pair.Adjusted)
-                .ThenBy(pair => pair.Candidate.Track.Id, StringComparer.Ordinal)
-                .First().Candidate;
+                .OrderByDescending(Adjusted)
+                .ThenBy(candidate => candidate.Track.Id, StringComparer.Ordinal)
+                .First();
             remaining.Remove(best);
-            if (perArtist.GetValueOrDefault(best.ArtistKey) >= MaxPerArtist)
+            if (perArtist.GetValueOrDefault(best.ArtistKey) >= MaxPerArtist ||
+                (best.BestSeed is { } bestSeed && perSeed.GetValueOrDefault(bestSeed) >= MaxPerSeed))
             {
                 continue;
             }
 
             picks.Add(best);
             perArtist[best.ArtistKey] = perArtist.GetValueOrDefault(best.ArtistKey) + 1;
+            if (best.BestSeed is { } seedName)
+            {
+                perSeed[seedName] = perSeed.GetValueOrDefault(seedName) + 1;
+            }
         }
 
         // Exploration: swap the weakest familiar picks for the best unpicked new-artist tracks.
@@ -206,7 +237,8 @@ public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, 
             picks.Add(explorer with { Explored = true });
         }
 
-        return picks.OrderByDescending(pick => pick.Score.Total).ThenBy(pick => pick.Track.Id, StringComparer.Ordinal).ToList();
+        // Keep the re-ranked order: sorting by raw score again would regroup one seed's artists at the top.
+        return picks;
     }
 
     private static Recommendation ToRecommendation(Scored pick)

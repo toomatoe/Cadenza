@@ -11,10 +11,12 @@ namespace Cadenza.Desktop.Views;
 public sealed partial class MainWindow
 {
     private const double SkipWindowMs = 30_000;
+    private const string SnapshotFile = "recommendations-last.json";
 
     // Created on first use so the feature costs nothing until the "For you" page is opened.
     private ListeningHistoryStore? _history;
     private ListenBrainzSimilarArtists? _similarArtists;
+    private CachedTrackResolver? _artistTracks;
     private RecommendationEngine? _recommendationEngine;
     private bool _recommendationsLoaded;
 
@@ -42,13 +44,22 @@ public sealed partial class MainWindow
             return;
         }
 
+        // Opening the page shows the last suggestions straight away; only Refresh recomputes them.
+        if (!refresh && RecommendationSnapshot.Load(DataPath(SnapshotFile), DateTimeOffset.UtcNow) is { } saved)
+        {
+            ShowRecommendations(saved.Result);
+            RecommendationsStatus.Text = $"Suggested {saved.MadeAt.ToLocalTime():t}. Refresh for new ones.";
+            return;
+        }
+
         await RunAsync(LoadRecommendationsAsync);
     }
 
     private async Task LoadRecommendationsAsync(CancellationToken ct)
     {
         _similarArtists ??= new ListenBrainzSimilarArtists(_http, DataPath("recommendation-cache.json"));
-        _recommendationEngine ??= new RecommendationEngine(_similarArtists, new SpotifyTrackResolver(_spotifyApi));
+        _artistTracks ??= new CachedTrackResolver(new SpotifyTrackResolver(_spotifyApi), DataPath("recommendation-tracks.json"));
+        _recommendationEngine ??= new RecommendationEngine(_similarArtists, _artistTracks);
         RecommendationsStatus.Text = "Finding music for you…";
         var (inputs, missingScopes) = await new TasteInputsLoader(_spotifyApi, History).LoadAsync(ct);
         var discovery = DiscoverySlider.Value / 100;
@@ -61,15 +72,13 @@ public sealed partial class MainWindow
         var profile = TasteProfile.Build(inputs, DateTimeOffset.UtcNow);
         var result = await _recommendationEngine.RecommendAsync(profile, discovery, History.RecentlySuggested, ct);
         History.RememberSuggestions(result.Items.Select(item => item.Track.Id));
+        RecommendationSnapshot.Save(DataPath(SnapshotFile), result, DateTimeOffset.UtcNow);
 
-        _recommendations = result.Items.Select(item => new RecommendationCard(item)).ToList();
-        _recommendationsLoaded = true;
+        ShowRecommendations(result);
         ReconnectForRecommendations.IsOpen = missingScopes;
-        RecommendationsEmpty.Text = "Listen to a few tracks and save some favourites, and suggestions will appear here.";
         RecommendationsStatus.Text = result.Warnings.Count > 0
             ? result.Warnings[0] + " Showing what we could find."
             : "Based on what you save and play. Nothing about you leaves this device except artist names.";
-        UpdateRecommendationSurfaces();
     }
 
     private static readonly (RecommendationShelf Shelf, string Title)[] s_shelves =
@@ -143,9 +152,19 @@ public sealed partial class MainWindow
         }
     }
 
+    private void ShowRecommendations(RecommendationResult result)
+    {
+        _recommendations = result.Items.Select(item => new RecommendationCard(item)).ToList();
+        _recommendationsLoaded = true;
+        RecommendationsEmpty.Text = "Listen to a few tracks and save some favourites, and suggestions will appear here.";
+        UpdateRecommendationSurfaces();
+    }
+
     private void ForgetRecommendations()
     {
         History.Clear();
+        RecommendationSnapshot.Delete(DataPath(SnapshotFile));
+        _artistTracks?.Clear();
         _recommendations.Clear();
         RecommendationShelves.Clear();
         _recommendationsLoaded = false;
