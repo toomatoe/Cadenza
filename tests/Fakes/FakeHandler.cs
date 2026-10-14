@@ -1,4 +1,4 @@
-namespace Cadenza.Tests.Fixtures;
+namespace Cadenza.UnitTests.Fakes;
 
 /// <summary>Returns queued responses and records each request's URL and bearer token.</summary>
 internal sealed class FakeHandler : HttpMessageHandler
@@ -14,6 +14,7 @@ internal sealed class FakeHandler : HttpMessageHandler
         cancellationToken.ThrowIfCancellationRequested();
         Requests.Add(request.RequestUri!.AbsoluteUri);
         Bearers.Add(request.Headers.Authorization?.Parameter);
+
         return Task.FromResult(Responses.Dequeue());
     }
 }
