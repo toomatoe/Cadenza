@@ -13,7 +13,7 @@ namespace Cadenza.Core.Services.Spotify;
 /// Spotify Web API client for library metadata. Requests are serialized; an expired token is refreshed
 /// once, and short rate limits are retried after Spotify's Retry-After delay.
 /// </summary>
-public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth) : IMusicCatalog, IDisposable
+public sealed class SpotifyApi : IMusicCatalog, IDisposable
 {
     /// <summary>Items requested per page.</summary>
     public const int PageSize = 10;
@@ -29,6 +29,14 @@ public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth) : IMusicCatalo
     private static readonly TimeSpan _defaultRetryDelay = TimeSpan.FromSeconds(2);
 
     private readonly SemaphoreSlim _requestGate = new(1, 1);
+    private readonly HttpClient _http;
+    private readonly SpotifyAuth _auth;
+
+    public SpotifyApi(HttpClient http, SpotifyAuth auth)
+    {
+        _http = http;
+        _auth = auth;
+    }
 
     public Task<Page<Track>> SearchAsync(string query, int offset, CancellationToken cancellationToken)
     {
@@ -226,11 +234,11 @@ public sealed class SpotifyApi(HttpClient http, SpotifyAuth auth) : IMusicCatalo
             for (var attempt = 0; ; attempt++)
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, BaseUrl + route);
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await auth.GetAccessTokenAsync(cancellationToken));
-                using var response = await http.SendAsync(request, cancellationToken);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _auth.GetAccessTokenAsync(cancellationToken));
+                using var response = await _http.SendAsync(request, cancellationToken);
                 if (response.StatusCode == HttpStatusCode.Unauthorized && !refreshed)
                 {
-                    await auth.GetAccessTokenAsync(cancellationToken, forceRefresh: true);
+                    await _auth.GetAccessTokenAsync(cancellationToken, forceRefresh: true);
                     refreshed = true;
                     continue;
                 }

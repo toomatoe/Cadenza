@@ -7,15 +7,20 @@ using Microsoft.UI.Xaml;
 namespace Cadenza.Desktop.Models;
 
 /// <summary>A chat bubble. Shared tracks arrive as IDs; <see cref="Track"/> fills in once fetched from Spotify.</summary>
-public sealed partial class ChatItem(ChatMessage message, bool mine) : INotifyPropertyChanged
+public sealed partial class ChatItem : INotifyPropertyChanged
 {
     private Track? _track;
+    public ChatItem(ChatMessage message, bool mine)
+    {
+        Message = message;
+        Mine = mine;
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public ChatMessage Message { get; } = message;
+    public ChatMessage Message { get; }
 
-    public bool Mine { get; } = mine;
+    public bool Mine { get; }
 
     public HorizontalAlignment Alignment => Mine ? HorizontalAlignment.Right : HorizontalAlignment.Left;
 

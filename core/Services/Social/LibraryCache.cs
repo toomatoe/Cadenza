@@ -4,11 +4,18 @@ namespace Cadenza.Core.Services.Social;
 /// Library songs downloaded for playback, kept in one folder and capped in size. The least recently
 /// played files are removed first. A song plays from here, so replays and seeking don't hit the server.
 /// </summary>
-public sealed class LibraryCache(string folder, long maxBytes = LibraryCache.DefaultMaxBytes)
+public sealed class LibraryCache
 {
     public const long DefaultMaxBytes = 1024L * 1024 * 1024;
+    private readonly long _maxBytes;
 
-    public string Folder { get; } = folder;
+    public LibraryCache(string folder, long maxBytes = LibraryCache.DefaultMaxBytes)
+    {
+        _maxBytes = maxBytes;
+        Folder = folder;
+    }
+
+    public string Folder { get; }
 
     /// <summary>The cached file for a song, downloading it first if needed.</summary>
     public async Task<string> GetAsync(SocialClient client, string id, string format, CancellationToken cancellationToken)
@@ -41,7 +48,7 @@ public sealed class LibraryCache(string folder, long maxBytes = LibraryCache.Def
         var total = files.Sum(file => file.Length);
         foreach (var file in files)
         {
-            if (total <= maxBytes)
+            if (total <= _maxBytes)
                 break;
 
             if (string.Equals(file.FullName, keep is null ? null : Path.GetFullPath(keep), StringComparison.OrdinalIgnoreCase))

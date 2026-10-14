@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Cadenza.Core.Models;
 
 /// <summary>A Spotify track as shown in the library, search results, playlists and the queue.</summary>
-public sealed record Track
+public sealed class Track
 {
     // WinUI's metadata generator treats init-only setters as regular setters, so these are
     // get-only properties set by the constructor to keep the model immutable and bindable.

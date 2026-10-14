@@ -10,12 +10,20 @@ namespace Cadenza.Core.Services.Social;
 /// Client for the Cadenza Friends server. Sends only what the feature needs: your Cadenza username,
 /// display name, messages and Spotify track IDs. Never Spotify tokens or listening history.
 /// </summary>
-public sealed class SocialClient(HttpClient http, Uri server)
+public sealed class SocialClient
 {
+    private readonly HttpClient _http;
+
+    public SocialClient(HttpClient http, Uri server)
+    {
+        _http = http;
+        Server = server;
+    }
+
     /// <summary>The device token; set after joining or when restored from the credential store.</summary>
     public string? Token { get; set; }
 
-    public Uri Server { get; } = server;
+    public Uri Server { get; }
 
     public Task<AccountCreated> CreateAccountAsync(CreateAccountRequest request, CancellationToken cancellationToken) =>
         SendAsync<AccountCreated>(HttpMethod.Post, "api/accounts", request, cancellationToken);
@@ -94,7 +102,7 @@ public sealed class SocialClient(HttpClient http, Uri server)
         HttpResponseMessage response;
         try
         {
-            response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         }
         catch (HttpRequestException error)
         {
@@ -132,7 +140,7 @@ public sealed class SocialClient(HttpClient http, Uri server)
         HttpResponseMessage response;
         try
         {
-            response = await http.SendAsync(request, cancellationToken);
+            response = await _http.SendAsync(request, cancellationToken);
         }
         catch (HttpRequestException error)
         {

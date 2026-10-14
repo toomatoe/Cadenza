@@ -48,7 +48,7 @@ Where Cadenza is stricter (warnings as errors, analyzers), it keeps the stricter
 ## 5. Types and files
 
 - **One type per file, named after the type.** The exception is small related data models, which are grouped by feature in `<Feature>Models.cs` (for example `core/Social/MessageModels.cs`).
-- **Models are classes, not records:** sealed classes with an explicit constructor and get-only properties. Constructor-bound properties keep System.Text.Json deserialization working, and WinUI's XAML compiler mishandles `init` setters. Enums stay enums.
+- **Models are classes, not records:** sealed classes with an explicit constructor and get-only properties. Constructor-bound properties keep System.Text.Json deserialization working, and WinUI's XAML compiler mishandles `init` setters. Enums stay enums. The one exception is settings objects updated with non-destructive `with` expressions (`Preferences`, `SpriteProfile`), which stay records. When a model is deserialized from JSON, its constructor parameter names must match the property names, using `@explicit`-style escapes for keywords.
 - Classes are `sealed` unless they're designed for inheritance. The analyzers ask for it, and it's stricter than Shared, not in conflict.
 - `public` is for what other projects use; `internal` is for implementation details.
 
