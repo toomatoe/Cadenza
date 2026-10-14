@@ -12,10 +12,10 @@ namespace Cadenza.Desktop.Views;
 public sealed partial class MainWindow
 {
     private const double CompactLayoutWidth = 1100;
-    private static readonly Color s_darkCaptionInk = Color.FromArgb(255, 243, 246, 252);
-    private static readonly Color s_lightCaptionInk = Color.FromArgb(255, 23, 40, 62);
-    private static readonly Color s_darkCaptionHover = Color.FromArgb(40, 255, 255, 255);
-    private static readonly Color s_lightCaptionHover = Color.FromArgb(24, 0, 0, 0);
+    private static readonly Color _darkCaptionInk = Color.FromArgb(255, 243, 246, 252);
+    private static readonly Color _lightCaptionInk = Color.FromArgb(255, 23, 40, 62);
+    private static readonly Color _darkCaptionHover = Color.FromArgb(40, 255, 255, 255);
+    private static readonly Color _lightCaptionHover = Color.FromArgb(24, 0, 0, 0);
 
     private readonly UISettings _uiSettings = new();
     private readonly AccessibilitySettings _accessibility = new();
@@ -34,9 +34,7 @@ public sealed partial class MainWindow
         Grid.SetColumnSpan(HeroMain, compact ? 2 : 1);
         Grid.SetColumnSpan(HeroQueue, compact ? 2 : 1);
         if (_compactLayout == compact)
-        {
             return;
-        }
 
         _compactLayout = compact;
         Grid.SetRow(SearchPanel, compact ? 1 : 0);
@@ -51,6 +49,7 @@ public sealed partial class MainWindow
     {
         var theme = _accessibility.HighContrast ? "HighContrast" : Root.ActualTheme.ToString();
         var resources = (ResourceDictionary)Application.Current.Resources.ThemeDictionaries[theme];
+
         return (Brush)resources[key];
     }
 
@@ -74,9 +73,7 @@ public sealed partial class MainWindow
     private void QueueAppearanceUpdate() => DispatcherQueue.TryEnqueue(() =>
     {
         if (!_closing)
-        {
             ApplyAppearance();
-        }
     });
 
     private void ApplyAppearance()
@@ -97,14 +94,10 @@ public sealed partial class MainWindow
         else if (useMica)
         {
             if (SystemBackdrop is not MicaBackdrop)
-            {
                 SystemBackdrop = new MicaBackdrop();
-            }
         }
         else
-        {
             SystemBackdrop = null;
-        }
 
         SolidBackground.Visibility = useAcrylic || useMica ? Visibility.Collapsed : Visibility.Visible;
 
@@ -112,13 +105,13 @@ public sealed partial class MainWindow
         var dark = Root.ActualTheme == ElementTheme.Dark;
         var ink = _accessibility.HighContrast
             ? _uiSettings.GetColorValue(UIColorType.Foreground)
-            : dark ? s_darkCaptionInk : s_lightCaptionInk;
+            : dark ? _darkCaptionInk : _lightCaptionInk;
         AppWindow.TitleBar.ButtonForegroundColor = ink;
         AppWindow.TitleBar.ButtonInactiveForegroundColor = ink;
         AppWindow.TitleBar.ButtonHoverForegroundColor = ink;
         AppWindow.TitleBar.ButtonHoverBackgroundColor = _accessibility.HighContrast
             ? _uiSettings.GetColorValue(UIColorType.Background)
-            : dark ? s_darkCaptionHover : s_lightCaptionHover;
+            : dark ? _darkCaptionHover : _lightCaptionHover;
         UpdateNav();
         RefreshPlaylistDeck();
     }
@@ -126,9 +119,7 @@ public sealed partial class MainWindow
     private void Appearance_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_appearanceInitialized || AppearanceBox.SelectedIndex < 0)
-        {
             return;
-        }
 
         var selected = (AppearanceMode)AppearanceBox.SelectedIndex;
         var updated = _preferences with { Appearance = selected, SolidAppearance = selected == AppearanceMode.Solid };

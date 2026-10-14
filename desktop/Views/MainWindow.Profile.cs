@@ -1,5 +1,5 @@
 using Cadenza.Core.Models;
-using Cadenza.Core.Sprites;
+using Cadenza.Core.Services.Sprites;
 using Cadenza.Desktop.Controls;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;
@@ -16,7 +16,7 @@ public sealed partial class MainWindow
     private const double SwatchSize = 32;
 
     // 0 means "the species' own colour".
-    private static readonly (string Name, uint Color)[] s_bodyColors =
+    private static readonly (string Name, uint Color)[] _bodyColors =
     [
         ("Default", 0),
         ("Slate", 0xFF9DB2CF),
@@ -29,7 +29,7 @@ public sealed partial class MainWindow
         ("Ink", 0xFF5B6478),
     ];
 
-    private static readonly (string Name, uint Color)[] s_accentColors =
+    private static readonly (string Name, uint Color)[] _accentColors =
     [
         ("Default", 0),
         ("Pink", 0xFFF2AFC0),
@@ -50,8 +50,8 @@ public sealed partial class MainWindow
         SpeciesBox.SelectedIndex = Math.Max(0, SpriteArt.Species.ToList().FindIndex(species => species.Id == _spriteProfile.Species));
         AccessoryBox.ItemsSource = SpriteArt.Accessories.Select(ToDisplayName).ToArray();
         AccessoryBox.SelectedIndex = Math.Max(0, SpriteArt.Accessories.ToList().IndexOf(_spriteProfile.Accessory));
-        BuildSwatches(BodySwatches, s_bodyColors, "Colour", isAccent: false);
-        BuildSwatches(AccentSwatches, s_accentColors, "Accent", isAccent: true);
+        BuildSwatches(BodySwatches, _bodyColors, "Colour", isAccent: false);
+        BuildSwatches(AccentSwatches, _accentColors, "Accent", isAccent: true);
         _profileInitialized = true;
         ApplySpriteProfile();
 
@@ -79,9 +79,7 @@ public sealed partial class MainWindow
     private void UpdateSpriteProfile(SpriteProfile updated)
     {
         if (!_profileInitialized || updated == _spriteProfile)
-        {
             return;
-        }
 
         _spriteProfile = updated;
         ApplySpriteProfile();
@@ -115,9 +113,7 @@ public sealed partial class MainWindow
     private async void SidebarSprite_Click(object sender, RoutedEventArgs e)
     {
         if (!_signingIn)
-        {
             await NavigateAsync(AppView.Settings);
-        }
     }
 
     private void SpriteName_TextChanged(object sender, TextChangedEventArgs e)
@@ -129,17 +125,13 @@ public sealed partial class MainWindow
     private void Species_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (SpeciesBox.SelectedIndex >= 0)
-        {
             UpdateSpriteProfile(_spriteProfile with { Species = SpriteArt.Species[SpeciesBox.SelectedIndex].Id });
-        }
     }
 
     private void Accessory_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (AccessoryBox.SelectedIndex >= 0)
-        {
             UpdateSpriteProfile(_spriteProfile with { Accessory = SpriteArt.Accessories[AccessoryBox.SelectedIndex] });
-        }
     }
 
     private void BuildSwatches(StackPanel host, (string Name, uint Color)[] colors, string label, bool isAccent)

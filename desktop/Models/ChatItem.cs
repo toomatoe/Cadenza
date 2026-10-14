@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Globalization;
 using Cadenza.Core.Models;
-using Cadenza.Core.Social;
+using Cadenza.Core.Models.Social;
 using Microsoft.UI.Xaml;
 
 namespace Cadenza.Desktop.Models;

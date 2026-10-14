@@ -20,7 +20,7 @@ public sealed partial class NativeEngine : IAsyncDisposable
     private const int NativeEventSize = 24;
     private const int MaxPayloadBytes = 8192;
     private const int MaxEventsPerPoll = 32;
-    private static readonly TimeSpan s_pollInterval = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan _pollInterval = TimeSpan.FromMilliseconds(50);
 
     private readonly Lock _gate = new();
     private readonly ConcurrentDictionary<ulong, TaskCompletionSource<uint>> _pending = new();
@@ -57,15 +57,11 @@ public sealed partial class NativeEngine : IAsyncDisposable
         }
 
         if (Unsafe.SizeOf<NativeEvent>() != NativeEventSize || abi != SupportedAbiVersion)
-        {
             throw new InvalidOperationException("The native engine ABI does not match this application.");
-        }
 
         _handle = Native.cadenza_create();
         if (_handle == 0)
-        {
             throw new InvalidOperationException("The native worker could not start.");
-        }
 
         _pump = Task.Run(PumpAsync);
     }
@@ -104,49 +100,43 @@ public sealed partial class NativeEngine : IAsyncDisposable
     public PlaybackUpdate? LatestPlayback => Volatile.Read(ref _latest);
 
     /// <summary>Signs the native session in with a Spotify access token issued to <paramref name="clientId"/>.</summary>
-    public Task<uint> AuthenticateAsync(string clientId, string accessToken, CancellationToken ct)
+    public Task<uint> AuthenticateAsync(string clientId, string accessToken, CancellationToken cancellationToken)
     {
         SpotifyAuth.ValidateClientId(clientId);
         if (string.IsNullOrWhiteSpace(accessToken) || accessToken.AsSpan().IndexOfAny('\r', '\n', '\0') >= 0)
-        {
             throw new ArgumentException("Invalid playback access token.", nameof(accessToken));
-        }
 
-        return SubmitAsync(Opcode.Authenticate, ct, clientId + "\n" + accessToken);
+        return SubmitAsync(Opcode.Authenticate, cancellationToken, clientId + "\n" + accessToken);
     }
 
     /// <summary>Loads and starts a track.</summary>
     /// <returns>A stamp that identifies this load's playback events.</returns>
-    public Task<uint> LoadTrackAsync(string id, CancellationToken ct)
+    public Task<uint> LoadTrackAsync(string id, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(id);
         if (id.Length != 22 || !id.All(char.IsAsciiLetterOrDigit))
-        {
             throw new ArgumentException("Invalid Spotify track ID.", nameof(id));
-        }
 
-        return SubmitAsync(Opcode.LoadTrack, ct, "spotify:track:" + id);
+        return SubmitAsync(Opcode.LoadTrack, cancellationToken, "spotify:track:" + id);
     }
 
     /// <summary>Loads and starts a music file from disk (MP3, FLAC or Ogg Vorbis). Needs no Spotify session.</summary>
     /// <returns>A stamp that identifies this load's playback events.</returns>
-    public Task<uint> LoadFileAsync(string path, CancellationToken ct)
+    public Task<uint> LoadFileAsync(string path, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(path);
         if (!Path.IsPathFullyQualified(path) || path.AsSpan().IndexOfAny('\r', '\n', '\0') >= 0)
-        {
             throw new ArgumentException("Invalid music file path.", nameof(path));
-        }
 
-        return LoadFileCoreAsync(path, ct);
+        return LoadFileCoreAsync(path, cancellationToken);
     }
 
     // The engine's generic status messages talk about Spotify; say what went wrong with the file instead.
-    private async Task<uint> LoadFileCoreAsync(string path, CancellationToken ct)
+    private async Task<uint> LoadFileCoreAsync(string path, CancellationToken cancellationToken)
     {
         try
         {
-            return await SubmitAsync(Opcode.LoadFile, ct, path);
+            return await SubmitAsync(Opcode.LoadFile, cancellationToken, path);
         }
         catch (ArgumentException error)
         {
@@ -158,27 +148,28 @@ public sealed partial class NativeEngine : IAsyncDisposable
         }
     }
 
-    public Task<uint> ResumeAsync(CancellationToken ct) => SubmitAsync(Opcode.Resume, ct);
+    public Task<uint> ResumeAsync(CancellationToken cancellationToken) => SubmitAsync(Opcode.Resume, cancellationToken);
 
-    public Task<uint> PauseAsync(CancellationToken ct) => SubmitAsync(Opcode.Pause, ct);
+    public Task<uint> PauseAsync(CancellationToken cancellationToken) => SubmitAsync(Opcode.Pause, cancellationToken);
 
-    public Task<uint> SeekAsync(uint positionMs, CancellationToken ct) =>
-        SubmitAsync(Opcode.Seek, ct, positionMs.ToString(CultureInfo.InvariantCulture));
+    public Task<uint> SeekAsync(uint positionMs, CancellationToken cancellationToken) =>
+        SubmitAsync(Opcode.Seek, cancellationToken, positionMs.ToString(CultureInfo.InvariantCulture));
 
-    public Task<uint> SetVolumeAsync(uint percent, CancellationToken ct)
+    public Task<uint> SetVolumeAsync(uint percent, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(percent, 100u);
-        return SubmitAsync(Opcode.Volume, ct, percent.ToString(CultureInfo.InvariantCulture));
+
+        return SubmitAsync(Opcode.Volume, cancellationToken, percent.ToString(CultureInfo.InvariantCulture));
     }
 
-    public Task<uint> StopAsync(CancellationToken ct) => SubmitAsync(Opcode.Stop, ct);
+    public Task<uint> StopAsync(CancellationToken cancellationToken) => SubmitAsync(Opcode.Stop, cancellationToken);
 
     /// <summary>Round-trips a diagnostic command.</summary>
     /// <returns>The native ABI version.</returns>
-    public Task<uint> CheckBridgeAsync(CancellationToken ct) => SubmitAsync(Opcode.Diagnostic, ct);
+    public Task<uint> CheckBridgeAsync(CancellationToken cancellationToken) => SubmitAsync(Opcode.Diagnostic, cancellationToken);
 
     /// <summary>Legacy capability check; always reports playback as unsupported.</summary>
-    public Task<uint> RequestPlaybackAsync(CancellationToken ct) => SubmitAsync(Opcode.LegacyPlaybackCheck, ct);
+    public Task<uint> RequestPlaybackAsync(CancellationToken cancellationToken) => SubmitAsync(Opcode.LegacyPlaybackCheck, cancellationToken);
 
     public ValueTask DisposeAsync()
     {
@@ -201,35 +192,29 @@ public sealed partial class NativeEngine : IAsyncDisposable
         _ => new InvalidOperationException("The native playback command failed.")
     };
 
-    private async Task<uint> SubmitAsync(Opcode opcode, CancellationToken ct, string? text = null)
+    private async Task<uint> SubmitAsync(Opcode opcode, CancellationToken cancellationToken, string? text = null)
     {
-        ct.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         Task<uint> result;
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_handle == 0 || _disposal is not null, this);
             if (_terminalFailure is not null)
-            {
                 throw new InvalidOperationException("Native event channel is closed. Restart the application.", _terminalFailure);
-            }
 
             var id = (ulong)Interlocked.Increment(ref _nextRequest);
             var source = new TaskCompletionSource<uint>(TaskCreationOptions.RunContinuationsAsynchronously);
             _pending[id] = source;
             Status status;
             if (text is null)
-            {
                 status = (Status)Native.cadenza_submit(_handle, id, (uint)opcode);
-            }
             else
             {
                 var bytes = Encoding.UTF8.GetBytes(text);
                 try
                 {
                     if (bytes.Length is 0 or > MaxPayloadBytes)
-                    {
                         throw new ArgumentException("Native payload exceeds its limit.", nameof(text));
-                    }
 
                     status = (Status)Native.cadenza_submit_text(_handle, id, (uint)opcode, bytes, (nuint)bytes.Length);
                 }
@@ -257,36 +242,30 @@ public sealed partial class NativeEngine : IAsyncDisposable
         }
 
         // Cancellation stops this wait, not native work. The pump still drains its completion.
-        return await result.WaitAsync(ct);
+        return await result.WaitAsync(cancellationToken);
     }
 
     private async Task PumpAsync()
     {
         try
         {
-            using var timer = new PeriodicTimer(s_pollInterval);
+            using var timer = new PeriodicTimer(_pollInterval);
             while (await timer.WaitForNextTickAsync(_stopping.Token))
             {
                 var updates = new List<PlaybackUpdate>();
                 lock (_gate)
                 {
                     if (_handle == 0)
-                    {
                         return;
-                    }
 
                     for (var count = 0; count < MaxEventsPerPoll; count++)
                     {
                         var status = (Status)Native.cadenza_poll(_handle, out var value);
                         if (status == Status.Empty)
-                        {
                             break;
-                        }
 
                         if (status != Status.Ok)
-                        {
                             throw new InvalidOperationException("Native event channel failed.");
-                        }
 
                         // Request ID 0 is telemetry; its kind is a PlaybackState value.
                         if (value.RequestId == 0 && value.Kind is >= (uint)PlaybackState.Loading and <= (uint)PlaybackState.Failed)
@@ -298,13 +277,9 @@ public sealed partial class NativeEngine : IAsyncDisposable
                         else if (_pending.TryRemove(value.RequestId, out var source))
                         {
                             if (value.Status == (int)Status.Ok)
-                            {
                                 source.TrySetResult(value.Value);
-                            }
                             else
-                            {
                                 source.TrySetException(CommandError((Status)value.Status));
-                            }
                         }
                     }
                 }
@@ -358,9 +333,7 @@ public sealed partial class NativeEngine : IAsyncDisposable
 
         _pending.Clear();
         if (handle != 0)
-        {
             await Task.Run(() => Native.cadenza_destroy(handle));
-        }
 
         _stopping.Dispose();
     }

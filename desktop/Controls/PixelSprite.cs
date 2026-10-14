@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices.WindowsRuntime;
-using Cadenza.Core.Sprites;
+using Cadenza.Core.Services.Sprites;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -99,9 +99,7 @@ public sealed partial class PixelSprite : Grid
     {
         _timer ??= CreateTimer();
         if (XamlRoot is not null)
-        {
             XamlRoot.Changed += XamlRoot_Changed;
-        }
 
         UpdateTimer();
         Render();
@@ -111,9 +109,7 @@ public sealed partial class PixelSprite : Grid
     {
         _timer?.Stop();
         if (XamlRoot is not null)
-        {
             XamlRoot.Changed -= XamlRoot_Changed;
-        }
     }
 
     private void XamlRoot_Changed(XamlRoot sender, XamlRootChangedEventArgs args) => Render();
@@ -127,24 +123,19 @@ public sealed partial class PixelSprite : Grid
             _tick++;
             Render();
         };
+
         return timer;
     }
 
     private void UpdateTimer()
     {
         if (_timer is null)
-        {
             return;
-        }
 
         if (_suspended || !AnimationsEnabled || !IsLoaded)
-        {
             _timer.Stop();
-        }
         else if (!_timer.IsRunning)
-        {
             _timer.Start();
-        }
     }
 
     private SpriteFrame CurrentFrame()
@@ -172,17 +163,13 @@ public sealed partial class PixelSprite : Grid
     private void Render()
     {
         if (!IsLoaded)
-        {
             return;
-        }
 
         var scale = XamlRoot?.RasterizationScale ?? 1.0;
         var pixelScale = Math.Max(1, (int)Math.Round(DisplaySize * scale / SpriteComposer.Width));
         var frame = CurrentFrame();
         if (pixelScale == _pixelScale && _lastFrame == frame && ReferenceEquals(_lastProfile, _profile))
-        {
             return;
-        }
 
         if (pixelScale != _pixelScale || _bitmap is null)
         {
@@ -209,9 +196,7 @@ public sealed partial class PixelSprite : Grid
             {
                 var argb = art[(y * SpriteComposer.Width) + x];
                 if (argb >> 24 == 0)
-                {
                     continue;
-                }
 
                 // The art is fully opaque or fully transparent, so premultiplying is a no-op.
                 var b = (byte)argb;

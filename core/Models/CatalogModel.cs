@@ -1,8 +1,9 @@
 using System.Collections.ObjectModel;
+using Cadenza.Core.Services.Catalog;
 
 namespace Cadenza.Core.Models;
 
-/// <summary>Bounded catalog state shared by <see cref="Controllers.CatalogController"/> and the window.</summary>
+/// <summary>Bounded catalog state shared by <see cref="CatalogController"/> and the window.</summary>
 public sealed class CatalogModel
 {
     /// <summary>Maximum tracks or playlists kept in memory.</summary>

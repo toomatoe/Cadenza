@@ -3,9 +3,8 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Cadenza.Core.Exceptions;
+using Cadenza.Core.Interfaces;
 using Cadenza.Core.Models;
-using Cadenza.Core.Security;
-using Cadenza.Core.Services.Contracts;
 
 namespace Cadenza.Core.Services.Spotify;
 
@@ -32,8 +31,8 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
     private const string AuthorizeUrl = "https://accounts.spotify.com/authorize";
     private const string TokenUrl = "https://accounts.spotify.com/api/token";
     private const int ClientIdLength = 32;
-    private static readonly TimeSpan s_signInTimeout = TimeSpan.FromMinutes(3);
-    private static readonly TimeSpan s_refreshMargin = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan _signInTimeout = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan _refreshMargin = TimeSpan.FromSeconds(60);
 
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private Tokens? _tokens;
@@ -51,9 +50,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
         ArgumentNullException.ThrowIfNull(value);
         value = value.Trim();
         if (value.Length != ClientIdLength || value.Any(c => !Uri.IsHexDigit(c)))
-        {
             throw new ArgumentException("Enter the 32-character Client ID from your Spotify developer app.", nameof(value));
-        }
 
         return value;
     }
@@ -79,10 +76,10 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
     }
 
     /// <summary>Loads saved tokens for <paramref name="clientId"/>, if any.</summary>
-    public async Task RestoreAsync(string clientId, CancellationToken ct)
+    public async Task RestoreAsync(string clientId, CancellationToken cancellationToken)
     {
         _clientId = ValidateClientId(clientId);
-        var saved = await store.LoadAsync(_clientId, ct);
+        var saved = await store.LoadAsync(_clientId, cancellationToken);
         _tokens = saved?.ClientId == _clientId ? saved : null;
     }
 
@@ -90,15 +87,15 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
     /// Opens the Spotify consent page in the system browser and waits up to three minutes for the
     /// redirect on a temporary loopback listener, then exchanges the code for tokens.
     /// </summary>
-    public async Task ConnectAsync(string clientId, CancellationToken ct, string redirectUri = RedirectUri)
+    public async Task ConnectAsync(string clientId, CancellationToken cancellationToken, string redirectUri = RedirectUri)
     {
         var newClientId = ValidateClientId(clientId);
         var redirect = ValidateRedirectUri(redirectUri);
         redirectUri = redirect.AbsoluteUri;
         var verifier = Pkce.RandomValue();
         var state = Pkce.RandomValue();
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(s_signInTimeout);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(_signInTimeout);
 
         using var listener = new HttpListener();
         listener.Prefixes.Add(redirect.GetLeftPart(UriPartial.Authority) + "/");
@@ -147,16 +144,14 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
 
     /// <summary>Returns a valid access token, refreshing it when it is about to expire.</summary>
     /// <exception cref="InvalidOperationException">Not signed in.</exception>
-    public async Task<string> GetAccessTokenAsync(CancellationToken ct, bool forceRefresh = false)
+    public async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken, bool forceRefresh = false)
     {
-        await _refreshGate.WaitAsync(ct);
+        await _refreshGate.WaitAsync(cancellationToken);
         try
         {
             var current = _tokens ?? throw new InvalidOperationException("Connect your Spotify account in Settings first.");
-            if (!forceRefresh && current.ExpiresAt > DateTimeOffset.UtcNow + s_refreshMargin)
-            {
+            if (!forceRefresh && current.ExpiresAt > DateTimeOffset.UtcNow + _refreshMargin)
                 return current.AccessToken;
-            }
 
             var refreshed = await ExchangeAsync(
                 new Dictionary<string, string>
@@ -167,8 +162,8 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
                 },
                 _clientId,
                 current.RefreshToken,
-                ct);
-            await store.SaveAsync(refreshed, ct);
+                cancellationToken);
+            await store.SaveAsync(refreshed, cancellationToken);
             _tokens = refreshed;
             return refreshed.AccessToken;
         }
@@ -179,15 +174,13 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
     }
 
     /// <summary>Deletes saved tokens and signs out.</summary>
-    public async Task DisconnectAsync(CancellationToken ct)
+    public async Task DisconnectAsync(CancellationToken cancellationToken)
     {
-        await _refreshGate.WaitAsync(ct);
+        await _refreshGate.WaitAsync(cancellationToken);
         try
         {
             if (_clientId.Length > 0)
-            {
-                await store.DeleteAsync(_clientId, ct);
-            }
+                await store.DeleteAsync(_clientId, cancellationToken);
 
             _tokens = null;
         }
@@ -199,11 +192,11 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
 
     public void Dispose() => _refreshGate.Dispose();
 
-    private static async Task<string> ReceiveCodeAsync(HttpListener listener, Uri redirect, string state, CancellationToken ct)
+    private static async Task<string> ReceiveCodeAsync(HttpListener listener, Uri redirect, string state, CancellationToken cancellationToken)
     {
         while (true)
         {
-            var context = await listener.GetContextAsync().WaitAsync(ct);
+            var context = await listener.GetContextAsync().WaitAsync(cancellationToken);
             var callback = context.Request.Url;
 
             // Ignore stray requests such as favicon fetches.
@@ -231,7 +224,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
             context.Response.Headers["Cache-Control"] = "no-store";
             context.Response.Headers["Referrer-Policy"] = "no-referrer";
             context.Response.ContentLength64 = body.Length;
-            await context.Response.OutputStream.WriteAsync(body, ct);
+            await context.Response.OutputStream.WriteAsync(body, cancellationToken);
             context.Response.Close();
             return code;
         }
@@ -239,23 +232,21 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
 
     /// <param name="fallbackRefreshToken">Kept when Spotify does not rotate the refresh token.</param>
     private async Task<Tokens> ExchangeAsync(
-        Dictionary<string, string> form, string clientId, string fallbackRefreshToken, CancellationToken ct)
+        Dictionary<string, string> form, string clientId, string fallbackRefreshToken, CancellationToken cancellationToken)
     {
         using var content = new FormUrlEncodedContent(form);
-        using var response = await http.PostAsync(new Uri(TokenUrl), content, ct);
+        using var response = await http.PostAsync(new Uri(TokenUrl), content, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new SpotifyApiException(
                 "Spotify sign-in expired or was rejected. Connect again in Settings.", (int)response.StatusCode);
         }
 
-        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         var root = json.RootElement;
         var refreshToken = root.TryGetProperty("refresh_token", out var value) ? value.GetString()! : fallbackRefreshToken;
         if (string.IsNullOrEmpty(refreshToken))
-        {
             throw new InvalidOperationException("Spotify did not return a refresh token.");
-        }
 
         return new Tokens(
             root.GetProperty("access_token").GetString()!,

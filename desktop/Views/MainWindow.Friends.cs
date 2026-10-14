@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using Cadenza.Core.Exceptions;
 using Cadenza.Core.Models;
-using Cadenza.Core.Social;
+using Cadenza.Core.Models.Social;
+using Cadenza.Core.Services.Social;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;
 using Microsoft.UI.Xaml;
@@ -33,9 +35,7 @@ public sealed partial class MainWindow
     private async Task RestoreFriendsAsync()
     {
         if (_preferences.FriendsServer.Length == 0 || !Uri.TryCreate(_preferences.FriendsServer, UriKind.Absolute, out var server))
-        {
             return;
-        }
 
         string? token;
         try
@@ -48,9 +48,7 @@ public sealed partial class MainWindow
         }
 
         if (token is null)
-        {
             return;
-        }
 
         _social = new SocialClient(_http, server) { Token = token };
         try
@@ -169,25 +167,19 @@ public sealed partial class MainWindow
     private async void AcceptFriend_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is SocialUser user)
-        {
             await FriendsWorkAsync(async ct => ApplyFriendList(await _social!.AcceptAsync(user.Id, ct)));
-        }
     }
 
     private async void DeclineFriend_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is SocialUser user)
-        {
             await FriendsWorkAsync(async ct => ApplyFriendList(await _social!.RemoveAsync(user.Id, ct)));
-        }
     }
 
     private async void FriendsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (FriendsList.SelectedItem is not SocialUser friend || friend.Id == _chatFriend?.Id)
-        {
             return;
-        }
 
         _chatFriend = friend;
         _unreadMessages = 0;
@@ -222,14 +214,10 @@ public sealed partial class MainWindow
     {
         var text = ComposerBox.Text;
         if (string.IsNullOrWhiteSpace(text))
-        {
             return;
-        }
 
         if (await SendToFriendAsync(new SendMessageRequest(ChatMessageKind.Text, text, null)))
-        {
             ComposerBox.Text = "";
-        }
     }
 
     private async void ShareNowPlaying_Click(object sender, RoutedEventArgs e) => await SendTrackAsync(ChatMessageKind.Share);
@@ -253,18 +241,14 @@ public sealed partial class MainWindow
         RememberSharedTrack(_playingTrack);
         if (await SendToFriendAsync(new SendMessageRequest(kind, kind == ChatMessageKind.Share ? ComposerBox.Text.Trim() : "", _playingTrack.Id)) &&
             kind == ChatMessageKind.Share)
-        {
             ComposerBox.Text = "";
-        }
     }
 
     /// <summary>Sends to the open conversation. The server also echoes it over the WebSocket; the duplicate is ignored.</summary>
     private async Task<bool> SendToFriendAsync(SendMessageRequest request)
     {
         if (_chatFriend is not { } friend || _social is null)
-        {
             return false;
-        }
 
         var sent = false;
         await FriendsWorkAsync(async ct =>
@@ -273,23 +257,20 @@ public sealed partial class MainWindow
             AddChatItem(message);
             sent = true;
         });
+
         return sent;
     }
 
     private async void PlayShared_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is ChatItem { Track: { } track })
-        {
             await PlaybackWorkAsync(ct => PlayTrackAsync(track, ct));
-        }
     }
 
     private void QueueShared_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is ChatItem { Track: { } track })
-        {
             AddToQueue(track);
-        }
     }
 
     private async void ReportMessage_Click(object sender, RoutedEventArgs e)
@@ -310,9 +291,7 @@ public sealed partial class MainWindow
     private async void Unfriend_Click(object sender, RoutedEventArgs e)
     {
         if (_chatFriend is { } friend)
-        {
             await FriendsWorkAsync(async ct => ApplyFriendList(await _social!.RemoveAsync(friend.Id, ct)));
-        }
     }
 
     private async void BlockFriend_Click(object sender, RoutedEventArgs e)
@@ -339,9 +318,7 @@ public sealed partial class MainWindow
             DefaultButton = ContentDialogButton.Close,
         };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary)
-        {
             return;
-        }
 
         await FriendsWorkAsync(async ct =>
         {
@@ -402,18 +379,14 @@ public sealed partial class MainWindow
                 Message($"{from} added {track.Name} to your Up next.");
             }
             else
-            {
                 Message($"{from} sent you a track for your queue. Open Friends to add it.");
-            }
         }
     }
 
     private async Task RefreshFriendsIfVisibleAsync()
     {
         if (_view == AppView.Friends && _social is not null)
-        {
             await FriendsWorkAsync(async ct => ApplyFriendList(await _social.FriendsAsync(ct)));
-        }
     }
 
     private void ApplyFriendList(FriendList list)
@@ -433,28 +406,20 @@ public sealed partial class MainWindow
         var pending = list.Outgoing.Count == 0 ? "" : $" · waiting on {string.Join(", ", list.Outgoing.Select(user => "@" + user.Username))}";
         FriendsStatus.Text = (FriendsPeople.Count == 1 ? "1 friend" : $"{FriendsPeople.Count} friends") + pending;
         if (_chatFriend is { } open && list.Friends.All(friend => friend.Id != open.Id))
-        {
             CloseConversation();
-        }
         else if (_chatFriend is { } current)
-        {
             FriendsList.SelectedItem = FriendsPeople.FirstOrDefault(friend => friend.Id == current.Id);
-        }
     }
 
     private void AddChatItem(ChatMessage message)
     {
         if (ChatItems.Any(item => item.Message.Id == message.Id))
-        {
             return;
-        }
 
         var item = new ChatItem(message, message.FromId == _socialMe?.Id);
         ChatItems.Add(item);
         if (message.TrackId is { } trackId)
-        {
             _ = HydrateAsync(item, trackId);
-        }
     }
 
     private async Task HydrateAsync(ChatItem item, string trackId) => item.Track = await FetchSharedTrackAsync(trackId);
@@ -463,14 +428,10 @@ public sealed partial class MainWindow
     private async Task<Track?> FetchSharedTrackAsync(string trackId)
     {
         if (_sharedTracks.TryGetValue(trackId, out var cached))
-        {
             return cached;
-        }
 
         if (!_auth.IsConnected)
-        {
             return null;
-        }
 
         try
         {
@@ -487,9 +448,7 @@ public sealed partial class MainWindow
     private void RememberSharedTrack(Track track)
     {
         if (_sharedTracks.Count >= MaxCachedSharedTracks)
-        {
             _sharedTracks.Clear();
-        }
 
         _sharedTracks[track.Id] = track;
     }

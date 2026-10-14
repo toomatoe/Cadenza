@@ -1,6 +1,6 @@
 using System.Globalization;
 using Cadenza.Core.Models;
-using Cadenza.Core.Recommendations;
+using Cadenza.Core.Models.Recommendations;
 
 namespace Cadenza.Desktop.Models;
 

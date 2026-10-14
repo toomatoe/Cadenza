@@ -1,9 +1,9 @@
-using Cadenza.Core.Controllers;
 using Cadenza.Core.Models;
-using Cadenza.Core.Recommendations;
+using Cadenza.Core.Models.Recommendations;
+using Cadenza.Core.Services.Catalog;
 using Cadenza.Core.Services.Playback;
 using Cadenza.Core.Services.Spotify;
-using Cadenza.Core.Sprites;
+using Cadenza.Core.Services.Sprites;
 using Cadenza.Desktop.Converters;
 using Cadenza.Desktop.Models;
 using Microsoft.UI.Xaml;
@@ -20,9 +20,7 @@ public sealed partial class MainWindow
     private async void CheckBridge_Click(object sender, RoutedEventArgs e)
     {
         if (_signingIn)
-        {
             return;
-        }
 
         await RunAsync(async ct =>
         {
@@ -36,9 +34,7 @@ public sealed partial class MainWindow
     private NativeEngine EnsureEngine()
     {
         if (_engine is not null)
-        {
             return _engine;
-        }
 
         var created = new NativeEngine();
         _engine = created;
@@ -47,10 +43,9 @@ public sealed partial class MainWindow
         created.PlaybackChanged += update => DispatcherQueue.TryEnqueue(() =>
         {
             if (!_closing && ReferenceEquals(_engine, created))
-            {
                 ApplyPlayback(update);
-            }
         });
+
         return created;
     }
 
@@ -58,9 +53,7 @@ public sealed partial class MainWindow
     private async Task PlaybackWorkAsync(Func<CancellationToken, Task> action)
     {
         if (_closing || _signingIn || _playbackBusy)
-        {
             return;
-        }
 
         SetPlaybackBusy(true);
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
@@ -84,14 +77,10 @@ public sealed partial class MainWindow
         {
             _playbackBusy = false;
             if (!_closing)
-            {
                 SetPlaybackBusy(false);
-            }
 
             if (ReferenceEquals(_playbackOperation, operation))
-            {
                 _playbackOperation = null;
-            }
 
             if (_advanceAfterOperation && !_closing)
             {
@@ -109,40 +98,38 @@ public sealed partial class MainWindow
         RefreshHero();
     }
 
-    private async Task PlayTrackAsync(Track track, CancellationToken ct)
+    private async Task PlayTrackAsync(Track track, CancellationToken cancellationToken)
     {
         if (!track.IsSpotify)
         {
-            await PlayLibraryTrackAsync(track, ct);
+            await PlayLibraryTrackAsync(track, cancellationToken);
             return;
         }
 
         if (!_auth.IsConnected)
-        {
             throw new InvalidOperationException("Connect Spotify in Settings first.");
-        }
 
         var engine = EnsureEngine();
         if (!_nativeConnected)
         {
-            await AuthenticatePlaybackAsync(engine, ct);
-            ct.ThrowIfCancellationRequested();
+            await AuthenticatePlaybackAsync(engine, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             _nativeConnected = true;
-            await engine.SetVolumeAsync((uint)VolumeSlider.Value, ct);
+            await engine.SetVolumeAsync((uint)VolumeSlider.Value, cancellationToken);
         }
 
         uint stamp;
         _awaitingTrackLoad = true;
         try
         {
-            stamp = await engine.LoadTrackAsync(track.Id, ct);
+            stamp = await engine.LoadTrackAsync(track.Id, cancellationToken);
         }
         finally
         {
             _awaitingTrackLoad = false;
         }
 
-        ct.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         _playingFile = false;
         ShowLoadedTrack(engine, track, stamp);
     }
@@ -162,57 +149,47 @@ public sealed partial class MainWindow
         PlaybackLabel.Text = "Loading…";
         ShowPlayGlyph(true);
         if (engine.LatestPlayback is { } update)
-        {
             ApplyPlayback(update);
-        }
     }
 
-    private async Task AuthenticatePlaybackAsync(NativeEngine engine, CancellationToken ct)
+    private async Task AuthenticatePlaybackAsync(NativeEngine engine, CancellationToken cancellationToken)
     {
         if (!_playbackAuth.IsConnected)
-        {
-            await _playbackAuth.RestoreAsync(SpotifyAuth.PlaybackClientId, ct);
-        }
+            await _playbackAuth.RestoreAsync(SpotifyAuth.PlaybackClientId, cancellationToken);
 
         if (!_playbackAuth.IsConnected)
         {
             PlaybackLabel.Text = "Approve in browser…";
             Message("One-time step: approve Spotify playback in your browser, then return here.");
-            await _playbackAuth.ConnectAsync(SpotifyAuth.PlaybackClientId, ct, SpotifyAuth.PlaybackRedirectUri);
+            await _playbackAuth.ConnectAsync(SpotifyAuth.PlaybackClientId, cancellationToken, SpotifyAuth.PlaybackRedirectUri);
             Notice.IsOpen = false;
         }
 
         PlaybackLabel.Text = "Connecting…";
         try
         {
-            await engine.AuthenticateAsync(_playbackAuth.ClientId, await _playbackAuth.GetAccessTokenAsync(ct), ct);
+            await engine.AuthenticateAsync(_playbackAuth.ClientId, await _playbackAuth.GetAccessTokenAsync(cancellationToken), cancellationToken);
         }
-        catch (InvalidOperationException) when (!ct.IsCancellationRequested)
+        catch (InvalidOperationException) when (!cancellationToken.IsCancellationRequested)
         {
             // A stale playback token is the common cause; refresh once before reporting failure.
-            var refreshed = await _playbackAuth.GetAccessTokenAsync(ct, forceRefresh: true);
-            await engine.AuthenticateAsync(_playbackAuth.ClientId, refreshed, ct);
+            var refreshed = await _playbackAuth.GetAccessTokenAsync(cancellationToken, forceRefresh: true);
+            await engine.AuthenticateAsync(_playbackAuth.ClientId, refreshed, cancellationToken);
         }
     }
 
     private void ApplyPlayback(PlaybackUpdate update)
     {
         if (_awaitingTrackLoad)
-        {
             return;
-        }
 
         if (update.State == PlaybackState.Failed)
         {
             if (update.TrackStamp != 0 && update.TrackStamp != _playingStamp)
-            {
                 return;
-            }
 
             if (PlaybackErrors.RequiresReconnect(update.ErrorCode))
-            {
                 _nativeConnected = false;
-            }
 
             _playbackState = PlaybackState.Failed;
             PlaybackLabel.Text = "Playback failed";
@@ -223,15 +200,11 @@ public sealed partial class MainWindow
         }
 
         if (update.TrackStamp != _playingStamp || _playingTrack is null)
-        {
             return;
-        }
 
         _playbackState = update.State;
         if (!_adjustingPosition)
-        {
             PositionSlider.Value = Math.Min(update.PositionMs, PositionSlider.Maximum);
-        }
 
         ShowPlayGlyph(update.State is PlaybackState.Playing or PlaybackState.Loading);
         PlaybackLabel.Text = update.State switch
@@ -249,22 +222,16 @@ public sealed partial class MainWindow
             _endedStamp = update.TrackStamp;
             RecordListening(ListeningEventKind.Completed, _playingTrack);
             if (_playbackBusy)
-            {
                 _advanceAfterOperation = true;
-            }
             else
-            {
                 _ = PlaybackWorkAsync(PlayNextAsync);
-            }
         }
     }
 
     private async void PlayTrack_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is not Track track)
-        {
             return;
-        }
 
         if (_view == AppView.Queue)
         {
@@ -291,23 +258,19 @@ public sealed partial class MainWindow
         return container is null ? -1 : TrackList.IndexFromContainer(container);
     }
 
-    private async Task PlayQueueEntryAsync(int index, CancellationToken ct)
+    private async Task PlayQueueEntryAsync(int index, CancellationToken cancellationToken)
     {
         try
         {
             var controller = new QueuePlaybackController(_queue);
-            if (!await controller.PlayAsync(index, PlayTrackAsync, ct))
-            {
+            if (!await controller.PlayAsync(index, PlayTrackAsync, cancellationToken))
                 Message("Your listening queue is empty.");
-            }
         }
         finally
         {
             UpdateQueueLabel();
             if (_view == AppView.Queue)
-            {
                 RenderQueue(Math.Min(index, _queue.Entries.Count - 1));
-            }
         }
     }
 
@@ -316,49 +279,35 @@ public sealed partial class MainWindow
         await PlaybackWorkAsync(async ct =>
         {
             if (_playingTrack is null)
-            {
                 await PlaySelectionAsync(ct);
-            }
             else if (!EngineReady || _playbackState is PlaybackState.Ended or PlaybackState.Failed or PlaybackState.Stopped)
-            {
                 await PlayTrackAsync(_playingTrack, ct);
-            }
             else if (_playbackState is PlaybackState.Playing or PlaybackState.Loading)
-            {
                 await EnsureEngine().PauseAsync(ct);
-            }
             else
-            {
                 await EnsureEngine().ResumeAsync(ct);
-            }
         });
     }
 
     /// <summary>Starts playback when nothing is playing: the selected track, else the queue's first entry.</summary>
-    private async Task PlaySelectionAsync(CancellationToken ct)
+    private async Task PlaySelectionAsync(CancellationToken cancellationToken)
     {
         if (_view == AppView.Queue)
         {
-            await PlayQueueEntryAsync(Math.Max(TrackList.SelectedIndex, 0), ct);
+            await PlayQueueEntryAsync(Math.Max(TrackList.SelectedIndex, 0), cancellationToken);
             return;
         }
 
         var selected = _view == AppView.Library ? _selectedLibraryTrack : TrackList.SelectedItem as Track;
         if (selected is not null)
-        {
-            await PlayTrackAsync(selected, ct);
-        }
+            await PlayTrackAsync(selected, cancellationToken);
         else if (_queue.Entries.Count > 0)
-        {
-            await PlayQueueEntryAsync(0, ct);
-        }
+            await PlayQueueEntryAsync(0, cancellationToken);
         else
-        {
             throw new InvalidOperationException("Choose a track or add one to your queue.");
-        }
     }
 
-    private Task PlayNextAsync(CancellationToken ct) => PlayQueueEntryAsync(0, ct);
+    private Task PlayNextAsync(CancellationToken cancellationToken) => PlayQueueEntryAsync(0, cancellationToken);
 
     private async void Next_Click(object sender, RoutedEventArgs e)
     {
@@ -369,9 +318,7 @@ public sealed partial class MainWindow
     private async void Stop_Click(object sender, RoutedEventArgs e) => await PlaybackWorkAsync(async ct =>
     {
         if (EngineReady && _engine is { } engine)
-        {
             await engine.StopAsync(ct);
-        }
     });
 
     private void Position_Pressed(object sender, PointerRoutedEventArgs e) => _adjustingPosition = true;
@@ -389,9 +336,7 @@ public sealed partial class MainWindow
         await PlaybackWorkAsync(async ct =>
         {
             if (EngineReady && _engine is { } engine && _playingTrack is not null)
-            {
                 await engine.SeekAsync(position, ct);
-            }
         });
     }
 
@@ -402,9 +347,7 @@ public sealed partial class MainWindow
     private Task SetVolumeAsync() => PlaybackWorkAsync(async ct =>
     {
         if (_engine is not null)
-        {
             await _engine.SetVolumeAsync((uint)VolumeSlider.Value, ct);
-        }
     });
 
     private async Task ResetPlaybackAsync()
@@ -420,9 +363,7 @@ public sealed partial class MainWindow
         _endedStamp = 0;
         _playbackState = PlaybackState.Stopped;
         if (previous is not null)
-        {
             await previous.DisposeAsync();
-        }
 
         if (!_closing)
         {

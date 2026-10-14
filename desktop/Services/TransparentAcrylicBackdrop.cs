@@ -15,9 +15,9 @@ namespace Cadenza.Desktop.Services;
     Justification = "WinUI owns the backdrop lifetime; the controller is disposed in OnTargetDisconnected.")]
 public sealed class TransparentAcrylicBackdrop : SystemBackdrop
 {
-    private static readonly Color s_darkTint = Color.FromArgb(255, 32, 36, 43);
-    private static readonly Color s_lightTint = Color.FromArgb(255, 214, 232, 250);
-    private static readonly Color s_lightFallback = Color.FromArgb(255, 221, 235, 248);
+    private static readonly Color _darkTint = Color.FromArgb(255, 32, 36, 43);
+    private static readonly Color _lightTint = Color.FromArgb(255, 214, 232, 250);
+    private static readonly Color _lightFallback = Color.FromArgb(255, 221, 235, 248);
 
     private DesktopAcrylicController? _controller;
     private bool _dark;
@@ -52,13 +52,11 @@ public sealed class TransparentAcrylicBackdrop : SystemBackdrop
     private void ApplyTint()
     {
         if (_controller is null)
-        {
             return;
-        }
 
-        _controller.TintColor = _dark ? s_darkTint : s_lightTint;
+        _controller.TintColor = _dark ? _darkTint : _lightTint;
         _controller.TintOpacity = _dark ? 0.20f : 0.22f;
         _controller.LuminosityOpacity = 0.35f;
-        _controller.FallbackColor = _dark ? s_darkTint : s_lightFallback;
+        _controller.FallbackColor = _dark ? _darkTint : _lightFallback;
     }
 }

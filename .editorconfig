@@ -42,15 +42,15 @@ csharp_new_line_before_finally = true
 csharp_preserve_single_line_statements = false
 csharp_preserve_single_line_blocks = true
 
-# Naming: PascalCase for types and members, _camelCase for private fields, s_camelCase for private statics.
+# Naming: PascalCase for types and members, _camelCase for private fields (static ones too), PascalCase constants.
 dotnet_naming_symbols.private_static_fields.applicable_kinds = field
 dotnet_naming_symbols.private_static_fields.applicable_accessibilities = private
 dotnet_naming_symbols.private_static_fields.required_modifiers = static
-dotnet_naming_style.s_camel.capitalization = camel_case
-dotnet_naming_style.s_camel.required_prefix = s_
-dotnet_naming_rule.private_static_fields_s_camel.symbols = private_static_fields
-dotnet_naming_rule.private_static_fields_s_camel.style = s_camel
-dotnet_naming_rule.private_static_fields_s_camel.severity = warning
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_rule.private_static_fields_underscore_camel.symbols = private_static_fields
+dotnet_naming_rule.private_static_fields_underscore_camel.style = underscore_camel
+dotnet_naming_rule.private_static_fields_underscore_camel.severity = warning
 
 dotnet_naming_symbols.constants.applicable_kinds = field, local
 dotnet_naming_symbols.constants.required_modifiers = const
@@ -94,3 +94,9 @@ dotnet_diagnostic.IDE1006.severity = none
 # The generated XAML code-behind cannot follow these rules.
 [**/obj/**.cs]
 generated_code = true
+
+# Server logging follows the team standard: ILogger<T> extension methods with message templates
+# (CampaignDeputy doesn't use source-generated LoggerMessage delegates).
+[server/**.cs]
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none

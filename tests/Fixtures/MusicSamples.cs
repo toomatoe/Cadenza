@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace Cadenza.Tests.Fixtures;
+namespace Cadenza.UnitTests.Fixtures;
 
 /// <summary>Tiny, valid-looking music file headers built in code, so the tests need no binary files.</summary>
 internal static class MusicSamples
@@ -13,9 +13,7 @@ internal static class MusicSamples
         void TextFrame(string id, string value)
         {
             if (value.Length == 0)
-            {
                 return;
-            }
 
             var text = Encoding.Latin1.GetBytes(value);
             frames.AddRange(Encoding.ASCII.GetBytes(id));
@@ -46,6 +44,7 @@ internal static class MusicSamples
         frame[43] = 0x01;
         BinaryPrimitives.WriteUInt32BigEndian(frame.AsSpan(44), 1000);
         file.AddRange(frame);
+
         return [.. file];
     }
 
@@ -65,6 +64,7 @@ internal static class MusicSamples
         file.Add((byte)(comments.Length >> 8));
         file.Add((byte)comments.Length);
         file.AddRange(comments);
+
         return [.. file];
     }
 
@@ -80,6 +80,7 @@ internal static class MusicSamples
         comment.AddRange("vorbis"u8.ToArray());
         comment.AddRange(Comments(title, artist));
         comment.Add(1);
+
         return [.. Page(identification, 0), .. Page([.. comment], 0), .. Page(new byte[10], 480_000)];
     }
 
@@ -115,6 +116,7 @@ internal static class MusicSamples
         page.Add((byte)segments.Count);
         page.AddRange(segments);
         page.AddRange(packet);
+
         return [.. page];
     }
 }

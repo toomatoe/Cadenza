@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using Cadenza.Core.Models;
 
-namespace Cadenza.Tests.Fixtures;
+namespace Cadenza.UnitTests.Fixtures;
 
 internal static class TestData
 {

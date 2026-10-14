@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Cadenza.Core.Models;
-using Cadenza.Core.Recommendations;
+using Cadenza.Core.Models.Recommendations;
+using Cadenza.Core.Services.Recommendations;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;
 using Microsoft.UI.Xaml;
@@ -55,13 +56,13 @@ public sealed partial class MainWindow
         await RunAsync(LoadRecommendationsAsync);
     }
 
-    private async Task LoadRecommendationsAsync(CancellationToken ct)
+    private async Task LoadRecommendationsAsync(CancellationToken cancellationToken)
     {
         _similarArtists ??= new ListenBrainzSimilarArtists(_http, DataPath("recommendation-cache.json"));
         _artistTracks ??= new CachedTrackResolver(new SpotifyTrackResolver(_spotifyApi), DataPath("recommendation-tracks.json"));
         _recommendationEngine ??= new RecommendationEngine(_similarArtists, _artistTracks);
         RecommendationsStatus.Text = "Finding music for you…";
-        var (inputs, missingScopes) = await new TasteInputsLoader(_spotifyApi, History).LoadAsync(ct);
+        var (inputs, missingScopes) = await new TasteInputsLoader(_spotifyApi, History).LoadAsync(cancellationToken);
         var discovery = DiscoverySlider.Value / 100;
         if (Math.Abs(_preferences.Discovery - discovery) > 0.001)
         {
@@ -70,7 +71,7 @@ public sealed partial class MainWindow
         }
 
         var profile = TasteProfile.Build(inputs, DateTimeOffset.UtcNow);
-        var result = await _recommendationEngine.RecommendAsync(profile, discovery, History.RecentlySuggested, ct);
+        var result = await _recommendationEngine.RecommendAsync(profile, discovery, History.RecentlySuggested, cancellationToken);
         History.RememberSuggestions(result.Items.Select(item => item.Track.Id));
         RecommendationSnapshot.Save(DataPath(SnapshotFile), result, DateTimeOffset.UtcNow);
 
@@ -81,7 +82,7 @@ public sealed partial class MainWindow
             : "Based on what you save and play. Nothing about you leaves this device except artist names.";
     }
 
-    private static readonly (RecommendationShelf Shelf, string Title)[] s_shelves =
+    private static readonly (RecommendationShelf Shelf, string Title)[] _shelves =
     [
         (RecommendationShelf.MoreLikeYourFavourites, "More like your favourites"),
         (RecommendationShelf.DeeperCuts, "Deeper cuts from artists you love"),
@@ -91,13 +92,11 @@ public sealed partial class MainWindow
     private void UpdateRecommendationSurfaces()
     {
         RecommendationShelves.Clear();
-        foreach (var (shelf, title) in s_shelves)
+        foreach (var (shelf, title) in _shelves)
         {
             var cards = _recommendations.Where(card => card.Shelf == shelf).ToArray();
             if (cards.Length > 0)
-            {
                 RecommendationShelves.Add(new RecommendationShelfView(title, cards));
-            }
         }
 
         RecommendationsEmpty.Visibility = ToVisibility(_recommendations.Count == 0);
@@ -108,9 +107,7 @@ public sealed partial class MainWindow
     private void NotInterested_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is not RecommendationCard card)
-        {
             return;
-        }
 
         History.Record(new ListeningEvent(ListeningEventKind.NotInterested, card.Track.Id, card.Track.LeadArtist, DateTimeOffset.UtcNow));
         _recommendations.Remove(card);
@@ -121,35 +118,27 @@ public sealed partial class MainWindow
     private async void PlayRecommendation_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is RecommendationCard card)
-        {
             await PlaybackWorkAsync(ct => PlayTrackAsync(card.Track, ct));
-        }
     }
 
     private void AddRecommendation_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is RecommendationCard card)
-        {
             AddToQueue(card.Track);
-        }
     }
 
     /// <summary>Records a listening signal for the playing track; a no-op until history exists or matters.</summary>
     private void RecordListening(ListeningEventKind kind, Track? track)
     {
         if (track is not null)
-        {
             History.Record(new ListeningEvent(kind, track.Id, track.LeadArtist, DateTimeOffset.UtcNow));
-        }
     }
 
     /// <summary>"Next" within the first 30 seconds counts as a skip.</summary>
     private void RecordSkipIfEarly()
     {
         if (_playingTrack is not null && _playbackState == PlaybackState.Playing && PositionSlider.Value < SkipWindowMs)
-        {
             RecordListening(ListeningEventKind.Skipped, _playingTrack);
-        }
     }
 
     private void ShowRecommendations(RecommendationResult result)
