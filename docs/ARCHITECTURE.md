@@ -31,14 +31,4 @@ The generated WinUI entry point is owned by the SDK. `tests/Program.cs` only sel
 
 ## Coding conventions
 
-`.editorconfig` and `Directory.Build.props` apply to every C# project, and the build treats warnings as errors, so these rules are enforced rather than advisory:
-
-- One type per file, named after the type (`Track.cs` holds `Track`). Folders map to namespaces. Exception: the small Friends data contracts in `core/Social/` are grouped by feature in `AccountModels.cs`, `FriendModels.cs`, `MessageModels.cs`, and `LibraryModels.cs`. These are plain sealed model classes with explicit properties; constructor-bound read-only properties preserve JSON deserialization and WinUI compatibility. `ChatMessageKind` stays an enum because its values drive validation and persisted message kinds. Services and validation remain separate from these model files.
-- PascalCase for types and members, `_camelCase` for private fields, `s_camelCase` for private static fields, and PascalCase constants.
-- File-scoped namespaces, `System` usings first, no unused usings, braces on their own lines, and one statement per line.
-- Classes and records are `sealed` unless they are designed for inheritance.
-- No magic numbers: native opcodes and statuses, Win32 constants, layout sizes and limits are named constants or enums. Pages are the `AppView` enum, not strings.
-- Types that own disposable resources implement `IDisposable`/`IAsyncDisposable`, or document why WinUI owns their lifetime.
-- The `latest-recommended` .NET analyzers run on every build. A suppression needs a `Justification`.
-
-Run `dotnet format Cadenza.slnx` before committing to apply the formatting rules.
+The rules live in [CODING-STANDARDS.md](CODING-STANDARDS.md). They follow the Campaign Deputy team standards and cover language, formatting, naming, project structure, services, errors, docs and tests. `.editorconfig` and `Directory.Build.props` enforce what they can, and the build treats warnings as errors.

@@ -142,6 +142,8 @@ Duplicates are welcome. The queue holds up to 500 tracks, and a bulk add that wo
 
 Preferences live in a small JSON file for now. We?ll consider SQLite when the app has more data to keep between sessions. Spotify Web API data stays in C#; audio/session work belongs in Rust. Async functions do not cross the ABI: commands return promptly and C# Tasks complete when events arrive.
 
+Code follows [docs/CODING-STANDARDS.md](docs/CODING-STANDARDS.md), which is based on the Campaign Deputy team standards. AI agents start from [AGENTS.md](AGENTS.md).
+
 ## Validation
 
 ```powershell
