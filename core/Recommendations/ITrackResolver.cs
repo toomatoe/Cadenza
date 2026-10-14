@@ -5,5 +5,5 @@ namespace Cadenza.Core.Recommendations;
 /// <summary>Turns an artist name into playable tracks.</summary>
 public interface ITrackResolver
 {
-    Task<IReadOnlyList<Track>> FindTracksAsync(string artistName, CancellationToken ct);
+    Task<IReadOnlyList<Track>> FindTracksAsync(string artistName, CancellationToken cancellationToken);
 }

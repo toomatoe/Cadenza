@@ -46,7 +46,7 @@ public static class SpriteComposer
     private const uint FlowerPetal = 0xFFF59BB8;
     private const uint FlowerCenter = 0xFFFFD34D;
 
-    private static readonly Dictionary<SpriteGlyph, uint> s_glyphColors = new()
+    private static readonly Dictionary<SpriteGlyph, uint> _glyphColors = new()
     {
         [SpriteGlyph.Note] = Outline,
         [SpriteGlyph.Heart] = 0xFFE05F8E,
@@ -89,6 +89,7 @@ public static class SpriteComposer
 
         DrawAccessory(pixels, species, profile.Accessory, originY);
         DrawGlyph(pixels, frame.Glyph, frame.GlyphRise);
+
         return pixels;
     }
 
@@ -100,6 +101,7 @@ public static class SpriteComposer
         var r = Channel((color >> 16) & 0xFF, factor);
         var g = Channel((color >> 8) & 0xFF, factor);
         var b = Channel(color & 0xFF, factor);
+
         return (color & 0xFF000000) | (r << 16) | (g << 8) | b;
     }
 
@@ -109,9 +111,7 @@ public static class SpriteComposer
         for (var row = SpriteArt.Size - 1; row >= 0; row--)
         {
             if (species.Rows[row].Any(key => key != '.'))
-            {
                 return GroundRow - row;
-            }
         }
 
         return 0;
@@ -215,11 +215,9 @@ public static class SpriteComposer
     private static void DrawGlyph(uint[] pixels, SpriteGlyph glyph, int rise)
     {
         if (glyph == SpriteGlyph.None || !SpriteArt.Glyphs.TryGetValue(glyph, out var rows))
-        {
             return;
-        }
 
-        var color = s_glyphColors[glyph];
+        var color = _glyphColors[glyph];
         const int Left = Width - 6;
         var top = 1 - rise;
         for (var row = 0; row < rows.Length; row++)
@@ -227,9 +225,7 @@ public static class SpriteComposer
             for (var column = 0; column < rows[row].Length; column++)
             {
                 if (rows[row][column] != '.')
-                {
                     Set(pixels, Left + column, top + row, color);
-                }
             }
         }
     }
@@ -239,6 +235,7 @@ public static class SpriteComposer
     {
         var first = row.IndexOfAny(['B', 'S', 'W', 'A']);
         var last = row.LastIndexOfAny(['B', 'S', 'W', 'A']);
+
         return first < 0 ? (0, -1) : (first, last);
     }
 
@@ -257,9 +254,7 @@ public static class SpriteComposer
     private static void Set(uint[] pixels, int x, int y, uint color)
     {
         if (color == Transparent || x < 0 || y < 0 || x >= Width || y >= Height)
-        {
             return;
-        }
 
         pixels[(y * Width) + x] = color;
     }

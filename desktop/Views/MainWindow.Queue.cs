@@ -20,9 +20,7 @@ public sealed partial class MainWindow
     private void Add_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is Track track)
-        {
             AddToQueue(track);
-        }
     }
 
     private void AddToQueue(Track track)
@@ -32,9 +30,7 @@ public sealed partial class MainWindow
             _queue.Add(track);
             UpdateQueueLabel();
             if (_view == AppView.Queue)
-            {
                 RenderQueue();
-            }
         }
         catch (InvalidOperationException error)
         {
@@ -45,9 +41,7 @@ public sealed partial class MainWindow
     private void OpenTrack_Click(object sender, RoutedEventArgs e)
     {
         if (((HyperlinkButton)sender).Tag is Track track)
-        {
             OpenOnSpotify(track);
-        }
     }
 
     private void UpdateQueueLabel()
@@ -67,9 +61,7 @@ public sealed partial class MainWindow
     private void RenderQueue(int selection = -1)
     {
         if (_renderingQueue)
-        {
             return;
-        }
 
         _renderingQueue = true;
         try
@@ -84,9 +76,7 @@ public sealed partial class MainWindow
             }
 
             if (selection >= 0 && selection < QueueTracks.Count)
-            {
                 TrackList.SelectedIndex = selection;
-            }
         }
         finally
         {
@@ -101,18 +91,14 @@ public sealed partial class MainWindow
     private void QueueSelection_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (!_renderingQueue)
-        {
             UpdateQueueControls();
-        }
     }
 
     private void UpdateQueueControls()
     {
         // Called during InitializeComponent before the toolbar exists, and skipped mid-render.
         if (QueuePlayButton is null || _renderingQueue)
-        {
             return;
-        }
 
         var count = _queue.Entries.Count;
         var index = _view == AppView.Queue ? TrackList.SelectedIndex : -1;
@@ -131,9 +117,7 @@ public sealed partial class MainWindow
     private void QueueLoaded_Click(object sender, RoutedEventArgs e)
     {
         if (_view is not (AppView.Library or AppView.Search or AppView.Playlists))
-        {
             return;
-        }
 
         try
         {
@@ -151,18 +135,14 @@ public sealed partial class MainWindow
     private void PlayNextMenu_Click(object sender, RoutedEventArgs e)
     {
         if (((MenuFlyoutItem)sender).Tag is not Track track)
-        {
             return;
-        }
 
         try
         {
             _queue.PlayNext(track);
             UpdateQueueLabel();
             if (_view == AppView.Queue)
-            {
                 RenderQueue();
-            }
 
             Message($"{track.Name} will play next.");
         }
@@ -178,9 +158,7 @@ public sealed partial class MainWindow
     {
         var index = TrackList.SelectedIndex;
         if (index <= 0)
-        {
             return;
-        }
 
         _queue.Move(index, index - 1);
         RenderQueue(index - 1);
@@ -190,9 +168,7 @@ public sealed partial class MainWindow
     {
         var index = TrackList.SelectedIndex;
         if (index < 0 || index >= _queue.Entries.Count - 1)
-        {
             return;
-        }
 
         _queue.Move(index, index + 1);
         RenderQueue(index + 1);
@@ -229,9 +205,7 @@ public sealed partial class MainWindow
         _queue.Shuffle(_preferences.ArtistSpacing, Random.Shared);
         UpdateQueueLabel();
         if (_view == AppView.Queue)
-        {
             RenderQueue();
-        }
 
         Message("Queue shuffled using your artist-spacing preference.");
     }

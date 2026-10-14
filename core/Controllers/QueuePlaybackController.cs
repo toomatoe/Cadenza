@@ -10,18 +10,17 @@ public sealed class QueuePlaybackController(ListeningQueue queue)
     /// The entry is tracked by ID, so edits made while loading never consume a different track.
     /// </summary>
     /// <returns><see langword="false"/> if <paramref name="index"/> is out of range.</returns>
-    public async Task<bool> PlayAsync(int index, Func<Track, CancellationToken, Task> load, CancellationToken ct)
+    public async Task<bool> PlayAsync(int index, Func<Track, CancellationToken, Task> load, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(load);
         if (index < 0 || index >= queue.Entries.Count)
-        {
             return false;
-        }
 
         var entry = queue.Entries[index];
-        await load(entry.Track, ct);
-        ct.ThrowIfCancellationRequested();
+        await load(entry.Track, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         queue.Consume(entry.Id);
+
         return true;
     }
 }

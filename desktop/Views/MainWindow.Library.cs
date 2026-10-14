@@ -34,7 +34,7 @@ public sealed partial class MainWindow
     private const double FanSideReserve = 280;
     private const double FanExpandedSideReserve = 300;
 
-    private static readonly Color[] s_fanRecordColors =
+    private static readonly Color[] _fanRecordColors =
     [
         Color.FromArgb(255, 47, 111, 169),
         Color.FromArgb(255, 61, 133, 190),
@@ -42,7 +42,7 @@ public sealed partial class MainWindow
         Color.FromArgb(255, 86, 162, 213)
     ];
 
-    private static readonly Color s_fanLabelColor = Color.FromArgb(255, 217, 240, 255);
+    private static readonly Color _fanLabelColor = Color.FromArgb(255, 217, 240, 255);
 
     private readonly List<Track> _librarySnapshot = [];
     private readonly HashSet<string> _likedTrackIds = [];
@@ -116,9 +116,7 @@ public sealed partial class MainWindow
     private void Like_Click(object sender, RoutedEventArgs e)
     {
         if (_playingTrack is null)
-        {
             return;
-        }
 
         if (_likedTrackIds.Add(_playingTrack.Id))
         {
@@ -126,9 +124,7 @@ public sealed partial class MainWindow
             RecordListening(ListeningEventKind.Liked, _playingTrack);
         }
         else
-        {
             _likedTrackIds.Remove(_playingTrack.Id);
-        }
 
         RefreshLibrary();
     }
@@ -136,9 +132,7 @@ public sealed partial class MainWindow
     private async void HeroPlay_Click(object sender, RoutedEventArgs e)
     {
         if (HeroTrack is not { } track)
-        {
             return;
-        }
 
         if (_playingTrack is not null)
         {
@@ -153,25 +147,19 @@ public sealed partial class MainWindow
     private void HeroAdd_Click(object sender, RoutedEventArgs e)
     {
         if (HeroTrack is { } track)
-        {
             AddToQueue(track);
-        }
     }
 
     private void HeroOpen_Click(object sender, RoutedEventArgs e)
     {
         if (HeroTrack is { } track)
-        {
             OpenOnSpotify(track);
-        }
     }
 
     private async void UpcomingPlay_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is not Guid id)
-        {
             return;
-        }
 
         var index = _queue.Entries.ToList().FindIndex(entry => entry.Id == id);
         await PlaybackWorkAsync(ct => PlayQueueEntryAsync(index, ct));
@@ -220,16 +208,13 @@ public sealed partial class MainWindow
         ToolTipService.SetToolTip(card, title);
 
         if (playlist is not null)
-        {
             card.Click += PinnedPlaylist_Click;
-        }
         else
-        {
             card.Click += LikedSongsCard_Click;
-        }
 
         card.GotFocus += (_, _) => SetPlaylistFanExpanded(true);
         card.LostFocus += (_, _) => SetPlaylistFanExpanded(false);
+
         return card;
     }
 
@@ -240,13 +225,13 @@ public sealed partial class MainWindow
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(40) });
 
         var record = new Grid { Width = 100, Height = 100 };
-        record.Children.Add(new Ellipse { Fill = new SolidColorBrush(s_fanRecordColors[index % s_fanRecordColors.Length]) });
+        record.Children.Add(new Ellipse { Fill = new SolidColorBrush(_fanRecordColors[index % _fanRecordColors.Length]) });
         record.Children.Add(new Border
         {
             Width = 36,
             Height = 36,
             CornerRadius = new CornerRadius(18),
-            Background = isPlaylist ? new SolidColorBrush(s_fanLabelColor) : AppearanceBrush("Accent"),
+            Background = isPlaylist ? new SolidColorBrush(_fanLabelColor) : AppearanceBrush("Accent"),
             Child = new Ellipse { Width = 8, Height = 8, Fill = (Brush)Application.Current.Resources["VinylFill"] }
         });
         grid.Children.Add(record);
@@ -272,15 +257,14 @@ public sealed partial class MainWindow
         };
         Grid.SetRow(caption, 1);
         grid.Children.Add(caption);
+
         return grid;
     }
 
     private async void LikedSongsCard_Click(object sender, RoutedEventArgs e)
     {
         if (_view != AppView.Library)
-        {
             await NavigateAsync(AppView.Library);
-        }
 
         _likedOnly = true;
         RefreshLibrary();
@@ -290,9 +274,7 @@ public sealed partial class MainWindow
     {
         var count = PlaylistFan.Children.Count;
         if (count == 0)
-        {
             return;
-        }
 
         var available = Math.Max(FanCardWidth, Root.ActualWidth - FanExpandedSideReserve);
         var step = count == 1

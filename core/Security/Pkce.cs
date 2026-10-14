@@ -24,9 +24,7 @@ public static class Pkce
             .Select(pair => pair.Split('=', 2))
             .ToArray();
         if (pairs.GroupBy(pair => pair[0]).Any(group => group.Count() > 1))
-        {
             throw new InvalidOperationException("Duplicate authorization parameters.");
-        }
 
         var fields = pairs.ToDictionary(
             pair => Uri.UnescapeDataString(pair[0]),
@@ -35,19 +33,13 @@ public static class Pkce
         // Constant-time comparison so the state value cannot be probed by timing.
         if (!fields.TryGetValue("state", out var state) ||
             !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(state), Encoding.UTF8.GetBytes(expectedState)))
-        {
             throw new InvalidOperationException("Authorization state did not match. Try connecting again.");
-        }
 
         if (fields.ContainsKey("error"))
-        {
             throw new InvalidOperationException("Spotify authorization was declined.");
-        }
 
         if (!fields.TryGetValue("code", out var code) || string.IsNullOrWhiteSpace(code))
-        {
             throw new InvalidOperationException("Spotify did not provide an authorization code.");
-        }
 
         return code;
     }

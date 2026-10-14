@@ -22,18 +22,14 @@ public sealed class MusicLibrary
     public string Folder { get; }
 
     /// <summary>Checks and stores an upload. Returns the existing song when the same file was uploaded before.</summary>
-    public async Task<LibraryTrack> SaveAsync(SocialUser uploader, IFormFile file, UploadMetadata metadata, DateTimeOffset now, CancellationToken ct)
+    public async Task<LibraryTrack> SaveAsync(SocialUser uploader, IFormFile file, UploadMetadata metadata, DateTimeOffset now, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(file);
         if (MusicFormats.Validate(metadata) is { } problem)
-        {
             throw new SocialRuleException(problem);
-        }
 
         if (file.Length is 0 or > MusicFormats.MaxUploadBytes)
-        {
             throw new SocialRuleException(StatusCodes.Status413PayloadTooLarge, $"Songs can be up to {MusicFormats.MaxUploadBytes / (1024 * 1024)} MB.");
-        }
 
         var temporary = Path.Combine(Folder, $".upload-{Guid.NewGuid():N}");
         try
@@ -44,31 +40,27 @@ public sealed class MusicLibrary
             await using (var output = File.Create(temporary))
             {
                 var header = new byte[HeaderBytes];
-                var read = await input.ReadAtLeastAsync(header, HeaderBytes, throwOnEndOfStream: false, ct);
+                var read = await input.ReadAtLeastAsync(header, HeaderBytes, throwOnEndOfStream: false, cancellationToken);
                 format = MusicFormats.Detect(header.AsSpan(0, read));
                 if (format is null)
-                {
                     throw new SocialRuleException(StatusCodes.Status415UnsupportedMediaType, "Only MP3, FLAC and Ogg Vorbis files can be added.");
-                }
 
                 using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                 sha.AppendData(header, 0, read);
-                await output.WriteAsync(header.AsMemory(0, read), ct);
+                await output.WriteAsync(header.AsMemory(0, read), cancellationToken);
                 var buffer = new byte[81920];
                 int count;
-                while ((count = await input.ReadAsync(buffer, ct)) > 0)
+                while ((count = await input.ReadAsync(buffer, cancellationToken)) > 0)
                 {
                     sha.AppendData(buffer, 0, count);
-                    await output.WriteAsync(buffer.AsMemory(0, count), ct);
+                    await output.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
                 }
 
                 hash = Convert.ToHexStringLower(sha.GetHashAndReset());
             }
 
             if (_store.FindMusicByHash(hash) is { } existing)
-            {
                 return existing;
-            }
 
             var id = Guid.NewGuid().ToString("N");
             File.Move(temporary, PathFor(id, format));
@@ -86,11 +78,10 @@ public sealed class MusicLibrary
     public bool Delete(string userId, string id)
     {
         if (_store.FindMusic(id) is not { } track || !_store.RemoveMusic(userId, id))
-        {
             return false;
-        }
 
         File.Delete(PathFor(track.Id, track.Format));
+
         return true;
     }
 }

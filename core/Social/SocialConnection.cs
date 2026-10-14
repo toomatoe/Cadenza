@@ -10,9 +10,9 @@ namespace Cadenza.Core.Social;
 public sealed class SocialConnection : IAsyncDisposable
 {
     private const int BufferBytes = 16 * 1024;
-    private static readonly TimeSpan s_firstRetry = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan s_maxRetry = TimeSpan.FromSeconds(60);
-    private static readonly TimeSpan s_keepAlive = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan _firstRetry = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan _maxRetry = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan _keepAlive = TimeSpan.FromSeconds(30);
 
     private readonly Uri _endpoint;
     private readonly string _token;
@@ -52,21 +52,21 @@ public sealed class SocialConnection : IAsyncDisposable
         _stop.Dispose();
     }
 
-    private async Task RunAsync(CancellationToken ct)
+    private async Task RunAsync(CancellationToken cancellationToken)
     {
-        var retry = s_firstRetry;
-        while (!ct.IsCancellationRequested)
+        var retry = _firstRetry;
+        while (!cancellationToken.IsCancellationRequested)
         {
             using (var socket = new ClientWebSocket())
             {
                 socket.Options.SetRequestHeader("Authorization", "Bearer " + _token);
-                socket.Options.KeepAliveInterval = s_keepAlive;
+                socket.Options.KeepAliveInterval = _keepAlive;
                 try
                 {
-                    await socket.ConnectAsync(_endpoint, ct);
-                    retry = s_firstRetry;
+                    await socket.ConnectAsync(_endpoint, cancellationToken);
+                    retry = _firstRetry;
                     Post(() => ConnectionChanged?.Invoke(this, true));
-                    await ReceiveAsync(socket, ct);
+                    await ReceiveAsync(socket, cancellationToken);
                 }
                 catch (Exception error) when (error is WebSocketException or HttpRequestException or JsonException)
                 {
@@ -74,53 +74,41 @@ public sealed class SocialConnection : IAsyncDisposable
                 }
             }
 
-            if (ct.IsCancellationRequested)
-            {
+            if (cancellationToken.IsCancellationRequested)
                 break;
-            }
 
             Post(() => ConnectionChanged?.Invoke(this, false));
-            await Task.Delay(retry, ct);
-            retry = TimeSpan.FromTicks(Math.Min(retry.Ticks * 2, s_maxRetry.Ticks));
+            await Task.Delay(retry, cancellationToken);
+            retry = TimeSpan.FromTicks(Math.Min(retry.Ticks * 2, _maxRetry.Ticks));
         }
     }
 
-    private async Task ReceiveAsync(ClientWebSocket socket, CancellationToken ct)
+    private async Task ReceiveAsync(ClientWebSocket socket, CancellationToken cancellationToken)
     {
         var buffer = new byte[BufferBytes];
         using var message = new MemoryStream();
         while (socket.State == WebSocketState.Open)
         {
-            var result = await socket.ReceiveAsync(buffer, ct);
+            var result = await socket.ReceiveAsync(buffer, cancellationToken);
             if (result.MessageType == WebSocketMessageType.Close)
-            {
                 return;
-            }
 
             message.Write(buffer, 0, result.Count);
             if (!result.EndOfMessage)
-            {
                 continue;
-            }
 
             var socialEvent = JsonSerializer.Deserialize<SocialEvent>(message.GetBuffer().AsSpan(0, (int)message.Length), SocialRules.Json);
             message.SetLength(0);
             if (socialEvent is not null)
-            {
                 Post(() => EventReceived?.Invoke(this, socialEvent));
-            }
         }
     }
 
     private void Post(Action action)
     {
         if (_context is null)
-        {
             action();
-        }
         else
-        {
             _context.Post(_ => action(), null);
-        }
     }
 }

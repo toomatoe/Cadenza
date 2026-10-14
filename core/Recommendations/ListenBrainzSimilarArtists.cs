@@ -21,8 +21,8 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
     // ListenBrainz's session-based similarity: listening sessions over ~20 years, top 100 per artist.
     private const string Algorithm = "session_based_days_7500_session_300_contribution_5_threshold_10_limit_100_filter_True_skip_30";
     private const int MinimumMatchScore = 90;
-    private static readonly TimeSpan s_musicBrainzInterval = TimeSpan.FromMilliseconds(1100);
-    private static readonly JsonSerializerOptions s_json = new() { WriteIndented = false };
+    private static readonly TimeSpan _musicBrainzInterval = TimeSpan.FromMilliseconds(1100);
+    private static readonly JsonSerializerOptions _json = new() { WriteIndented = false };
 
     private readonly HttpClient _http;
     private readonly string? _cachePath;
@@ -41,32 +41,26 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
         LoadCache();
     }
 
-    public async Task<IReadOnlyList<SimilarArtist>> GetSimilarAsync(string artistName, CancellationToken ct)
+    public async Task<IReadOnlyList<SimilarArtist>> GetSimilarAsync(string artistName, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(artistName);
-        var mbid = await FindArtistIdAsync(artistName, ct);
+        var mbid = await FindArtistIdAsync(artistName, cancellationToken);
         if (mbid is null)
-        {
             return [];
-        }
 
         lock (_cacheLock)
         {
             if (_cache.Similar.TryGetValue(mbid, out var cached) && Fresh(cached.Fetched))
-            {
                 return cached.Artists;
-            }
         }
 
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(SimilarArtistsUrl + mbid + "&algorithm=" + Algorithm));
         request.Headers.UserAgent.ParseAdd(UserAgent);
-        using var response = await _http.SendAsync(request, ct);
+        using var response = await _http.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
-        {
             return [];
-        }
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         var entries = document.RootElement.ValueKind == JsonValueKind.Array
             ? document.RootElement.EnumerateArray()
                 .Where(item => item.TryGetProperty("name", out _) && item.TryGetProperty("score", out _))
@@ -87,41 +81,38 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
             _cache.Similar[mbid] = new CachedSimilar(_clock(), artists);
             SaveCache();
         }
+
         return artists;
     }
 
     public void Dispose() => _musicBrainzGate.Dispose();
 
     /// <summary>Finds the MusicBrainz artist ID for an exact (case-insensitive) name match with a high search score.</summary>
-    private async Task<string?> FindArtistIdAsync(string artistName, CancellationToken ct)
+    private async Task<string?> FindArtistIdAsync(string artistName, CancellationToken cancellationToken)
     {
         var key = TasteProfile.Key(artistName);
         lock (_cacheLock)
         {
             if (_cache.ArtistIds.TryGetValue(key, out var cached) && Fresh(cached.Fetched))
-            {
                 return cached.Id;
-            }
         }
 
-        await _musicBrainzGate.WaitAsync(ct);
+        await _musicBrainzGate.WaitAsync(cancellationToken);
         try
         {
-            var wait = _lastMusicBrainzCall + s_musicBrainzInterval - _clock();
+            var wait = _lastMusicBrainzCall + _musicBrainzInterval - _clock();
             if (wait > TimeSpan.Zero)
-            {
-                await Task.Delay(wait, ct);
-            }
+                await Task.Delay(wait, cancellationToken);
 
             var query = Uri.EscapeDataString($"artist:\"{artistName.Replace("\"", "", StringComparison.Ordinal)}\"");
             using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(MusicBrainzSearch + query));
             request.Headers.UserAgent.ParseAdd(UserAgent);
-            using var response = await _http.SendAsync(request, ct);
+            using var response = await _http.SendAsync(request, cancellationToken);
             _lastMusicBrainzCall = _clock();
             string? id = null;
             if (response.IsSuccessStatusCode)
             {
-                using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+                using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
                 if (document.RootElement.TryGetProperty("artists", out var artists))
                 {
                     id = artists.EnumerateArray()
@@ -155,13 +146,11 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
     private void LoadCache()
     {
         if (_cachePath is null || !File.Exists(_cachePath))
-        {
             return;
-        }
 
         try
         {
-            _cache = JsonSerializer.Deserialize<Cache>(File.ReadAllText(_cachePath), s_json) ?? new Cache();
+            _cache = JsonSerializer.Deserialize<Cache>(File.ReadAllText(_cachePath), _json) ?? new Cache();
         }
         catch (Exception error) when (error is IOException or JsonException)
         {
@@ -172,14 +161,12 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
     private void SaveCache()
     {
         if (_cachePath is null)
-        {
             return;
-        }
 
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_cachePath)!);
-            File.WriteAllText(_cachePath, JsonSerializer.Serialize(_cache, s_json));
+            File.WriteAllText(_cachePath, JsonSerializer.Serialize(_cache, _json));
         }
         catch (IOException)
         {

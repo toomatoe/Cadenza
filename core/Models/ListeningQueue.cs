@@ -34,14 +34,10 @@ public sealed class ListeningQueue
         // Bound enumeration and reject the whole batch if it cannot fit.
         var batch = tracks.Take(Capacity - _entries.Count + 1).ToArray();
         if (batch.Length > Capacity - _entries.Count)
-        {
             throw new InvalidOperationException($"Queue is full ({Capacity} tracks). Remove tracks first.");
-        }
 
         if (batch.Length == 0)
-        {
             return;
-        }
 
         Snapshot();
         _entries.AddRange(batch.Select(track => new QueueEntry(Guid.NewGuid(), track)));
@@ -51,9 +47,7 @@ public sealed class ListeningQueue
     public void PlayNext(Track track)
     {
         if (_entries.Count >= Capacity)
-        {
             throw new InvalidOperationException($"Queue is full ({Capacity} tracks). Remove a track first.");
-        }
 
         Snapshot();
         _entries.Insert(0, new QueueEntry(Guid.NewGuid(), track));
@@ -73,9 +67,7 @@ public sealed class ListeningQueue
     public void RemoveAt(int index)
     {
         if (index < 0 || index >= _entries.Count)
-        {
             return;
-        }
 
         Snapshot();
         _entries.RemoveAt(index);
@@ -84,9 +76,7 @@ public sealed class ListeningQueue
     public void Move(int index, int destination)
     {
         if (index < 0 || index >= _entries.Count || destination < 0 || destination >= _entries.Count || index == destination)
-        {
             return;
-        }
 
         Snapshot();
         var entry = _entries[index];
@@ -97,9 +87,7 @@ public sealed class ListeningQueue
     public void Clear()
     {
         if (_entries.Count == 0)
-        {
             return;
-        }
 
         Snapshot();
         _entries.Clear();
@@ -108,9 +96,7 @@ public sealed class ListeningQueue
     public void Undo()
     {
         if (!CanUndo)
-        {
             return;
-        }
 
         _entries.Clear();
         _entries.AddRange(_undo[^1]);
@@ -132,9 +118,7 @@ public sealed class ListeningQueue
     {
         ArgumentNullException.ThrowIfNull(random);
         if (_entries.Count < 2)
-        {
             return;
-        }
 
         Snapshot();
         var remaining = _entries.ToList();
@@ -157,9 +141,7 @@ public sealed class ListeningQueue
     private void Snapshot()
     {
         if (_undo.Count == UndoLimit)
-        {
             _undo.RemoveAt(0);
-        }
 
         _undo.Add(_entries.ToArray());
     }

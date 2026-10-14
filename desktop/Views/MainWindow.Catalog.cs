@@ -19,9 +19,7 @@ public sealed partial class MainWindow
     private async void Navigate_Click(object sender, RoutedEventArgs e)
     {
         if (_signingIn)
-        {
             return;
-        }
 
         await NavigateAsync(ParseView(((Button)sender).Tag));
     }
@@ -78,9 +76,7 @@ public sealed partial class MainWindow
 
         UpdateEmpty();
         if (!_auth.IsConnected)
-        {
             return;
-        }
 
         if (_view == AppView.Search && string.IsNullOrWhiteSpace(SearchBox.Text))
         {
@@ -104,16 +100,14 @@ public sealed partial class MainWindow
             {
                 await LoadTracksAsync(false, ct);
                 if (_view == AppView.Library && PinnedPlaylists.Count == 0)
-                {
                     await LoadPinnedPlaylistsAsync(ct);
-                }
             }
         });
     }
 
-    private async Task LoadPinnedPlaylistsAsync(CancellationToken ct)
+    private async Task LoadPinnedPlaylistsAsync(CancellationToken cancellationToken)
     {
-        var pinned = await _catalogController.LoadPinnedPlaylistsAsync(ct);
+        var pinned = await _catalogController.LoadPinnedPlaylistsAsync(cancellationToken);
         PinnedPlaylists.Clear();
         foreach (var playlist in pinned)
         {
@@ -123,9 +117,7 @@ public sealed partial class MainWindow
         UpdatePinnedPlaylists();
         RefreshPlaylistDeck();
         if (_view == AppView.Library)
-        {
             ScrollLibraryToTop();
-        }
     }
 
     private void UpdatePinnedPlaylists() => SidebarPlaylists.Visibility = ToVisibility(PinnedPlaylists.Count > 0);
@@ -133,9 +125,7 @@ public sealed partial class MainWindow
     private async void PinnedPlaylist_Click(object sender, RoutedEventArgs e)
     {
         if (((Button)sender).Tag is Playlist playlist)
-        {
             await OpenPlaylistAsync(playlist);
-        }
     }
 
     private void ScrollLibraryToTop()
@@ -147,7 +137,7 @@ public sealed partial class MainWindow
         LibraryScroll.ChangeView(null, 0, null, true);
     }
 
-    private async Task LoadTracksAsync(bool append, CancellationToken ct)
+    private async Task LoadTracksAsync(bool append, CancellationToken cancellationToken)
     {
         TrackSource source;
         var queryOrPlaylistId = "";
@@ -156,9 +146,7 @@ public sealed partial class MainWindow
             case AppView.Search:
                 queryOrPlaylistId = SearchBox.Text.Trim();
                 if (queryOrPlaylistId.Length == 0)
-                {
                     return;
-                }
 
                 source = TrackSource.Search;
                 break;
@@ -173,18 +161,14 @@ public sealed partial class MainWindow
                 return;
         }
 
-        await _catalogController.LoadTracksAsync(source, queryOrPlaylistId, append, ct);
+        await _catalogController.LoadTracksAsync(source, queryOrPlaylistId, append, cancellationToken);
         if (source == TrackSource.Search && !append)
-        {
-            await AddLibraryResultsAsync(queryOrPlaylistId, ct);
-        }
+            await AddLibraryResultsAsync(queryOrPlaylistId, cancellationToken);
 
         _hasMore = _catalog.HasMoreTracks;
         MoreButton.Visibility = ToVisibility(_hasMore);
         if (Tracks.Count >= CatalogModel.ItemLimit)
-        {
             Message("Showing the first 500 tracks. Refine your search or choose another playlist to keep memory use bounded.");
-        }
 
         EmptyTitle.Text = "Nothing here yet";
         EmptyDescription.Text = "No tracks were returned. Try another search or playlist.";
@@ -192,14 +176,10 @@ public sealed partial class MainWindow
         UpdateEmpty();
         UpdateQueueControls();
         if (source == TrackSource.SavedLibrary)
-        {
             RefreshLibrary(replaceSnapshot: true);
-        }
 
         if (!append && _view == AppView.Library)
-        {
             ScrollLibraryToTop();
-        }
     }
 
     private void UpdateNav()
@@ -257,17 +237,13 @@ public sealed partial class MainWindow
     private async void PlaylistCard_Click(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is Playlist selected)
-        {
             await OpenPlaylistAsync(selected);
-        }
     }
 
     private async Task OpenPlaylistAsync(Playlist selected)
     {
         if (_signingIn)
-        {
             return;
-        }
 
         if (_view != AppView.Playlists)
         {
@@ -296,9 +272,7 @@ public sealed partial class MainWindow
     private async void Search_Click(object sender, RoutedEventArgs e)
     {
         if (_signingIn)
-        {
             return;
-        }
 
         await NavigateAsync(AppView.Search);
     }
@@ -306,9 +280,7 @@ public sealed partial class MainWindow
     private async void Search_KeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key != VirtualKey.Enter || _signingIn)
-        {
             return;
-        }
 
         e.Handled = true;
         await NavigateAsync(AppView.Search);
@@ -317,9 +289,7 @@ public sealed partial class MainWindow
     private async void Search_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_view != AppView.Search || !_auth.IsConnected || _signingIn)
-        {
             return;
-        }
 
         await RunAsync(async ct =>
         {
@@ -340,9 +310,7 @@ public sealed partial class MainWindow
     private async void More_Click(object sender, RoutedEventArgs e)
     {
         if (_signingIn || !_hasMore)
-        {
             return;
-        }
 
         await RunAsync(async ct =>
         {

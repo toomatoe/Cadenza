@@ -27,19 +27,17 @@ public sealed class CachedTrackResolver : ITrackResolver
         Load();
     }
 
-    public async Task<IReadOnlyList<Track>> FindTracksAsync(string artistName, CancellationToken ct)
+    public async Task<IReadOnlyList<Track>> FindTracksAsync(string artistName, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(artistName);
         var key = TasteProfile.Key(artistName);
         lock (_lock)
         {
             if (_entries.TryGetValue(key, out var cached) && _clock() - cached.Fetched < Lifetime)
-            {
                 return cached.Tracks.Select(record => record.ToTrack()).ToArray();
-            }
         }
 
-        var tracks = await _inner.FindTracksAsync(artistName, ct);
+        var tracks = await _inner.FindTracksAsync(artistName, cancellationToken);
         lock (_lock)
         {
             _entries[key] = new Entry(_clock(), tracks.Select(TrackRecord.From).ToArray());
@@ -63,18 +61,14 @@ public sealed class CachedTrackResolver : ITrackResolver
         {
             _entries = [];
             if (_path is not null && File.Exists(_path))
-            {
                 File.Delete(_path);
-            }
         }
     }
 
     private void Load()
     {
         if (_path is null || !File.Exists(_path))
-        {
             return;
-        }
 
         try
         {
@@ -89,9 +83,7 @@ public sealed class CachedTrackResolver : ITrackResolver
     private void Save()
     {
         if (_path is null)
-        {
             return;
-        }
 
         try
         {

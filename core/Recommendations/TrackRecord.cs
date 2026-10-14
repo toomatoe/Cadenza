@@ -18,6 +18,7 @@ public sealed record TrackRecord(
     public static TrackRecord From(Track track)
     {
         ArgumentNullException.ThrowIfNull(track);
+
         return new(track.Id, track.Name, track.Artist, track.ArtistId, track.Album, track.DurationMs, track.Url, track.Explicit, track.ArtworkUrl, track.LeadArtist);
     }
 

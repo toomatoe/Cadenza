@@ -100,9 +100,7 @@ public sealed partial class MainWindow : Window
     {
         _ = RestoreFriendsAsync();
         if (_preferences.ClientId.Length == 0)
-        {
             return;
-        }
 
         await RunAsync(async ct =>
         {
@@ -119,9 +117,7 @@ public sealed partial class MainWindow : Window
     private void Message(string text, InfoBarSeverity severity = InfoBarSeverity.Informational)
     {
         if (_closing)
-        {
             return;
-        }
 
         Notice.Message = text;
         Notice.Severity = severity;
@@ -132,9 +128,7 @@ public sealed partial class MainWindow : Window
     private async Task RunAsync(Func<CancellationToken, Task> work)
     {
         if (_closing)
-        {
             return;
-        }
 
         _active?.Cancel();
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
@@ -151,9 +145,7 @@ public sealed partial class MainWindow : Window
         catch (OperationCanceledException)
         {
             if (ticket == _generation)
-            {
                 Message("The request timed out. Please retry.", InfoBarSeverity.Warning);
-            }
         }
         catch (Exception error)
         {
@@ -221,9 +213,7 @@ public sealed partial class MainWindow : Window
         {
             _similarArtists?.Dispose();
             if (_socialLive is not null)
-            {
                 await _socialLive.DisposeAsync();
-            }
 
             _spotifyApi.Dispose();
             _auth.Dispose();

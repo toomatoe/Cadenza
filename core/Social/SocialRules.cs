@@ -36,9 +36,7 @@ public static class SocialRules
     {
         ArgumentNullException.ThrowIfNull(request);
         if ((request.Text ?? "").Length > MaxMessageLength)
-        {
             return $"Messages are limited to {MaxMessageLength} characters.";
-        }
 
         return request.Kind switch
         {

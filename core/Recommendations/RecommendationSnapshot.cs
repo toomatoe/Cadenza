@@ -31,17 +31,13 @@ public static class RecommendationSnapshot
     public static (RecommendationResult Result, DateTimeOffset MadeAt)? Load(string path, DateTimeOffset now)
     {
         if (!File.Exists(path))
-        {
             return null;
-        }
 
         try
         {
             var snapshot = JsonSerializer.Deserialize<Snapshot>(File.ReadAllText(path));
             if (snapshot is null || now - snapshot.MadeAt > FreshFor || snapshot.Items.Length == 0)
-            {
                 return null;
-            }
 
             var items = snapshot.Items.Select(item => new Recommendation(item.Track.ToTrack(), item.Shelf, item.Reason, item.Score)).ToArray();
             return (new RecommendationResult(items, []), snapshot.MadeAt);
@@ -55,9 +51,7 @@ public static class RecommendationSnapshot
     public static void Delete(string path)
     {
         if (File.Exists(path))
-        {
             File.Delete(path);
-        }
     }
 
     private sealed record Snapshot(DateTimeOffset MadeAt, Item[] Items);

@@ -30,9 +30,7 @@ public sealed class WindowsTokenStore : ITokenStore
         finally
         {
             if (bytes is not null)
-            {
                 Array.Clear(bytes);
-            }
         }
     }
 
@@ -40,6 +38,7 @@ public sealed class WindowsTokenStore : ITokenStore
     public static string? LoadFriendsToken()
     {
         var bytes = Read(FriendsTarget, "Cadenza Friends sign-in");
+
         return bytes is null ? null : System.Text.Encoding.UTF8.GetString(bytes);
     }
 
@@ -53,6 +52,7 @@ public sealed class WindowsTokenStore : ITokenStore
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(tokens);
         Write(Target(tokens.ClientId), JsonSerializer.SerializeToUtf8Bytes(tokens), "Spotify OAuth", "Spotify sign-in");
+
         return Task.CompletedTask;
     }
 
@@ -60,6 +60,7 @@ public sealed class WindowsTokenStore : ITokenStore
     {
         cancellationToken.ThrowIfCancellationRequested();
         Delete(Target(clientId), "Spotify sign-in");
+
         return Task.CompletedTask;
     }
 
@@ -89,9 +90,7 @@ public sealed class WindowsTokenStore : ITokenStore
     private static void Write(string target, byte[] bytes, string userName, string what)
     {
         if (bytes.Length > MaxBlobBytes)
-        {
             throw new InvalidOperationException($"Your {what} is too large for Windows credential storage.");
-        }
 
         var buffer = Marshal.AllocHGlobal(bytes.Length);
         try
@@ -107,9 +106,7 @@ public sealed class WindowsTokenStore : ITokenStore
                 UserName = userName
             };
             if (!NativeMethods.CredWrite(ref credential, 0))
-            {
                 throw new InvalidOperationException($"Windows could not save your {what}.");
-            }
         }
         finally
         {
@@ -122,9 +119,7 @@ public sealed class WindowsTokenStore : ITokenStore
     private static void Delete(string target, string what)
     {
         if (!NativeMethods.CredDelete(target, CredTypeGeneric, 0) && Marshal.GetLastWin32Error() != ErrorNotFound)
-        {
             throw new InvalidOperationException($"Windows could not remove your saved {what}.");
-        }
     }
 
     private static string Target(string clientId) => TargetPrefix + SpotifyAuth.ValidateClientId(clientId);

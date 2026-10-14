@@ -13,9 +13,7 @@ public sealed partial class MainWindow
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
         if (_signingIn || _playbackBusy)
-        {
             return;
-        }
 
         await ResetPlaybackAsync();
         SetSigningIn(true);
@@ -26,9 +24,7 @@ public sealed partial class MainWindow
 
             // Prevent orphaned credentials when switching developer applications.
             if (_preferences.ClientId.Length > 0 && _preferences.ClientId != clientId)
-            {
                 await _auth.DisconnectAsync(ct);
-            }
 
             var redirect = SpotifyAuth.ValidateRedirectUri(RedirectUriBox.Text).AbsoluteUri;
             await _auth.ConnectAsync(clientId, ct, redirect);
@@ -50,9 +46,7 @@ public sealed partial class MainWindow
     private async void Disconnect_Click(object sender, RoutedEventArgs e)
     {
         if (_signingIn)
-        {
             return;
-        }
 
         await RunAsync(async ct =>
         {

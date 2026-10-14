@@ -19,18 +19,16 @@ public sealed partial class MainWindow
 
     private LibraryCache SongCache => _libraryCache ??= new LibraryCache(DataPath("library-cache"));
 
-    private async Task PlayLibraryTrackAsync(Track track, CancellationToken ct)
+    private async Task PlayLibraryTrackAsync(Track track, CancellationToken cancellationToken)
     {
         if (_social is null)
-        {
             throw new InvalidOperationException("Join Cadenza Friends to play songs from the shared library.");
-        }
 
         PlaybackLabel.Text = "Downloading…";
         string path;
         try
         {
-            path = await SongCache.GetAsync(_social, track.Id, _libraryFormats.GetValueOrDefault(track.Id, "mp3"), ct);
+            path = await SongCache.GetAsync(_social, track.Id, _libraryFormats.GetValueOrDefault(track.Id, "mp3"), cancellationToken);
         }
         catch (SocialException error)
         {
@@ -38,42 +36,40 @@ public sealed partial class MainWindow
         }
 
         var engine = EnsureEngine();
-        await engine.SetVolumeAsync((uint)VolumeSlider.Value, ct);
+        await engine.SetVolumeAsync((uint)VolumeSlider.Value, cancellationToken);
         uint stamp;
         _awaitingTrackLoad = true;
         try
         {
-            stamp = await engine.LoadFileAsync(path, ct);
+            stamp = await engine.LoadFileAsync(path, cancellationToken);
         }
         finally
         {
             _awaitingTrackLoad = false;
         }
 
-        ct.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         _playingFile = true;
         ShowLoadedTrack(engine, track, stamp);
     }
 
     /// <summary>Adds matching library songs to the top of Spotify search results. Silent when offline.</summary>
-    private async Task AddLibraryResultsAsync(string query, CancellationToken ct)
+    private async Task AddLibraryResultsAsync(string query, CancellationToken cancellationToken)
     {
         if (_social is null)
-        {
             return;
-        }
 
         IReadOnlyList<LibraryTrack> found;
         try
         {
-            found = await _social.SearchMusicAsync(query, ct);
+            found = await _social.SearchMusicAsync(query, cancellationToken);
         }
         catch (SocialException)
         {
             return;
         }
 
-        ct.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         for (var i = found.Count - 1; i >= 0; i--)
         {
             _libraryFormats[found[i].Id] = found[i].Format;
@@ -100,9 +96,7 @@ public sealed partial class MainWindow
         WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
         var files = await picker.PickMultipleFilesAsync();
         if (files.Count == 0)
-        {
             return;
-        }
 
         await FriendsWorkAsync(async ct =>
         {
@@ -146,13 +140,9 @@ public sealed partial class MainWindow
     private void OpenOnSpotify(Track track)
     {
         if (track.IsSpotify)
-        {
             OpenInBrowser(track.Url);
-        }
         else
-        {
             Message("This song is from the Cadenza library, so it has no Spotify page.");
-        }
     }
 
     /// <summary>The engine can take commands: signed in to Spotify, or playing a library file.</summary>

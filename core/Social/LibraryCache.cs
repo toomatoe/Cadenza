@@ -11,24 +11,23 @@ public sealed class LibraryCache(string folder, long maxBytes = LibraryCache.Def
     public string Folder { get; } = folder;
 
     /// <summary>The cached file for a song, downloading it first if needed.</summary>
-    public async Task<string> GetAsync(SocialClient client, string id, string format, CancellationToken ct)
+    public async Task<string> GetAsync(SocialClient client, string id, string format, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(client);
         if (id.Length == 0 || !id.All(char.IsAsciiLetterOrDigit) || format.Length == 0 || !format.All(char.IsAsciiLetterLower))
-        {
             throw new ArgumentException("Invalid library song.", nameof(id));
-        }
 
         Directory.CreateDirectory(Folder);
         var path = Path.Combine(Folder, $"{id}.{format}");
         if (!File.Exists(path))
         {
-            await client.DownloadMusicAsync(id, path, ct);
+            await client.DownloadMusicAsync(id, path, cancellationToken);
             Trim(keep: path);
         }
 
         // Windows may not update access times on its own, so mark the file as just used.
         File.SetLastAccessTimeUtc(path, DateTime.UtcNow);
+
         return path;
     }
 
@@ -36,23 +35,17 @@ public sealed class LibraryCache(string folder, long maxBytes = LibraryCache.Def
     public void Trim(string? keep = null)
     {
         if (!Directory.Exists(Folder))
-        {
             return;
-        }
 
         var files = new DirectoryInfo(Folder).GetFiles().OrderBy(file => file.LastAccessTimeUtc).ToList();
         var total = files.Sum(file => file.Length);
         foreach (var file in files)
         {
             if (total <= maxBytes)
-            {
                 break;
-            }
 
             if (string.Equals(file.FullName, keep is null ? null : Path.GetFullPath(keep), StringComparison.OrdinalIgnoreCase))
-            {
                 continue;
-            }
 
             try
             {
@@ -69,8 +62,6 @@ public sealed class LibraryCache(string folder, long maxBytes = LibraryCache.Def
     public void Clear()
     {
         if (Directory.Exists(Folder))
-        {
             Directory.Delete(Folder, recursive: true);
-        }
     }
 }

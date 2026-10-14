@@ -26,7 +26,7 @@ public static class ServerApp
     private const string UserItem = "cadenza-user";
 
     // Cloudflare closes idle connections after 100 seconds; keep-alives stay well inside that.
-    private static readonly TimeSpan s_keepAlive = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan _keepAlive = TimeSpan.FromSeconds(30);
 
     public static WebApplication Build(string[] args, Action<WebApplicationBuilder>? configure = null)
     {
@@ -65,7 +65,7 @@ public static class ServerApp
         app.UseForwardedHeaders();
         app.Use(ConvertRuleErrorsAsync);
         app.UseRateLimiter();
-        app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = s_keepAlive });
+        app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = _keepAlive });
         MapEndpoints(app);
 
         var bootstrap = app.Services.GetRequiredService<SocialStore>()
@@ -164,14 +164,10 @@ public static class ServerApp
         {
             // The form is read here rather than bound, so the size limit can be raised for this request only.
             if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
-            {
                 limit.MaxRequestBodySize = MusicFormats.MaxUploadBytes + UploadOverheadBytes;
-            }
 
             if (!context.Request.HasFormContentType)
-            {
                 throw new SocialRuleException("Expected a music file upload.");
-            }
 
             var form = await context.Request.ReadFormAsync(context.RequestAborted);
             var file = form.Files.GetFile("file") ?? throw new SocialRuleException("Expected a music file upload.");
@@ -206,9 +202,7 @@ public static class ServerApp
         api.MapGet("/live", async (HttpContext context, ConnectionHub hub) =>
         {
             if (!context.WebSockets.IsWebSocketRequest)
-            {
                 return Results.BadRequest(new SocialError("Expected a WebSocket."));
-            }
 
             using var socket = await context.WebSockets.AcceptWebSocketAsync();
             await hub.ServeAsync(Me(context).Id, socket, context.RequestAborted);
@@ -225,11 +219,10 @@ public static class ServerApp
         var token = header.StartsWith("Bearer ", StringComparison.Ordinal) ? header["Bearer ".Length..].Trim() : "";
         var user = token.Length > 0 ? context.RequestServices.GetRequiredService<SocialStore>().Authenticate(token) : null;
         if (user is null)
-        {
             return Results.Json(new SocialError("Sign in to Cadenza Friends again."), SocialRules.Json, statusCode: StatusCodes.Status401Unauthorized);
-        }
 
         context.Items[UserItem] = user;
+
         return await next(invocation);
     }
 

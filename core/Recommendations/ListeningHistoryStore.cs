@@ -31,9 +31,7 @@ public sealed class ListeningHistoryStore
         ArgumentNullException.ThrowIfNull(listeningEvent);
         _state.Events.Add(listeningEvent);
         if (_state.Events.Count > MaxEvents)
-        {
             _state.Events.RemoveRange(0, _state.Events.Count - MaxEvents);
-        }
 
         Save();
     }
@@ -42,9 +40,7 @@ public sealed class ListeningHistoryStore
     {
         _state.Suggestions.Add(trackIds.ToArray());
         if (_state.Suggestions.Count > RememberedRefreshes)
-        {
             _state.Suggestions.RemoveAt(0);
-        }
 
         Save();
     }
@@ -59,9 +55,7 @@ public sealed class ListeningHistoryStore
     private void Load()
     {
         if (_path is null || !File.Exists(_path))
-        {
             return;
-        }
 
         try
         {
@@ -76,9 +70,7 @@ public sealed class ListeningHistoryStore
     private void Save()
     {
         if (_path is null)
-        {
             return;
-        }
 
         try
         {

@@ -14,9 +14,9 @@ public static class MusicFileReader
     private const int HeadBytes = 256 * 1024;
     private const int TailBytes = 64 * 1024;
 
-    private static readonly int[] s_mpeg1Bitrates = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320];
-    private static readonly int[] s_mpeg2Bitrates = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160];
-    private static readonly int[] s_mpeg1Rates = [44100, 48000, 32000];
+    private static readonly int[] _mpeg1Bitrates = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320];
+    private static readonly int[] _mpeg2Bitrates = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160];
+    private static readonly int[] _mpeg1Rates = [44100, 48000, 32000];
 
     /// <returns>The details and format, or null when the file isn't a supported music file.</returns>
     public static (UploadMetadata Metadata, string Format)? Read(string path)
@@ -26,9 +26,7 @@ public static class MusicFileReader
         stream.ReadExactly(head);
         var format = MusicFormats.Detect(head);
         if (format is null)
-        {
             return null;
-        }
 
         var tail = new byte[(int)Math.Min(TailBytes, stream.Length)];
         stream.Seek(-tail.Length, SeekOrigin.End);
@@ -40,6 +38,7 @@ public static class MusicFileReader
             "ogg" => ReadOgg(head, tail, tags),
             _ => ReadMp3(head, stream.Length, tags),
         };
+
         return (WithFallbacks(tags, Path.GetFileNameWithoutExtension(path), duration), format);
     }
 
@@ -54,6 +53,7 @@ public static class MusicFileReader
         string Tag(string key) => tags.TryGetValue(key, out var value) ? value.Trim() : "";
         var title = Tag("title");
         var artist = Tag("artist");
+
         return new UploadMetadata(
             Clip(title.Length > 0 ? title : nameTitle),
             Clip(artist.Length > 0 ? artist : nameArtist.Length > 0 ? nameArtist : "Unknown artist"),
@@ -78,19 +78,15 @@ public static class MusicFileReader
         for (var i = audioStart; i + 4 <= head.Length; i++)
         {
             if (head[i] != 0xFF || (head[i + 1] & 0xE6) != 0xE2)
-            {
                 continue;
-            }
 
             var mpeg1 = (head[i + 1] & 0x08) != 0;
             var bitrateIndex = head[i + 2] >> 4;
             var rateIndex = (head[i + 2] >> 2) & 0x03;
             if (bitrateIndex is 0 or 15 || rateIndex == 3)
-            {
                 continue;
-            }
 
-            var sampleRate = s_mpeg1Rates[rateIndex] / (mpeg1 ? 1 : 2);
+            var sampleRate = _mpeg1Rates[rateIndex] / (mpeg1 ? 1 : 2);
             var samplesPerFrame = mpeg1 ? 1152 : 576;
             var mono = (head[i + 3] >> 6) == 3;
             var sideInfo = mpeg1 ? (mono ? 17 : 32) : (mono ? 9 : 17);
@@ -102,7 +98,7 @@ public static class MusicFileReader
                 return (int)Math.Min(int.MaxValue, frames * (long)samplesPerFrame * 1000 / sampleRate);
             }
 
-            var bitrate = (mpeg1 ? s_mpeg1Bitrates : s_mpeg2Bitrates)[bitrateIndex] * 1000;
+            var bitrate = (mpeg1 ? _mpeg1Bitrates : _mpeg2Bitrates)[bitrateIndex] * 1000;
             return (int)Math.Min(int.MaxValue, (fileLength - i) * 8 * 1000 / bitrate);
         }
 
@@ -117,9 +113,7 @@ public static class MusicFileReader
             var id = Encoding.ASCII.GetString(frames.Slice(position, 4));
             var size = version >= 4 ? SyncSafe(frames.Slice(position + 4, 4)) : (int)BinaryPrimitives.ReadUInt32BigEndian(frames.Slice(position + 4, 4));
             if (size <= 0 || position + 10 + size > frames.Length)
-            {
                 break;
-            }
 
             var key = id switch
             {
@@ -129,9 +123,7 @@ public static class MusicFileReader
                 _ => null,
             };
             if (key is not null && size > 1)
-            {
                 tags.TryAdd(key, DecodeId3Text(frames.Slice(position + 10, size)));
-            }
 
             position += 10 + size;
         }
@@ -152,6 +144,7 @@ public static class MusicFileReader
 
         // Multiple values are separated by NUL; keep the first.
         var end = value.IndexOf('\0', StringComparison.Ordinal);
+
         return (end >= 0 ? value[..end] : value).Trim();
     }
 
@@ -166,9 +159,7 @@ public static class MusicFileReader
             var length = (head[position + 1] << 16) | (head[position + 2] << 8) | head[position + 3];
             var body = position + 4;
             if (body + length > head.Length)
-            {
                 break;
-            }
 
             if (type == 0 && length >= 18)
             {
@@ -177,14 +168,10 @@ public static class MusicFileReader
                 duration = sampleRate > 0 ? (int)Math.Min(int.MaxValue, samples * 1000 / sampleRate) : 0;
             }
             else if (type == 4)
-            {
                 ReadVorbisComments(head.AsSpan(body, length), tags);
-            }
 
             if (last)
-            {
                 break;
-            }
 
             position = body + length;
         }
@@ -196,15 +183,11 @@ public static class MusicFileReader
     {
         var packets = OggPackets(head, maxPackets: 2);
         if (packets.Count == 0 || packets[0].Length < 16 || !packets[0].AsSpan(1, 6).SequenceEqual("vorbis"u8))
-        {
             return 0;
-        }
 
         var sampleRate = BinaryPrimitives.ReadInt32LittleEndian(packets[0].AsSpan(12, 4));
         if (packets.Count > 1 && packets[1].Length > 7 && packets[1][0] == 3)
-        {
             ReadVorbisComments(packets[1].AsSpan(7), tags);
-        }
 
         // The last page's granule position is the total sample count.
         for (var i = tail.Length - 27; i >= 0; i--)
@@ -231,17 +214,13 @@ public static class MusicFileReader
             var tableStart = position + 27;
             var payload = tableStart + segments;
             if (payload > data.Length)
-            {
                 break;
-            }
 
             for (var s = 0; s < segments && packets.Count < maxPackets; s++)
             {
                 var length = data[tableStart + s];
                 if (payload + length > data.Length)
-                {
                     return packets;
-                }
 
                 current.AddRange(data.AsSpan(payload, length));
                 payload += length;
@@ -267,15 +246,11 @@ public static class MusicFileReader
     private static void ReadVorbisComments(ReadOnlySpan<byte> block, Dictionary<string, string> tags)
     {
         if (block.Length < 8)
-        {
             return;
-        }
 
         var position = 4 + (int)BinaryPrimitives.ReadUInt32LittleEndian(block);
         if (position + 4 > block.Length)
-        {
             return;
-        }
 
         var count = BinaryPrimitives.ReadUInt32LittleEndian(block[position..]);
         position += 4;
@@ -284,17 +259,13 @@ public static class MusicFileReader
             var length = (int)BinaryPrimitives.ReadUInt32LittleEndian(block[position..]);
             position += 4;
             if (length < 0 || position + length > block.Length)
-            {
                 return;
-            }
 
             var comment = Encoding.UTF8.GetString(block.Slice(position, length));
             position += length;
             var equals = comment.IndexOf('=', StringComparison.Ordinal);
             if (equals > 0)
-            {
                 tags.TryAdd(comment[..equals].ToLowerInvariant(), comment[(equals + 1)..]);
-            }
         }
     }
 

@@ -11,7 +11,7 @@ public sealed class ConnectionHub
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<Guid, Connection>> _connections = new();
 
     /// <summary>Holds the socket open until the client closes it or the server stops.</summary>
-    public async Task ServeAsync(string userId, WebSocket socket, CancellationToken ct)
+    public async Task ServeAsync(string userId, WebSocket socket, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(socket);
         var id = Guid.NewGuid();
@@ -23,11 +23,9 @@ public sealed class ConnectionHub
             var buffer = new byte[256];
             while (socket.State == WebSocketState.Open)
             {
-                var result = await socket.ReceiveAsync(buffer, ct);
+                var result = await socket.ReceiveAsync(buffer, cancellationToken);
                 if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, ct);
-                }
+                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, cancellationToken);
             }
         }
         catch (Exception error) when (error is WebSocketException or OperationCanceledException)
@@ -37,25 +35,21 @@ public sealed class ConnectionHub
         finally
         {
             if (_connections.TryGetValue(userId, out var devices))
-            {
                 devices.TryRemove(id, out _);
-            }
         }
     }
 
     public bool IsOnline(string userId) => _connections.TryGetValue(userId, out var devices) && !devices.IsEmpty;
 
-    public async Task SendAsync(string userId, SocialEvent socialEvent, CancellationToken ct)
+    public async Task SendAsync(string userId, SocialEvent socialEvent, CancellationToken cancellationToken)
     {
         if (!_connections.TryGetValue(userId, out var devices))
-        {
             return;
-        }
 
         var payload = JsonSerializer.SerializeToUtf8Bytes(socialEvent, SocialRules.Json);
         foreach (var connection in devices.Values)
         {
-            await connection.SendAsync(payload, ct);
+            await connection.SendAsync(payload, cancellationToken);
         }
     }
 
@@ -64,15 +58,13 @@ public sealed class ConnectionHub
     {
         private readonly SemaphoreSlim _sendGate = new(1, 1);
 
-        public async Task SendAsync(byte[] payload, CancellationToken ct)
+        public async Task SendAsync(byte[] payload, CancellationToken cancellationToken)
         {
-            await _sendGate.WaitAsync(ct);
+            await _sendGate.WaitAsync(cancellationToken);
             try
             {
                 if (socket.State == WebSocketState.Open)
-                {
-                    await socket.SendAsync(payload, WebSocketMessageType.Text, endOfMessage: true, ct);
-                }
+                    await socket.SendAsync(payload, WebSocketMessageType.Text, endOfMessage: true, cancellationToken);
             }
             catch (WebSocketException)
             {

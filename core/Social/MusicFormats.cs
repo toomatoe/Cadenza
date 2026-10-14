@@ -16,20 +16,14 @@ public static class MusicFormats
     public static string? Detect(ReadOnlySpan<byte> header)
     {
         if (header.StartsWith("fLaC"u8))
-        {
             return "flac";
-        }
 
         if (header.StartsWith("OggS"u8))
-        {
             return "ogg";
-        }
 
         // An ID3v2 tag, or an MPEG audio frame sync (11 set bits) for Layer III.
         if (header.StartsWith("ID3"u8) || (header.Length >= 2 && header[0] == 0xFF && (header[1] & 0xE6) == 0xE2))
-        {
             return "mp3";
-        }
 
         return null;
     }
@@ -46,14 +40,10 @@ public static class MusicFormats
     {
         ArgumentNullException.ThrowIfNull(metadata);
         if (string.IsNullOrWhiteSpace(metadata.Title) || string.IsNullOrWhiteSpace(metadata.Artist))
-        {
             return "Every song needs a title and an artist.";
-        }
 
         if (metadata.Title.Length > MaxTitleLength || metadata.Artist.Length > MaxTitleLength || (metadata.Album ?? "").Length > MaxTitleLength)
-        {
             return $"Titles, artists and albums are limited to {MaxTitleLength} characters.";
-        }
 
         return metadata.DurationMs < 0 ? "That duration isn't valid." : null;
     }

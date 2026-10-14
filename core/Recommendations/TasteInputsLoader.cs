@@ -11,9 +11,9 @@ public sealed class TasteInputsLoader(SpotifyApi api, ListeningHistoryStore hist
     public const int SavedTrackLimit = 200;
 
     /// <returns>The inputs, and whether the newer scopes (top items, recent plays) are missing.</returns>
-    public async Task<(TasteInputs Inputs, bool MissingScopes)> LoadAsync(CancellationToken ct)
+    public async Task<(TasteInputs Inputs, bool MissingScopes)> LoadAsync(CancellationToken cancellationToken)
     {
-        var saved = await api.SavedTracksWithDatesAsync(SavedTrackLimit, ct);
+        var saved = await api.SavedTracksWithDatesAsync(SavedTrackLimit, cancellationToken);
         var topArtists = new Dictionary<TimeRange, IReadOnlyList<ArtistRef>>();
         var topTracks = new Dictionary<TimeRange, IReadOnlyList<Track>>();
         IReadOnlyList<DatedTrack> recent = [];
@@ -22,11 +22,11 @@ public sealed class TasteInputsLoader(SpotifyApi api, ListeningHistoryStore hist
         {
             foreach (var range in Enum.GetValues<TimeRange>())
             {
-                topArtists[range] = await api.TopArtistsAsync(range, ct);
-                topTracks[range] = await api.TopTracksAsync(range, ct);
+                topArtists[range] = await api.TopArtistsAsync(range, cancellationToken);
+                topTracks[range] = await api.TopTracksAsync(range, cancellationToken);
             }
 
-            recent = await api.RecentlyPlayedAsync(ct);
+            recent = await api.RecentlyPlayedAsync(cancellationToken);
         }
         catch (SpotifyApiException error) when (error.StatusCode is (int)HttpStatusCode.Forbidden or (int)HttpStatusCode.Unauthorized)
         {

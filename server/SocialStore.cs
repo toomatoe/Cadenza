@@ -87,14 +87,13 @@ public sealed class SocialStore
     {
         using var connection = Open();
         if (Scalar<long>(connection, "SELECT COUNT(*) FROM users") > 0)
-        {
             return null;
-        }
 
         var existing = Scalar<string?>(connection, "SELECT code FROM invites WHERE created_by IS NULL AND used_by IS NULL LIMIT 1");
         var code = string.IsNullOrWhiteSpace(configuredCode) ? existing ?? TokenHasher.NewInviteCode() : TokenHasher.NormalizeInvite(configuredCode);
         Execute(connection, "INSERT OR IGNORE INTO invites (code, created_by, expires_at) VALUES ($code, NULL, $expires)",
             ("$code", code), ("$expires", long.MaxValue));
+
         return code;
     }
 
@@ -102,14 +101,10 @@ public sealed class SocialStore
     {
         ArgumentNullException.ThrowIfNull(request);
         if (!SocialRules.IsValidUsername(request.Username))
-        {
             throw new SocialRuleException("Usernames are 3–20 lowercase letters, digits or underscores.");
-        }
 
         if (!SocialRules.IsValidDisplayName(request.DisplayName))
-        {
             throw new SocialRuleException($"Display names are 1–{SocialRules.MaxDisplayNameLength} characters.");
-        }
 
         using var connection = Open();
         using var transaction = connection.BeginTransaction();
@@ -117,14 +112,10 @@ public sealed class SocialStore
         var valid = Scalar<long>(connection, "SELECT COUNT(*) FROM invites WHERE code = $code AND used_by IS NULL AND expires_at > $now",
             ("$code", code), ("$now", now.ToUnixTimeSeconds())) > 0;
         if (!valid)
-        {
             throw new SocialRuleException(StatusCodes.Status403Forbidden, "That invite code isn't valid or has been used.");
-        }
 
         if (Scalar<long>(connection, "SELECT COUNT(*) FROM users WHERE username = $username", ("$username", request.Username)) > 0)
-        {
             throw new SocialRuleException(StatusCodes.Status409Conflict, "That username is taken.");
-        }
 
         var user = new SocialUser(Guid.NewGuid().ToString("N"), request.Username, request.DisplayName.Trim());
         var token = TokenHasher.NewToken();
@@ -141,12 +132,14 @@ public sealed class SocialStore
         }
 
         transaction.Commit();
+
         return new AccountCreated(user, token);
     }
 
     public SocialUser? Authenticate(string token)
     {
         using var connection = Open();
+
         return Users(connection, "SELECT id, username, display_name FROM users WHERE token_hash = $hash", ("$hash", TokenHasher.Hash(token)))
             .FirstOrDefault();
     }
@@ -154,6 +147,7 @@ public sealed class SocialStore
     public SocialUser? FindUser(string userId)
     {
         using var connection = Open();
+
         return Users(connection, "SELECT id, username, display_name FROM users WHERE id = $id", ("$id", userId)).FirstOrDefault();
     }
 
@@ -163,13 +157,12 @@ public sealed class SocialStore
         var active = Scalar<long>(connection, "SELECT COUNT(*) FROM invites WHERE created_by = $id AND used_by IS NULL AND expires_at > $now",
             ("$id", userId), ("$now", now.ToUnixTimeSeconds()));
         if (active >= MaxActiveInvitesPerUser)
-        {
             throw new SocialRuleException(StatusCodes.Status429TooManyRequests, $"You already have {MaxActiveInvitesPerUser} unused invites.");
-        }
 
         var invite = new InviteCreated(TokenHasher.NewInviteCode(), now + InviteLifetime);
         Execute(connection, "INSERT INTO invites (code, created_by, expires_at) VALUES ($code, $id, $expires)",
             ("$code", invite.Code), ("$id", userId), ("$expires", invite.ExpiresAt.ToUnixTimeSeconds()));
+
         return invite;
     }
 
@@ -177,6 +170,7 @@ public sealed class SocialStore
     {
         using var connection = Open();
         const string Columns = "SELECT u.id, u.username, u.display_name FROM users u JOIN friendships f ON ";
+
         return new FriendList(
             Users(connection, Columns + "((f.requester = $me AND f.addressee = u.id) OR (f.addressee = $me AND f.requester = u.id)) WHERE f.accepted = 1 ORDER BY u.display_name", ("$me", userId)),
             Users(connection, Columns + "f.requester = u.id WHERE f.addressee = $me AND f.accepted = 0 ORDER BY f.created_at", ("$me", userId)),
@@ -194,19 +188,13 @@ public sealed class SocialStore
         var other = Users(connection, "SELECT id, username, display_name FROM users WHERE username = $username", ("$username", (username ?? "").Trim().ToLowerInvariant()))
             .FirstOrDefault();
         if (other is null || IsBlocked(connection, other.Id, userId))
-        {
             throw new SocialRuleException(StatusCodes.Status404NotFound, "No one has that username.");
-        }
 
         if (other.Id == userId)
-        {
             throw new SocialRuleException("That's you.");
-        }
 
         if (IsBlocked(connection, userId, other.Id))
-        {
             throw new SocialRuleException(StatusCodes.Status403Forbidden, "Unblock them first.");
-        }
 
         if (Scalar<long>(connection, "SELECT COUNT(*) FROM friendships WHERE requester = $other AND addressee = $me", ("$other", other.Id), ("$me", userId)) > 0)
         {
@@ -216,6 +204,7 @@ public sealed class SocialStore
 
         Execute(connection, "INSERT OR IGNORE INTO friendships (requester, addressee, accepted, created_at) VALUES ($me, $other, 0, $now)",
             ("$me", userId), ("$other", other.Id), ("$now", now.ToUnixTimeSeconds()));
+
         return (other, AreFriends(connection, userId, other.Id));
     }
 
@@ -225,9 +214,7 @@ public sealed class SocialStore
         var changed = Execute(connection, "UPDATE friendships SET accepted = 1 WHERE requester = $other AND addressee = $me AND accepted = 0",
             ("$other", otherId), ("$me", userId));
         if (changed == 0)
-        {
             throw new SocialRuleException(StatusCodes.Status404NotFound, "That request no longer exists.");
-        }
 
         return FindUserOrThrow(connection, otherId);
     }
@@ -257,20 +244,17 @@ public sealed class SocialStore
     {
         ArgumentNullException.ThrowIfNull(request);
         if (SocialRules.ValidateMessage(request) is { } problem)
-        {
             throw new SocialRuleException(problem);
-        }
 
         using var connection = Open();
         if (!AreFriends(connection, userId, toId) || IsBlocked(connection, toId, userId) || IsBlocked(connection, userId, toId))
-        {
             throw new SocialRuleException(StatusCodes.Status403Forbidden, "You can only message friends.");
-        }
 
         var text = (request.Text ?? "").Trim();
         var id = Scalar<long>(connection,
             "INSERT INTO messages (from_id, to_id, kind, text, track_id, sent_at) VALUES ($from, $to, $kind, $text, $track, $now) RETURNING id",
             ("$from", userId), ("$to", toId), ("$kind", request.Kind.ToString()), ("$text", text), ("$track", request.TrackId), ("$now", now.ToUnixTimeMilliseconds()));
+
         return new ChatMessage(id, userId, toId, request.Kind, text, request.TrackId, DateTimeOffset.FromUnixTimeMilliseconds(now.ToUnixTimeMilliseconds()));
     }
 
@@ -300,6 +284,7 @@ public sealed class SocialStore
         }
 
         messages.Reverse();
+
         return messages;
     }
 
@@ -309,9 +294,7 @@ public sealed class SocialStore
         ArgumentNullException.ThrowIfNull(request);
         var reason = (request.Reason ?? "").Trim();
         if (reason.Length > SocialRules.MaxReportLength)
-        {
             throw new SocialRuleException($"Reports are limited to {SocialRules.MaxReportLength} characters.");
-        }
 
         using var connection = Open();
         var inserted = Execute(connection, """
@@ -319,21 +302,18 @@ public sealed class SocialStore
             SELECT $me, id, from_id, text, $reason, $now FROM messages WHERE id = $message AND to_id = $me
             """, ("$me", userId), ("$message", request.MessageId), ("$reason", reason), ("$now", now.ToUnixTimeSeconds()));
         if (inserted == 0)
-        {
             throw new SocialRuleException(StatusCodes.Status404NotFound, "You can only report messages sent to you.");
-        }
     }
 
     public SocialUser UpdateProfile(string userId, UpdateProfileRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (!SocialRules.IsValidDisplayName(request.DisplayName))
-        {
             throw new SocialRuleException($"Display names are 1–{SocialRules.MaxDisplayNameLength} characters.");
-        }
 
         using var connection = Open();
         Execute(connection, "UPDATE users SET display_name = $name WHERE id = $id", ("$name", request.DisplayName.Trim()), ("$id", userId));
+
         return FindUserOrThrow(connection, userId);
     }
 
@@ -341,12 +321,14 @@ public sealed class SocialStore
     public LibraryTrack? FindMusicByHash(string sha256)
     {
         using var connection = Open();
+
         return MusicRows(connection, MusicColumns + " WHERE sha256 = $hash", ("$hash", sha256)).FirstOrDefault();
     }
 
     public LibraryTrack? FindMusic(string id)
     {
         using var connection = Open();
+
         return MusicRows(connection, MusicColumns + " WHERE id = $id", ("$id", id)).FirstOrDefault();
     }
 
@@ -362,6 +344,7 @@ public sealed class SocialStore
             ("$id", id), ("$uploader", uploader.Id), ("$name", uploader.Username), ("$title", metadata.Title.Trim()),
             ("$artist", metadata.Artist.Trim()), ("$album", (metadata.Album ?? "").Trim()), ("$duration", metadata.DurationMs),
             ("$format", format), ("$hash", sha256), ("$now", now.ToUnixTimeSeconds()));
+
         return new LibraryTrack(id, metadata.Title.Trim(), metadata.Artist.Trim(), (metadata.Album ?? "").Trim(), metadata.DurationMs, format, uploader.Username);
     }
 
@@ -379,6 +362,7 @@ public sealed class SocialStore
             .Append(("$limit", Math.Clamp(limit, 1, SocialRules.PageSize)))
             .ToArray();
         using var connection = Open();
+
         return MusicRows(connection, sql, parameters);
     }
 
@@ -386,6 +370,7 @@ public sealed class SocialStore
     public bool RemoveMusic(string userId, string id)
     {
         using var connection = Open();
+
         return Execute(connection, "DELETE FROM music WHERE id = $id AND uploader = $me", ("$id", id), ("$me", userId)) > 0;
     }
 
@@ -415,6 +400,7 @@ public sealed class SocialStore
     public bool AreFriends(string userId, string otherId)
     {
         using var connection = Open();
+
         return AreFriends(connection, userId, otherId);
     }
 
@@ -437,6 +423,7 @@ public sealed class SocialStore
         var connection = new SqliteConnection(_connectionString);
         connection.Open();
         Execute(connection, "PRAGMA foreign_keys = ON;");
+
         return connection;
     }
 
@@ -460,6 +447,7 @@ public sealed class SocialStore
         using var command = connection.CreateCommand();
         command.CommandText = sql;
         Bind(command, parameters);
+
         return command.ExecuteNonQuery();
     }
 
@@ -469,6 +457,7 @@ public sealed class SocialStore
         command.CommandText = sql;
         Bind(command, parameters);
         var value = command.ExecuteScalar();
+
         return value is null or DBNull ? default! : (T)Convert.ChangeType(value, Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T), CultureInfo.InvariantCulture);
     }
 

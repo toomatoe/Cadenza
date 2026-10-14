@@ -19,7 +19,7 @@ public sealed class TasteProfile
     public static readonly TimeSpan RecentHalfLife = TimeSpan.FromDays(14);
     public static readonly TimeSpan EventHalfLife = TimeSpan.FromDays(60);
 
-    private static readonly Dictionary<TimeRange, double> s_rangeWeights = new()
+    private static readonly Dictionary<TimeRange, double> _rangeWeights = new()
     {
         [TimeRange.ShortTerm] = 3.0,
         [TimeRange.MediumTerm] = 2.0,
@@ -66,9 +66,7 @@ public sealed class TasteProfile
         void Add(string artistName, double amount)
         {
             if (string.IsNullOrWhiteSpace(artistName))
-            {
                 return;
-            }
 
             var key = Key(artistName);
             affinity[key] = affinity.GetValueOrDefault(key) + amount;
@@ -85,7 +83,7 @@ public sealed class TasteProfile
         {
             for (var rank = 0; rank < artists.Count; rank++)
             {
-                Add(artists[rank].Name, s_rangeWeights[range] * RankFactor(rank, artists.Count));
+                Add(artists[rank].Name, _rangeWeights[range] * RankFactor(rank, artists.Count));
             }
         }
 
@@ -93,7 +91,7 @@ public sealed class TasteProfile
         {
             for (var rank = 0; rank < tracks.Count; rank++)
             {
-                Add(tracks[rank].LeadArtist, TopTrackArtistShare * s_rangeWeights[range] * RankFactor(rank, tracks.Count));
+                Add(tracks[rank].LeadArtist, TopTrackArtistShare * _rangeWeights[range] * RankFactor(rank, tracks.Count));
                 known.Add(tracks[rank].Id);
             }
         }
