@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using System.Text.Json;
+using Cadenza.Core.Interfaces;
 using Cadenza.Core.Models.Social;
 
 namespace Cadenza.Core.Services.Social;
@@ -8,7 +9,7 @@ namespace Cadenza.Core.Services.Social;
 /// The live event socket. Reconnects with backoff (2 s doubling to 60 s) and raises
 /// <see cref="EventReceived"/> on the creating thread's synchronization context. Idle cost is one open socket.
 /// </summary>
-public sealed class SocialConnection : IAsyncDisposable
+public sealed class SocialConnection : ISocialConnection
 {
     private const int BufferBytes = 16 * 1024;
     private static readonly TimeSpan _firstRetry = TimeSpan.FromSeconds(2);

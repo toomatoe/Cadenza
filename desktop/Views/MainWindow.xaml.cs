@@ -6,6 +6,7 @@ using Cadenza.Core.Interfaces;
 using Cadenza.Core.Models;
 using Cadenza.Core.Services.Catalog;
 using Cadenza.Core.Services.Playback;
+using Cadenza.Core.Services.Social;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;
 using Cadenza.Desktop.ViewModels;
@@ -69,6 +70,13 @@ public sealed partial class MainWindow : Window
         _catalogController = _services.CatalogController;
         _queue = _services.Queue;
         Recommendations = new RecommendationsViewModel(() => _services.Recommendations);
+        FriendsPage = new FriendsViewModel(
+            server => new SocialClient(_http, server),
+            (server, token) => new SocialConnection(server, token),
+            new WindowsFriendsTokenStore(),
+            FindSharedTrackAsync,
+            _lifetime.Token);
+        InitializeFriends();
 
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
@@ -119,6 +127,22 @@ public sealed partial class MainWindow : Window
                 await LoadPinnedPlaylistsAsync(ct);
             }
         });
+    }
+
+    /// <summary>Looks up a track friends shared, through your own Spotify session; null when unavailable.</summary>
+    private async Task<Track?> FindSharedTrackAsync(string trackId, CancellationToken cancellationToken)
+    {
+        if (!_auth.IsConnected)
+            return null;
+
+        try
+        {
+            return await _spotifyApi.TrackAsync(trackId, cancellationToken);
+        }
+        catch (Exception error) when (error is HttpRequestException or InvalidOperationException or ArgumentException or OperationCanceledException)
+        {
+            return null;
+        }
     }
 
     private void Message(string text, InfoBarSeverity severity = InfoBarSeverity.Informational)
@@ -218,8 +242,7 @@ public sealed partial class MainWindow : Window
         }
         finally
         {
-            if (_socialLive is not null)
-                await _socialLive.DisposeAsync();
+            await FriendsPage.DisposeAsync();
 
             _services.Dispose();
             _lifetime.Dispose();

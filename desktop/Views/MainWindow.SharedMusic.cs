@@ -23,14 +23,14 @@ public sealed partial class MainWindow
 
     private async Task PlayLibraryTrackAsync(Track track, CancellationToken cancellationToken)
     {
-        if (_social is null)
+        if (FriendsPage.Client is not { } social)
             throw new InvalidOperationException("Join Cadenza Friends to play songs from the shared library.");
 
         PlaybackLabel.Text = "Downloading…";
         string path;
         try
         {
-            path = await SongCache.GetAsync(_social, track.Id, _libraryFormats.GetValueOrDefault(track.Id, "mp3"), cancellationToken);
+            path = await SongCache.GetAsync(social, track.Id, _libraryFormats.GetValueOrDefault(track.Id, "mp3"), cancellationToken);
         }
         catch (SocialException error)
         {
@@ -58,13 +58,13 @@ public sealed partial class MainWindow
     /// <summary>Adds matching library songs to the top of Spotify search results. Silent when offline.</summary>
     private async Task AddLibraryResultsAsync(string query, CancellationToken cancellationToken)
     {
-        if (_social is null)
+        if (FriendsPage.Client is not { } social)
             return;
 
         IReadOnlyList<LibraryTrack> found;
         try
         {
-            found = await _social.SearchMusicAsync(query, cancellationToken);
+            found = await social.SearchMusicAsync(query, cancellationToken);
         }
         catch (SocialException)
         {
@@ -83,7 +83,7 @@ public sealed partial class MainWindow
 
     private async void UploadMusic_Click(object sender, RoutedEventArgs e)
     {
-        if (_social is null)
+        if (FriendsPage.Client is not { } social)
         {
             Message("Join Cadenza Friends first (Friends page). Songs you add go to your group's shared library.");
             return;
@@ -100,7 +100,7 @@ public sealed partial class MainWindow
         if (files.Count == 0)
             return;
 
-        await FriendsWorkAsync(async ct =>
+        await SharedLibraryWorkAsync(async ct =>
         {
             var added = 0;
             var skipped = new List<string>();
@@ -116,7 +116,7 @@ public sealed partial class MainWindow
 
                 try
                 {
-                    var song = await _social.UploadMusicAsync(file.Path, info.Metadata, ct);
+                    var song = await social.UploadMusicAsync(file.Path, info.Metadata, ct);
                     _libraryFormats[song.Id] = song.Format;
                     added++;
                 }
@@ -132,19 +132,34 @@ public sealed partial class MainWindow
         });
     }
 
-    /// <summary>Library songs have no Spotify page or ID, so friends get a message pointing them to search instead.</summary>
-    private Task<bool> ShareLibraryTrackAsync(Track track) =>
-        SendToFriendAsync(new SendMessageRequest(
-            ChatMessageKind.Text,
-            $"Listen to {track.Name} by {track.Artist}. It's in our Cadenza library; search for it.",
-            null));
-
     private void OpenOnSpotify(Track track)
     {
         if (track.IsSpotify)
             OpenInBrowser(track.Url);
         else
             Message("This song is from the Cadenza library, so it has no Spotify page.");
+    }
+
+    /// <summary>Runs shared-library work; a signed-out token forgets the Friends account, other errors become notices.</summary>
+    private async Task SharedLibraryWorkAsync(Func<CancellationToken, Task> work)
+    {
+        try
+        {
+            await work(_lifetime.Token);
+        }
+        catch (SocialException error) when (error.IsSignedOut)
+        {
+            FriendsPage.Forget();
+            Message("Your Cadenza Friends sign-in ended. Join again with a new invite.", InfoBarSeverity.Warning);
+        }
+        catch (SocialException error)
+        {
+            Message(error.Message, InfoBarSeverity.Warning);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            // The window is closing.
+        }
     }
 
     /// <summary>The engine can take commands: signed in to Spotify, or playing a library file.</summary>
