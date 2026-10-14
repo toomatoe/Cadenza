@@ -34,9 +34,11 @@ Code rules are in [CODING-STANDARDS.md](CODING-STANDARDS.md). This file describe
 ## `desktop/` (`Cadenza.Desktop`)
 
 - `App.xaml` / `App.xaml.cs` are the WinUI entry point and theme resources.
-- `Views/MainWindow.xaml` is the single window. Its code-behind is split by feature into partials: `.Catalog`, `.Library`, `.Queue`, `.Playback`, `.Account`, `.Appearance`, `.Profile`, `.Recommendations`, `.Friends`, `.SharedMusic`. *Planned:* move page state and logic into `ViewModels/`, behind core interfaces, with a hand-written `ServiceConfiguration` composition root.
+- `ServiceConfiguration.cs` is the composition root. It builds the object graph by hand (no DI container): core services up front, feature services (recommendations, the shared library) on first use.
+- `ViewModels/` holds page state and logic behind core interfaces, using a 20-line `ObservableObject` base (no MVVM toolkit). `RecommendationsViewModel` and `FriendsViewModel` drive the For you and Friends pages; XAML binds to them with `x:Bind`, and view models report to the window through events (`Notice`, queue gifts).
+- `Views/MainWindow.xaml` is the single window. Its partials (`.Catalog`, `.Library`, `.Queue`, `.Playback`, `.Account`, `.Appearance`, `.Profile`, `.Recommendations`, `.Friends`, `.SharedMusic`) are thin glue for the pages that have view models. Playback, catalog and queue orchestration is still in the partials: it's tied to the native engine, which can only be exercised with the compiled Rust DLL, so it moves into a view model once it can be tested end to end.
+- `Interfaces/IPreferencesStore` and `Services/` (`PreferencesStore`, `WindowsTokenStore`, `WindowsFriendsTokenStore`) hold Windows-specific services.
 - `Models/` holds desktop values (`Preferences`, `AppView`, `AppearanceMode`) and display items.
-- `Services/` holds Windows-only services: `PreferencesStore` (JSON with atomic replace) and `WindowsTokenStore` (Credential Manager).
 - `Controls/` (`PixelSprite`, `SquareArtwork`) and `Converters/` (`ArtworkConverter`) are UI building blocks.
 - UI rules are in `docs/UI-GUIDE.md`.
 

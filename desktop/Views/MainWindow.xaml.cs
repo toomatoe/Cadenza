@@ -60,8 +60,8 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
-        _preferences = PreferencesStore.Load();
         _services = new ServiceConfiguration();
+        _preferences = _services.Preferences.Load();
         _http = _services.Http;
         _auth = _services.Auth;
         _playbackAuth = _services.PlaybackAuth;

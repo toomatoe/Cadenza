@@ -1,7 +1,6 @@
 using Cadenza.Core.Models;
 using Cadenza.Core.Models.Recommendations;
 using Cadenza.Desktop.Models;
-using Cadenza.Desktop.Services;
 using Cadenza.Desktop.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -28,7 +27,7 @@ public sealed partial class MainWindow
         if (Math.Abs(_preferences.Discovery - discovery) > 0.001)
         {
             _preferences = _preferences with { Discovery = discovery };
-            PreferencesStore.Save(_preferences);
+            _services.Preferences.Save(_preferences);
         }
 
         await Recommendations.RefreshAsync(discovery, cancellationToken);

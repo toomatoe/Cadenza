@@ -2,7 +2,6 @@ using Cadenza.Core.Models;
 using Cadenza.Core.Services.Sprites;
 using Cadenza.Desktop.Controls;
 using Cadenza.Desktop.Models;
-using Cadenza.Desktop.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -86,7 +85,7 @@ public sealed partial class MainWindow
         try
         {
             _preferences = _preferences with { Sprite = updated };
-            PreferencesStore.Save(_preferences);
+            _services.Preferences.Save(_preferences);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {

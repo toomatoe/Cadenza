@@ -1,5 +1,4 @@
 using Cadenza.Core.Services.Spotify;
-using Cadenza.Desktop.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -29,7 +28,7 @@ public sealed partial class MainWindow
             var redirect = SpotifyAuth.ValidateRedirectUri(RedirectUriBox.Text).AbsoluteUri;
             await _auth.ConnectAsync(clientId, redirect, ct);
             _preferences = _preferences with { ClientId = clientId, RedirectUri = redirect };
-            PreferencesStore.Save(_preferences);
+            _services.Preferences.Save(_preferences);
             ConnectionLabel.Text = "Spotify connected";
             Message("Spotify sign-in saved. You can now browse your library.", InfoBarSeverity.Success);
         });
@@ -83,7 +82,7 @@ public sealed partial class MainWindow
                 ? DefaultArtistSpacing
                 : (int)Math.Clamp(SpacingBox.Value, 0, MaxArtistSpacing);
             _preferences = _preferences with { ArtistSpacing = spacing };
-            PreferencesStore.Save(_preferences);
+            _services.Preferences.Save(_preferences);
             Message("Queue preferences saved.", InfoBarSeverity.Success);
         }
         catch (IOException)

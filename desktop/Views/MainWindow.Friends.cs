@@ -1,6 +1,5 @@
 using Cadenza.Core.Models.Social;
 using Cadenza.Desktop.Models;
-using Cadenza.Desktop.Services;
 using Cadenza.Desktop.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -43,7 +42,7 @@ public sealed partial class MainWindow
             return;
 
         _preferences = _preferences with { FriendsServer = server };
-        PreferencesStore.Save(_preferences);
+        _services.Preferences.Save(_preferences);
         InviteCodeBox.Text = "";
     }
 
@@ -156,7 +155,7 @@ public sealed partial class MainWindow
 
         if (await FriendsPage.LeaveAsync())
         {
-            SongCache.Clear();
+            _services.SharedLibrary.ClearCache();
             await ShowFriendsAsync();
         }
     }
@@ -168,7 +167,7 @@ public sealed partial class MainWindow
             return;
 
         _preferences = _preferences with { AutoQueueGifts = AutoQueueGiftsSwitch.IsOn };
-        PreferencesStore.Save(_preferences);
+        _services.Preferences.Save(_preferences);
     }
 
     private void ScrollChatToEnd()

@@ -2,7 +2,9 @@ using Cadenza.Core.Interfaces;
 using Cadenza.Core.Models;
 using Cadenza.Core.Services.Catalog;
 using Cadenza.Core.Services.Recommendations;
+using Cadenza.Core.Services.Social;
 using Cadenza.Core.Services.Spotify;
+using Cadenza.Desktop.Interfaces;
 using Cadenza.Desktop.Services;
 
 namespace Cadenza.Desktop;
@@ -13,12 +15,15 @@ namespace Cadenza.Desktop;
 /// </summary>
 public sealed class ServiceConfiguration : IDisposable
 {
+    private const string PreferencesFile = "preferences.json";
     private static readonly TimeSpan _httpTimeout = TimeSpan.FromSeconds(30);
     private readonly Lazy<RecommendationService> _recommendations;
+    private readonly Lazy<SharedLibraryService> _sharedLibrary;
 
     public ServiceConfiguration()
     {
         DataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cadenza");
+        Preferences = new PreferencesStore(DataPath(PreferencesFile));
         Http = new HttpClient { Timeout = _httpTimeout };
         Auth = new SpotifyAuth(Http, new WindowsTokenStore());
         PlaybackAuth = new SpotifyAuth(Http, new WindowsTokenStore(), SpotifyAuth.PlaybackScope);
@@ -27,10 +32,14 @@ public sealed class ServiceConfiguration : IDisposable
         CatalogController = new CatalogController(SpotifyApi, Catalog);
         Queue = new ListeningQueue();
         _recommendations = new Lazy<RecommendationService>(() => new RecommendationService(Http, SpotifyApi, DataFolder, TimeProvider.System));
+        _sharedLibrary = new Lazy<SharedLibraryService>(() => new SharedLibraryService(DataPath("library-cache")));
     }
 
     /// <summary><c>%LOCALAPPDATA%\Cadenza</c>: preferences, caches and local history.</summary>
     public string DataFolder { get; }
+
+    /// <summary>The user's settings file.</summary>
+    public IPreferencesStore Preferences { get; }
 
     /// <summary>The one HTTP client every service shares.</summary>
     public HttpClient Http { get; }
@@ -51,6 +60,9 @@ public sealed class ServiceConfiguration : IDisposable
 
     /// <summary>The "For you" service, created on first use.</summary>
     public IRecommendationService Recommendations => _recommendations.Value;
+
+    /// <summary>The shared Cadenza library (uploads, search, playable files), created on first use.</summary>
+    public ISharedLibraryService SharedLibrary => _sharedLibrary.Value;
 
     /// <summary>A file path inside <see cref="DataFolder"/>.</summary>
     public string DataPath(string fileName) => Path.Combine(DataFolder, fileName);
