@@ -1,15 +1,19 @@
 using System.Globalization;
 using Cadenza.Core.Social;
 using Microsoft.Data.Sqlite;
+using Cadenza.Server.Exceptions;
+using Cadenza.Server.Interfaces;
+using Cadenza.Server.Models;
+using Microsoft.Extensions.Options;
 
-namespace Cadenza.Server;
+namespace Cadenza.Server.Services;
 
 /// <summary>
 /// Accounts, invites, friendships, blocks, messages and reports in one SQLite file. Each call opens a
 /// pooled connection, so the store is safe to share between requests. Rules that protect people (only
 /// friends can message, blocks hide both ways) are enforced here, not in the client.
 /// </summary>
-public sealed class SocialStore
+public sealed class SocialStore : ISocialStore
 {
     public const int MaxActiveInvitesPerUser = 5;
     public static readonly TimeSpan InviteLifetime = TimeSpan.FromDays(7);
@@ -71,8 +75,9 @@ public sealed class SocialStore
 
     private readonly string _connectionString;
 
-    public SocialStore(string databasePath)
+    public SocialStore(IOptions<CadenzaServerOptions> options)
     {
+        var databasePath = options.Value.Database;
         SQLitePCL.Batteries.Init();
         _connectionString = new SqliteConnectionStringBuilder { DataSource = databasePath, Pooling = true }.ToString();
         using var connection = Open();

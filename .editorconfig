@@ -94,3 +94,9 @@ dotnet_diagnostic.IDE1006.severity = none
 # The generated XAML code-behind cannot follow these rules.
 [**/obj/**.cs]
 generated_code = true
+
+# Server logging follows the team standard: ILogger<T> extension methods with message templates
+# (CampaignDeputy doesn't use source-generated LoggerMessage delegates).
+[server/**.cs]
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none

@@ -1,4 +1,4 @@
-namespace Cadenza.Server;
+namespace Cadenza.Server.Exceptions;
 
 /// <summary>A request that breaks a rule; becomes an HTTP error with a message safe to show the user.</summary>
 public sealed class SocialRuleException : Exception

@@ -1,21 +1,25 @@
 using System.Security.Cryptography;
 using Cadenza.Core.Social;
+using Cadenza.Server.Exceptions;
+using Cadenza.Server.Interfaces;
+using Cadenza.Server.Models;
+using Microsoft.Extensions.Options;
 
-namespace Cadenza.Server;
+namespace Cadenza.Server.Services;
 
 /// <summary>
 /// The shared song library: files on disk named by ID (so Navidrome could index the same folder),
-/// details in <see cref="SocialStore"/>. Identical files are stored once.
+/// details in <see cref="ISocialStore"/>. Identical files are stored once.
 /// </summary>
-public sealed class MusicLibrary
+public sealed class MusicLibrary : IMusicLibrary
 {
     private const int HeaderBytes = 16;
-    private readonly SocialStore _store;
+    private readonly ISocialStore _store;
 
-    public MusicLibrary(SocialStore store, string folder)
+    public MusicLibrary(ISocialStore store, IOptions<CadenzaServerOptions> options)
     {
         _store = store;
-        Folder = Path.GetFullPath(folder);
+        Folder = Path.GetFullPath(options.Value.MusicFolder);
         Directory.CreateDirectory(Folder);
     }
 

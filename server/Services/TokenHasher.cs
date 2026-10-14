@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Cadenza.Server;
+namespace Cadenza.Server.Services;
 
 /// <summary>Creates device tokens and invite codes. Only SHA-256 hashes of tokens are stored.</summary>
 public static class TokenHasher

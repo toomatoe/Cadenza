@@ -2,11 +2,12 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text.Json;
 using Cadenza.Core.Social;
+using Cadenza.Server.Interfaces;
 
-namespace Cadenza.Server;
+namespace Cadenza.Server.Services;
 
 /// <summary>Open WebSockets by user, for pushing <see cref="SocialEvent"/>s. A user may be connected from several devices.</summary>
-public sealed class ConnectionHub
+public sealed class ConnectionHub : IConnectionHub
 {
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<Guid, Connection>> _connections = new();
 
@@ -54,17 +55,23 @@ public sealed class ConnectionHub
     }
 
     /// <summary>One socket with a send lock: WebSocket allows only one send at a time.</summary>
-    private sealed class Connection(WebSocket socket) : IDisposable
+    private sealed class Connection : IDisposable
     {
         private readonly SemaphoreSlim _sendGate = new(1, 1);
+        private readonly WebSocket _socket;
+
+        public Connection(WebSocket socket)
+        {
+            _socket = socket;
+        }
 
         public async Task SendAsync(byte[] payload, CancellationToken cancellationToken)
         {
             await _sendGate.WaitAsync(cancellationToken);
             try
             {
-                if (socket.State == WebSocketState.Open)
-                    await socket.SendAsync(payload, WebSocketMessageType.Text, endOfMessage: true, cancellationToken);
+                if (_socket.State == WebSocketState.Open)
+                    await _socket.SendAsync(payload, WebSocketMessageType.Text, endOfMessage: true, cancellationToken);
             }
             catch (WebSocketException)
             {
