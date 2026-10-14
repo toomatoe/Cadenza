@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
-using Cadenza.Core.Social;
+using Cadenza.Core.Models.Social;
+using Cadenza.Core.Services.Social;
 using Cadenza.Server.Endpoints;
 using Cadenza.Server.Interfaces;
 using Cadenza.Server.Models;

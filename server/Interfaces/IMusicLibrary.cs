@@ -1,4 +1,4 @@
-using Cadenza.Core.Social;
+using Cadenza.Core.Models.Social;
 
 namespace Cadenza.Server.Interfaces;
 

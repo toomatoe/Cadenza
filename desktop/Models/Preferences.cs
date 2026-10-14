@@ -1,5 +1,5 @@
 using Cadenza.Core.Services.Spotify;
-using Cadenza.Core.Sprites;
+using Cadenza.Core.Services.Sprites;
 
 namespace Cadenza.Desktop.Models;
 

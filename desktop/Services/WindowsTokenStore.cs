@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text.Json;
+using Cadenza.Core.Interfaces;
 using Cadenza.Core.Models;
-using Cadenza.Core.Services.Contracts;
 using Cadenza.Core.Services.Spotify;
 
 namespace Cadenza.Desktop.Services;

@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using Cadenza.Core.Exceptions;
 using Cadenza.Core.Models;
-using Cadenza.Core.Social;
+using Cadenza.Core.Models.Social;
+using Cadenza.Core.Services.Social;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;
 using Microsoft.UI.Xaml;

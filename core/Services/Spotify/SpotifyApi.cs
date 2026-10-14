@@ -3,9 +3,9 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Cadenza.Core.Exceptions;
+using Cadenza.Core.Interfaces;
 using Cadenza.Core.Models;
-using Cadenza.Core.Recommendations;
-using Cadenza.Core.Services.Contracts;
+using Cadenza.Core.Models.Recommendations;
 
 namespace Cadenza.Core.Services.Spotify;
 

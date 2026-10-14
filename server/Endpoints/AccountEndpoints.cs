@@ -1,4 +1,4 @@
-using Cadenza.Core.Social;
+using Cadenza.Core.Models.Social;
 using Cadenza.Server.Extensions;
 using Cadenza.Server.Interfaces;
 using Cadenza.Server.Models;

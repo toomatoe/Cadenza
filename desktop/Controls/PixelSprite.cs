@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices.WindowsRuntime;
-using Cadenza.Core.Sprites;
+using Cadenza.Core.Services.Sprites;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;

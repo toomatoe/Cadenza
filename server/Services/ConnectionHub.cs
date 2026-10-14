@@ -1,7 +1,8 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text.Json;
-using Cadenza.Core.Social;
+using Cadenza.Core.Models.Social;
+using Cadenza.Core.Services.Social;
 using Cadenza.Server.Interfaces;
 
 namespace Cadenza.Server.Services;

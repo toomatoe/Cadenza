@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
-using Cadenza.Core.Social;
+using Cadenza.Core.Models.Social;
+using Cadenza.Core.Services.Social;
 using Cadenza.Server.Exceptions;
 using Cadenza.Server.Interfaces;
 using Cadenza.Server.Models;

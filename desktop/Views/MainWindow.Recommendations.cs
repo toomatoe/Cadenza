@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Cadenza.Core.Models;
-using Cadenza.Core.Recommendations;
+using Cadenza.Core.Models.Recommendations;
+using Cadenza.Core.Services.Recommendations;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;
 using Microsoft.UI.Xaml;

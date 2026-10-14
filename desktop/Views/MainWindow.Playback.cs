@@ -1,9 +1,9 @@
-using Cadenza.Core.Controllers;
 using Cadenza.Core.Models;
-using Cadenza.Core.Recommendations;
+using Cadenza.Core.Models.Recommendations;
+using Cadenza.Core.Services.Catalog;
 using Cadenza.Core.Services.Playback;
 using Cadenza.Core.Services.Spotify;
-using Cadenza.Core.Sprites;
+using Cadenza.Core.Services.Sprites;
 using Cadenza.Desktop.Converters;
 using Cadenza.Desktop.Models;
 using Microsoft.UI.Xaml;

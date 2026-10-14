@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using Cadenza.Core.Models;
-using Cadenza.Core.Recommendations;
-using Cadenza.Core.Sprites;
+using Cadenza.Core.Models.Recommendations;
+using Cadenza.Core.Services.Sprites;
 using Cadenza.Desktop.Converters;
 using Cadenza.Desktop.Models;
 using Microsoft.UI.Text;

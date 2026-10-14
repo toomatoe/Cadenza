@@ -3,9 +3,8 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Cadenza.Core.Exceptions;
+using Cadenza.Core.Interfaces;
 using Cadenza.Core.Models;
-using Cadenza.Core.Security;
-using Cadenza.Core.Services.Contracts;
 
 namespace Cadenza.Core.Services.Spotify;
 

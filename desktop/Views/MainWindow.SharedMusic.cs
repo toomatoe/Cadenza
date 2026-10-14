@@ -1,6 +1,8 @@
+using Cadenza.Core.Exceptions;
 using Cadenza.Core.Models;
-using Cadenza.Core.Music;
-using Cadenza.Core.Social;
+using Cadenza.Core.Models.Social;
+using Cadenza.Core.Services.Music;
+using Cadenza.Core.Services.Social;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Storage.Pickers;

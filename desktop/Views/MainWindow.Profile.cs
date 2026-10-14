@@ -1,5 +1,5 @@
 using Cadenza.Core.Models;
-using Cadenza.Core.Sprites;
+using Cadenza.Core.Services.Sprites;
 using Cadenza.Desktop.Controls;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;

@@ -1,0 +1,15 @@
+using Cadenza.Core.Models;
+
+namespace Cadenza.Core.Interfaces;
+
+/// <summary>Metadata requests used by catalog controllers, independent of WinUI and playback.</summary>
+public interface IMusicCatalog
+{
+    Task<Page<Track>> SearchAsync(string query, int offset, CancellationToken cancellationToken);
+
+    Task<Page<Track>> SavedTracksAsync(int offset, CancellationToken cancellationToken);
+
+    Task<Page<Track>> PlaylistTracksAsync(string id, int offset, CancellationToken cancellationToken);
+
+    Task<Page<Playlist>> PlaylistsAsync(int offset, CancellationToken cancellationToken);
+}
