@@ -105,21 +105,21 @@ public static class ServerApp
         {
             var me = Me(context);
             var (other, accepted) = store.RequestFriend(me.Id, request.Username, clock.GetUtcNow());
-            await hub.SendAsync(other.Id, new SocialEvent(accepted ? SocialEvent.FriendAcceptedType : SocialEvent.FriendRequestType, User: me), context.RequestAborted);
+            await hub.SendAsync(other.Id, new SocialEvent(accepted ? SocialEvent.FriendAcceptedType : SocialEvent.FriendRequestType, user: me), context.RequestAborted);
             return store.GetFriends(me.Id);
         }).RequireRateLimiting(SlowPolicy);
         api.MapPost("/friends/{id}/accept", async (HttpContext context, string id, SocialStore store, ConnectionHub hub) =>
         {
             var me = Me(context);
             store.Accept(me.Id, id);
-            await hub.SendAsync(id, new SocialEvent(SocialEvent.FriendAcceptedType, User: me), context.RequestAborted);
+            await hub.SendAsync(id, new SocialEvent(SocialEvent.FriendAcceptedType, user: me), context.RequestAborted);
             return store.GetFriends(me.Id);
         });
         api.MapDelete("/friends/{id}", async (HttpContext context, string id, SocialStore store, ConnectionHub hub) =>
         {
             var me = Me(context);
             store.Remove(me.Id, id);
-            await hub.SendAsync(id, new SocialEvent(SocialEvent.FriendRemovedType, User: me), context.RequestAborted);
+            await hub.SendAsync(id, new SocialEvent(SocialEvent.FriendRemovedType, user: me), context.RequestAborted);
             return store.GetFriends(me.Id);
         });
 
@@ -128,7 +128,7 @@ public static class ServerApp
         {
             var me = Me(context);
             store.Block(me.Id, id);
-            await hub.SendAsync(id, new SocialEvent(SocialEvent.FriendRemovedType, User: me), context.RequestAborted);
+            await hub.SendAsync(id, new SocialEvent(SocialEvent.FriendRemovedType, user: me), context.RequestAborted);
             return store.GetFriends(me.Id);
         });
         api.MapDelete("/blocks/{id}", (HttpContext context, string id, SocialStore store) =>
