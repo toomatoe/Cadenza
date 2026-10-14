@@ -12,10 +12,7 @@ namespace Cadenza.Core.Services.Spotify;
 /// Spotify OAuth sign-in (authorization code with PKCE, no client secret) and token refresh for one
 /// client ID. Tokens are persisted through <see cref="ITokenStore"/>.
 /// </summary>
-/// <param name="http">Shared HTTP client.</param>
-/// <param name="store">Where tokens are saved between sessions.</param>
-/// <param name="scope">Space-separated OAuth scopes to request.</param>
-public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope = SpotifyAuth.LibraryScope) : IDisposable
+public sealed class SpotifyAuth : IDisposable
 {
     public const string RedirectUri = "http://127.0.0.1:8888/callback";
     public const string LibraryScope =
@@ -37,6 +34,19 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private Tokens? _tokens;
     private string _clientId = "";
+    private readonly HttpClient _http;
+    private readonly ITokenStore _store;
+    private readonly string _scope;
+
+    /// <param name="http">Shared HTTP client.</param>
+    /// <param name="store">Where tokens are saved between sessions.</param>
+    /// <param name="scope">Space-separated OAuth scopes to request.</param>
+    public SpotifyAuth(HttpClient http, ITokenStore store, string scope = SpotifyAuth.LibraryScope)
+    {
+        _http = http;
+        _store = store;
+        _scope = scope;
+    }
 
     public bool IsConnected => _tokens is not null;
 
@@ -79,7 +89,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
     public async Task RestoreAsync(string clientId, CancellationToken cancellationToken)
     {
         _clientId = ValidateClientId(clientId);
-        var saved = await store.LoadAsync(_clientId, cancellationToken);
+        var saved = await _store.LoadAsync(_clientId, cancellationToken);
         _tokens = saved?.ClientId == _clientId ? saved : null;
     }
 
@@ -118,7 +128,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
             ["code_challenge_method"] = "S256",
             ["code_challenge"] = Pkce.Challenge(verifier),
             ["state"] = state,
-            ["scope"] = scope
+            ["scope"] = _scope
         };
         var url = AuthorizeUrl + "?" + string.Join('&', parameters.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"));
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
@@ -137,7 +147,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
             newClientId,
             fallbackRefreshToken: "",
             timeout.Token);
-        await store.SaveAsync(result, timeout.Token);
+        await _store.SaveAsync(result, timeout.Token);
         _clientId = newClientId;
         _tokens = result;
     }
@@ -163,7 +173,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
                 _clientId,
                 current.RefreshToken,
                 cancellationToken);
-            await store.SaveAsync(refreshed, cancellationToken);
+            await _store.SaveAsync(refreshed, cancellationToken);
             _tokens = refreshed;
             return refreshed.AccessToken;
         }
@@ -180,7 +190,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
         try
         {
             if (_clientId.Length > 0)
-                await store.DeleteAsync(_clientId, cancellationToken);
+                await _store.DeleteAsync(_clientId, cancellationToken);
 
             _tokens = null;
         }
@@ -235,7 +245,7 @@ public sealed class SpotifyAuth(HttpClient http, ITokenStore store, string scope
         Dictionary<string, string> form, string clientId, string fallbackRefreshToken, CancellationToken cancellationToken)
     {
         using var content = new FormUrlEncodedContent(form);
-        using var response = await http.PostAsync(new Uri(TokenUrl), content, cancellationToken);
+        using var response = await _http.PostAsync(new Uri(TokenUrl), content, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new SpotifyApiException(

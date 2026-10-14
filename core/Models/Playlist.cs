@@ -1,7 +1,7 @@
 namespace Cadenza.Core.Models;
 
 /// <summary>A playlist in the user's Spotify library.</summary>
-public sealed record Playlist
+public sealed class Playlist
 {
     // Get-only properties for WinUI binding; see the comment on Track.
     public Playlist(string id, string name, int count, string artworkUrl = "", string owner = "")

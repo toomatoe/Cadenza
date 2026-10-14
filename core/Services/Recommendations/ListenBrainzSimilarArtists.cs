@@ -185,7 +185,27 @@ public sealed class ListenBrainzSimilarArtists : ISimilarArtistProvider, IDispos
         public Dictionary<string, CachedSimilar> Similar { get; init; } = [];
     }
 
-    private sealed record CachedId(DateTimeOffset Fetched, string? Id);
+    private sealed class CachedId
+    {
+        public CachedId(DateTimeOffset fetched, string? id)
+        {
+            Fetched = fetched;
+            Id = id;
+        }
 
-    private sealed record CachedSimilar(DateTimeOffset Fetched, SimilarArtist[] Artists);
-}
+        public DateTimeOffset Fetched { get; }
+
+        public string? Id { get; }
+    }
+    private sealed class CachedSimilar
+    {
+        public CachedSimilar(DateTimeOffset fetched, SimilarArtist[] artists)
+        {
+            Fetched = fetched;
+            Artists = artists;
+        }
+
+        public DateTimeOffset Fetched { get; }
+
+        public SimilarArtist[] Artists { get; }
+    }}

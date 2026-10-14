@@ -100,5 +100,15 @@ public sealed class CachedTrackResolver : ITrackResolver
         }
     }
 
-    private sealed record Entry(DateTimeOffset Fetched, TrackRecord[] Tracks);
-}
+    private sealed class Entry
+    {
+        public Entry(DateTimeOffset fetched, TrackRecord[] tracks)
+        {
+            Fetched = fetched;
+            Tracks = tracks;
+        }
+
+        public DateTimeOffset Fetched { get; }
+
+        public TrackRecord[] Tracks { get; }
+    }}

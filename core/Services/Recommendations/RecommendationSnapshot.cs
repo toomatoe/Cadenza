@@ -55,7 +55,33 @@ public static class RecommendationSnapshot
             File.Delete(path);
     }
 
-    private sealed record Snapshot(DateTimeOffset MadeAt, Item[] Items);
+    private sealed class Snapshot
+    {
+        public Snapshot(DateTimeOffset madeAt, Item[] items)
+        {
+            MadeAt = madeAt;
+            Items = items;
+        }
 
-    private sealed record Item(TrackRecord Track, RecommendationShelf Shelf, string Reason, ScoreBreakdown Score);
-}
+        public DateTimeOffset MadeAt { get; }
+
+        public Item[] Items { get; }
+    }
+    private sealed class Item
+    {
+        public Item(TrackRecord track, RecommendationShelf shelf, string reason, ScoreBreakdown score)
+        {
+            Track = track;
+            Shelf = shelf;
+            Reason = reason;
+            Score = score;
+        }
+
+        public TrackRecord Track { get; }
+
+        public RecommendationShelf Shelf { get; }
+
+        public string Reason { get; }
+
+        public ScoreBreakdown Score { get; }
+    }}

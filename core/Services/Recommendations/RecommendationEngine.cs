@@ -17,7 +17,7 @@ namespace Cadenza.Core.Services.Recommendations;
 /// </list>
 /// The full formula and constants are documented in docs/features/recommendations.md.
 /// </summary>
-public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, ITrackResolver tracks)
+public sealed class RecommendationEngine
 {
     public const int SeedCount = 8;
     public const int SimilarPerSeed = 25;
@@ -43,6 +43,14 @@ public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, 
 
     /// <summary>Artists with at most this normalised affinity count as "new to you".</summary>
     public const double NewArtistThreshold = 0.05;
+    private readonly ISimilarArtistProvider _similarArtists;
+    private readonly ITrackResolver _tracks;
+
+    public RecommendationEngine(ISimilarArtistProvider similarArtists, ITrackResolver tracks)
+    {
+        _similarArtists = similarArtists;
+        _tracks = tracks;
+    }
 
     /// <param name="profile">The listener's taste.</param>
     /// <param name="discovery">0 = stick to what you know, 1 = mostly new artists.</param>
@@ -78,7 +86,7 @@ public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, 
             IReadOnlyList<Track> found;
             try
             {
-                found = await tracks.FindTracksAsync(artist, cancellationToken);
+                found = await _tracks.FindTracksAsync(artist, cancellationToken);
             }
             catch (HttpRequestException)
             {
@@ -150,7 +158,7 @@ public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, 
     {
         try
         {
-            return await similarArtists.GetSimilarAsync(seedName, cancellationToken);
+            return await _similarArtists.GetSimilarAsync(seedName, cancellationToken);
         }
         catch (HttpRequestException)
         {
@@ -228,7 +236,7 @@ public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, 
             if (weakest is not null && picks.Count >= ResultCount)
                 picks.Remove(weakest);
 
-            picks.Add(explorer with { Explored = true });
+            picks.Add(new Scored(explorer.Track, explorer.Score, explorer.Familiarity, explorer.BestSeed, explored: true));
         }
 
         // Keep the re-ranked order: sorting by raw score again would regroup one seed's artists at the top.
@@ -251,10 +259,44 @@ public sealed class RecommendationEngine(ISimilarArtistProvider similarArtists, 
         return new Recommendation(pick.Track, RecommendationShelf.MoreLikeYourFavourites, reason, pick.Score);
     }
 
-    private sealed record SimilarCandidate(string Name, double Score, string BestSeed, double BestContribution);
-
-    private sealed record Scored(Track Track, ScoreBreakdown Score, double Familiarity, string? BestSeed, bool Explored = false)
+    private sealed class SimilarCandidate
     {
+        public SimilarCandidate(string name, double score, string bestSeed, double bestContribution)
+        {
+            Name = name;
+            Score = score;
+            BestSeed = bestSeed;
+            BestContribution = bestContribution;
+        }
+
+        public string Name { get; }
+
+        public double Score { get; }
+
+        public string BestSeed { get; }
+
+        public double BestContribution { get; }
+    }
+    private sealed class Scored
+    {
+        public Scored(Track track, ScoreBreakdown score, double familiarity, string? bestSeed, bool explored = false)
+        {
+            Track = track;
+            Score = score;
+            Familiarity = familiarity;
+            BestSeed = bestSeed;
+            Explored = explored;
+        }
+
+        public Track Track { get; }
+
+        public ScoreBreakdown Score { get; }
+
+        public double Familiarity { get; }
+
+        public string? BestSeed { get; }
+
+        public bool Explored { get; }
         public string ArtistKey => TasteProfile.Key(Track.LeadArtist);
 
         public bool IsNewArtist => Familiarity <= NewArtistThreshold;

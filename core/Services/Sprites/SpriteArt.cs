@@ -25,8 +25,8 @@ public static class SpriteArt
         new(
             "cat",
             "Cat",
-            new SpritePalette(Body: 0xFF9DB2CF, Accent: 0xFFF2AFC0, Belly: 0xFFEEF3FA, Cheek: 0xFFF2AFC0),
-            new HeadAnchor(Top: 5, Left: 3, Right: 20, Neck: 13),
+            new SpritePalette(body: 0xFF9DB2CF, accent: 0xFFF2AFC0, belly: 0xFFEEF3FA, cheek: 0xFFF2AFC0),
+            new HeadAnchor(top: 5, left: 3, right: 20, neck: 13),
             [
                 "........................",
                 "........................",
@@ -56,8 +56,8 @@ public static class SpriteArt
         new(
             "panda",
             "Panda",
-            new SpritePalette(Body: 0xFFFFFFFF, Accent: 0xFF000000, Belly: 0xFFBDBDBD, Cheek: 0xFFF2AFC0),
-            new HeadAnchor(Top: 1, Left: 1, Right: 22, Neck: 14),
+            new SpritePalette(body: 0xFFFFFFFF, accent: 0xFF000000, belly: 0xFFBDBDBD, cheek: 0xFFF2AFC0),
+            new HeadAnchor(top: 1, left: 1, right: 22, neck: 14),
             [
                 "...AAA............AAA...",
                 "..AAAAA.AAAAAAAA.AAAAA..",
@@ -87,8 +87,8 @@ public static class SpriteArt
         new(
             "fox",
             "Fox",
-            new SpritePalette(Body: 0xFFE8894A, Accent: 0xFFFFE9D6, Belly: 0xFFFFF6EC, Cheek: 0xFFF5A9A0),
-            new HeadAnchor(Top: 5, Left: 2, Right: 21, Neck: 13),
+            new SpritePalette(body: 0xFFE8894A, accent: 0xFFFFE9D6, belly: 0xFFFFF6EC, cheek: 0xFFF5A9A0),
+            new HeadAnchor(top: 5, left: 2, right: 21, neck: 13),
             [
                 "........................",
                 "....O..............O....",
@@ -118,8 +118,8 @@ public static class SpriteArt
         new(
             "frog",
             "Frog",
-            new SpritePalette(Body: 0xFF8FCB7B, Accent: 0xFF5E9C4E, Belly: 0xFFF4FBEF, Cheek: 0xFFF2A7A7),
-            new HeadAnchor(Top: 6, Left: 2, Right: 21, Neck: 11),
+            new SpritePalette(body: 0xFF8FCB7B, accent: 0xFF5E9C4E, belly: 0xFFF4FBEF, cheek: 0xFFF2A7A7),
+            new HeadAnchor(top: 6, left: 2, right: 21, neck: 11),
             [
                 "........................",
                 "........................",
@@ -149,8 +149,8 @@ public static class SpriteArt
         new(
             "bunny",
             "Bunny",
-            new SpritePalette(Body: 0xFFF3EEF6, Accent: 0xFFF6B9C9, Belly: 0xFFFFFFFF, Cheek: 0xFFF6B9C9),
-            new HeadAnchor(Top: 6, Left: 3, Right: 20, Neck: 14),
+            new SpritePalette(body: 0xFFF3EEF6, accent: 0xFFF6B9C9, belly: 0xFFFFFFFF, cheek: 0xFFF6B9C9),
+            new HeadAnchor(top: 6, left: 3, right: 20, neck: 14),
             [
                 ".......OO......OO.......",
                 "......OBBO....OBBO......",
@@ -180,8 +180,8 @@ public static class SpriteArt
         new(
             "chick",
             "Chick",
-            new SpritePalette(Body: 0xFFFFD966, Accent: 0xFFF28C38, Belly: 0xFFFFF2BF, Cheek: 0xFFF7A8A0),
-            new HeadAnchor(Top: 6, Left: 3, Right: 20, Neck: 12),
+            new SpritePalette(body: 0xFFFFD966, accent: 0xFFF28C38, belly: 0xFFFFF2BF, cheek: 0xFFF7A8A0),
+            new HeadAnchor(top: 6, left: 3, right: 20, neck: 12),
             [
                 "........................",
                 "........................",
@@ -211,8 +211,8 @@ public static class SpriteArt
         new(
             "axolotl",
             "Axolotl",
-            new SpritePalette(Body: 0xFFF7B7CF, Accent: 0xFFE05F8E, Belly: 0xFFFFE3EE, Cheek: 0xFFE66C97),
-            new HeadAnchor(Top: 5, Left: 4, Right: 19, Neck: 13),
+            new SpritePalette(body: 0xFFF7B7CF, accent: 0xFFE05F8E, belly: 0xFFFFE3EE, cheek: 0xFFE66C97),
+            new HeadAnchor(top: 5, left: 4, right: 19, neck: 13),
             [
                 "........................",
                 "........................",
@@ -258,14 +258,65 @@ public static class SpriteArt
 }
 
 /// <summary>One companion species: its art, default colours and where accessories sit.</summary>
-public sealed record SpeciesArt(string Id, string DisplayName, SpritePalette DefaultPalette, HeadAnchor Head, string[] Rows);
+public sealed class SpeciesArt
+{
+    public SpeciesArt(string id, string displayName, SpritePalette defaultPalette, HeadAnchor head, string[] rows)
+    {
+        Id = id;
+        DisplayName = displayName;
+        DefaultPalette = defaultPalette;
+        Head = head;
+        Rows = rows;
+    }
 
+    public string Id { get; }
+
+    public string DisplayName { get; }
+
+    public SpritePalette DefaultPalette { get; }
+
+    public HeadAnchor Head { get; }
+
+    public string[] Rows { get; }
+}
 /// <summary>Recolourable parts of a species, as 0xAARRGGBB.</summary>
-public sealed record SpritePalette(uint Body, uint Accent, uint Belly, uint Cheek);
+public sealed class SpritePalette
+{
+    public SpritePalette(uint body, uint accent, uint belly, uint cheek)
+    {
+        Body = body;
+        Accent = accent;
+        Belly = belly;
+        Cheek = cheek;
+    }
 
+    public uint Body { get; }
+
+    public uint Accent { get; }
+
+    public uint Belly { get; }
+
+    public uint Cheek { get; }
+}
 /// <summary>Head bounds in art coordinates: top outline row, left and right outline columns, and the neck row.</summary>
-public sealed record HeadAnchor(int Top, int Left, int Right, int Neck);
+public sealed class HeadAnchor
+{
+    public HeadAnchor(int top, int left, int right, int neck)
+    {
+        Top = top;
+        Left = left;
+        Right = right;
+        Neck = neck;
+    }
 
+    public int Top { get; }
+
+    public int Left { get; }
+
+    public int Right { get; }
+
+    public int Neck { get; }
+}
 public enum SpriteGlyph
 {
     None,

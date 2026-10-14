@@ -16,7 +16,7 @@ Cadenza is a native Windows Spotify client: a WinUI 3 interface in C# (`desktop/
 - `_camelCase` private fields (static ones too) and PascalCase constants. No primary constructors.
 - Every service has an `I`-interface in `Interfaces/`, and constructors take interfaces. Errors are `<Reason>Exception` types.
 - On the server, log with message templates, never interpolation, and pass the exception (and its inner exception) to `LogError`.
-- XML docs on every public API. The build enforces them.
+- XML doc comments where they help (interfaces, entry points, non-obvious behaviour). Not every member needs one.
 - Tests are MSTest + Moq. One `[TestClass]` per area, with descriptive PascalCase test names.
 
 ## Working rules

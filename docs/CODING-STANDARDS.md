@@ -48,7 +48,7 @@ Where Cadenza is stricter (warnings as errors, analyzers), it keeps the stricter
 ## 5. Types and files
 
 - **One type per file, named after the type.** The exception is small related data models, which are grouped by feature in `<Feature>Models.cs` (for example `core/Social/MessageModels.cs`).
-- **Models are classes, not records:** sealed classes with an explicit constructor and get-only properties. Constructor-bound properties keep System.Text.Json deserialization working, and WinUI's XAML compiler mishandles `init` setters. Enums stay enums.
+- **Models are classes, not records:** sealed classes with an explicit constructor and get-only properties. Constructor-bound properties keep System.Text.Json deserialization working, and WinUI's XAML compiler mishandles `init` setters. Enums stay enums. The one exception is settings objects updated with non-destructive `with` expressions (`Preferences`, `SpriteProfile`), which stay records. When a model is deserialized from JSON, its constructor parameter names must match the property names, using `@explicit`-style escapes for keywords.
 - Classes are `sealed` unless they're designed for inheritance. The analyzers ask for it, and it's stricter than Shared, not in conflict.
 - `public` is for what other projects use; `internal` is for implementation details.
 
@@ -99,7 +99,7 @@ Project-specific layout:
 
 ## 9. Documentation
 
-- **XML doc comments on every public API** (`<summary>`, plus `<param>`/`<returns>`/`<exception>` where they add information). Add `<example>`/`<code>` where usage isn't obvious. The build enforces this: CS1591 is not suppressed.
+- **XML doc comments where they help, not on every member.** Document service interfaces, public entry points and anything whose behaviour, units or side effects aren't obvious from the name (`<summary>`, plus `<param>`/`<returns>`/`<exception>` when they add information). Self-explanatory members (simple properties, obvious methods) don't need one. The build doesn't require them (CS1591 is suppressed).
 - Feature behaviour belongs in `docs/features/<feature>.md`; UI rules in `docs/UI-GUIDE.md`.
 
 ## 10. Tests
