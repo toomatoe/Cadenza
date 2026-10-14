@@ -125,7 +125,7 @@ public sealed partial class MainWindow
         var updated = _preferences with { Appearance = selected, SolidAppearance = selected == AppearanceMode.Solid };
         try
         {
-            PreferencesStore.Save(updated);
+            _services.Preferences.Save(updated);
             _preferences = updated;
             ApplyAppearance();
         }

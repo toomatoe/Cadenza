@@ -215,6 +215,7 @@ public sealed partial class MainWindow
         LibraryScroll.Visibility = ToVisibility(_view == AppView.Library);
         CatalogTools.Visibility = ToVisibility(_view is not (AppView.Library or AppView.Recommendations or AppView.Friends));
         FriendsPanel.Visibility = ToVisibility(_view == AppView.Friends);
+        FriendsPage.IsPageVisible = _view == AppView.Friends;
         RecommendationsPanel.Visibility = ToVisibility(_view == AppView.Recommendations);
         PlaylistCards.Visibility = ToVisibility(_view == AppView.Playlists && _selectedPlaylist is null);
         PlaylistDetail.Visibility = ToVisibility(playlistOpen);

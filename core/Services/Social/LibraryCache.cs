@@ -1,3 +1,5 @@
+using Cadenza.Core.Interfaces;
+
 namespace Cadenza.Core.Services.Social;
 
 /// <summary>
@@ -18,7 +20,7 @@ public sealed class LibraryCache
     public string Folder { get; }
 
     /// <summary>The cached file for a song, downloading it first if needed.</summary>
-    public async Task<string> GetAsync(SocialClient client, string id, string format, CancellationToken cancellationToken)
+    public async Task<string> GetAsync(ISocialClient client, string id, string format, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(client);
         if (id.Length == 0 || !id.All(char.IsAsciiLetterOrDigit) || format.Length == 0 || !format.All(char.IsAsciiLetterLower))

@@ -12,7 +12,7 @@ namespace Cadenza.Core.Services.Spotify;
 /// Spotify OAuth sign-in (authorization code with PKCE, no client secret) and token refresh for one
 /// client ID. Tokens are persisted through <see cref="ITokenStore"/>.
 /// </summary>
-public sealed class SpotifyAuth : IDisposable
+public sealed class SpotifyAuth : ISpotifyAuth
 {
     public const string RedirectUri = "http://127.0.0.1:8888/callback";
     public const string LibraryScope =
@@ -97,7 +97,7 @@ public sealed class SpotifyAuth : IDisposable
     /// Opens the Spotify consent page in the system browser and waits up to three minutes for the
     /// redirect on a temporary loopback listener, then exchanges the code for tokens.
     /// </summary>
-    public async Task ConnectAsync(string clientId, CancellationToken cancellationToken, string redirectUri = RedirectUri)
+    public async Task ConnectAsync(string clientId, string redirectUri, CancellationToken cancellationToken)
     {
         var newClientId = ValidateClientId(clientId);
         var redirect = ValidateRedirectUri(redirectUri);
@@ -154,7 +154,7 @@ public sealed class SpotifyAuth : IDisposable
 
     /// <summary>Returns a valid access token, refreshing it when it is about to expire.</summary>
     /// <exception cref="InvalidOperationException">Not signed in.</exception>
-    public async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken, bool forceRefresh = false)
+    public async Task<string> GetAccessTokenAsync(bool forceRefresh, CancellationToken cancellationToken)
     {
         await _refreshGate.WaitAsync(cancellationToken);
         try

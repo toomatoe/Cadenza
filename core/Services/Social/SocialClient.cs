@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Cadenza.Core.Exceptions;
+using Cadenza.Core.Interfaces;
 using Cadenza.Core.Models.Social;
 
 namespace Cadenza.Core.Services.Social;
@@ -10,7 +11,7 @@ namespace Cadenza.Core.Services.Social;
 /// Client for the Cadenza Friends server. Sends only what the feature needs: your Cadenza username,
 /// display name, messages and Spotify track IDs. Never Spotify tokens or listening history.
 /// </summary>
-public sealed class SocialClient
+public sealed class SocialClient : ISocialClient
 {
     private readonly HttpClient _http;
 

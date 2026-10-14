@@ -2,12 +2,14 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Cadenza.Core.Interfaces;
 using Cadenza.Core.Models;
 using Cadenza.Core.Services.Catalog;
 using Cadenza.Core.Services.Playback;
-using Cadenza.Core.Services.Spotify;
+using Cadenza.Core.Services.Social;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;
+using Cadenza.Desktop.ViewModels;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -25,13 +27,14 @@ namespace Cadenza.Desktop.Views;
     Justification = "A WinUI Window is not IDisposable; owned resources are released in OnClosed.")]
 public sealed partial class MainWindow : Window
 {
-    private readonly CatalogModel _catalog = new();
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
-    private readonly ListeningQueue _queue = new();
+    private readonly ServiceConfiguration _services;
+    private readonly CatalogModel _catalog;
+    private readonly HttpClient _http;
+    private readonly ListeningQueue _queue;
     private readonly CancellationTokenSource _lifetime = new();
-    private readonly SpotifyAuth _auth;
-    private readonly SpotifyAuth _playbackAuth;
-    private readonly SpotifyApi _spotifyApi;
+    private readonly ISpotifyAuth _auth;
+    private readonly ISpotifyAuth _playbackAuth;
+    private readonly ISpotifyApi _spotifyApi;
     private readonly CatalogController _catalogController;
 
     private Preferences _preferences;
@@ -57,11 +60,23 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
-        _preferences = PreferencesStore.Load();
-        _auth = new SpotifyAuth(_http, new WindowsTokenStore());
-        _playbackAuth = new SpotifyAuth(_http, new WindowsTokenStore(), SpotifyAuth.PlaybackScope);
-        _spotifyApi = new SpotifyApi(_http, _auth);
-        _catalogController = new CatalogController(_spotifyApi, _catalog);
+        _services = new ServiceConfiguration();
+        _preferences = _services.Preferences.Load();
+        _http = _services.Http;
+        _auth = _services.Auth;
+        _playbackAuth = _services.PlaybackAuth;
+        _spotifyApi = _services.SpotifyApi;
+        _catalog = _services.Catalog;
+        _catalogController = _services.CatalogController;
+        _queue = _services.Queue;
+        Recommendations = new RecommendationsViewModel(() => _services.Recommendations);
+        FriendsPage = new FriendsViewModel(
+            server => new SocialClient(_http, server),
+            (server, token) => new SocialConnection(server, token),
+            new WindowsFriendsTokenStore(),
+            FindSharedTrackAsync,
+            _lifetime.Token);
+        InitializeFriends();
 
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
@@ -112,6 +127,22 @@ public sealed partial class MainWindow : Window
                 await LoadPinnedPlaylistsAsync(ct);
             }
         });
+    }
+
+    /// <summary>Looks up a track friends shared, through your own Spotify session; null when unavailable.</summary>
+    private async Task<Track?> FindSharedTrackAsync(string trackId, CancellationToken cancellationToken)
+    {
+        if (!_auth.IsConnected)
+            return null;
+
+        try
+        {
+            return await _spotifyApi.TrackAsync(trackId, cancellationToken);
+        }
+        catch (Exception error) when (error is HttpRequestException or InvalidOperationException or ArgumentException or OperationCanceledException)
+        {
+            return null;
+        }
     }
 
     private void Message(string text, InfoBarSeverity severity = InfoBarSeverity.Informational)
@@ -211,14 +242,9 @@ public sealed partial class MainWindow : Window
         }
         finally
         {
-            _similarArtists?.Dispose();
-            if (_socialLive is not null)
-                await _socialLive.DisposeAsync();
+            await FriendsPage.DisposeAsync();
 
-            _spotifyApi.Dispose();
-            _auth.Dispose();
-            _playbackAuth.Dispose();
-            _http.Dispose();
+            _services.Dispose();
             _lifetime.Dispose();
         }
     }

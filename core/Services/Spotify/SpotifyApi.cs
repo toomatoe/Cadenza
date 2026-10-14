@@ -13,7 +13,7 @@ namespace Cadenza.Core.Services.Spotify;
 /// Spotify Web API client for library metadata. Requests are serialized; an expired token is refreshed
 /// once, and short rate limits are retried after Spotify's Retry-After delay.
 /// </summary>
-public sealed class SpotifyApi : IMusicCatalog, IDisposable
+public sealed class SpotifyApi : ISpotifyApi
 {
     /// <summary>Items requested per page.</summary>
     public const int PageSize = 10;
@@ -30,9 +30,9 @@ public sealed class SpotifyApi : IMusicCatalog, IDisposable
 
     private readonly SemaphoreSlim _requestGate = new(1, 1);
     private readonly HttpClient _http;
-    private readonly SpotifyAuth _auth;
+    private readonly ISpotifyAuth _auth;
 
-    public SpotifyApi(HttpClient http, SpotifyAuth auth)
+    public SpotifyApi(HttpClient http, ISpotifyAuth auth)
     {
         _http = http;
         _auth = auth;
@@ -234,11 +234,11 @@ public sealed class SpotifyApi : IMusicCatalog, IDisposable
             for (var attempt = 0; ; attempt++)
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, BaseUrl + route);
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _auth.GetAccessTokenAsync(cancellationToken));
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _auth.GetAccessTokenAsync(forceRefresh: false, cancellationToken));
                 using var response = await _http.SendAsync(request, cancellationToken);
                 if (response.StatusCode == HttpStatusCode.Unauthorized && !refreshed)
                 {
-                    await _auth.GetAccessTokenAsync(cancellationToken, forceRefresh: true);
+                    await _auth.GetAccessTokenAsync(forceRefresh: true, cancellationToken);
                     refreshed = true;
                     continue;
                 }

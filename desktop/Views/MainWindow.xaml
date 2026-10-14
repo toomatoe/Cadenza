@@ -39,7 +39,7 @@
                     <Button x:Name="NavSearch" Tag="Search" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Search"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE721;" FontSize="16"/><TextBlock Text="Search"/></StackPanel></Button>
                     <Button x:Name="NavPlaylists" Tag="Playlists" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Playlists"><StackPanel Orientation="Horizontal" Spacing="12"><FontIcon Glyph="&#xE93C;" FontSize="16"/><TextBlock Text="Playlists"/></StackPanel></Button>
                     <Button x:Name="NavQueue" Tag="Queue" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Queue"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8FD;" FontSize="16"/><TextBlock Grid.Column="1" Text="Queue"/><Border Grid.Column="2" Background="{ThemeResource NavSelectedBrush}" CornerRadius="10" Padding="8,2"><TextBlock x:Name="QueueCountBadge" FontSize="11" Text="0"/></Border></Grid></Button>
-                    <Button x:Name="NavFriends" Tag="Friends" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Friends"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE716;" FontSize="16"/><TextBlock Grid.Column="1" Text="Friends"/><Border x:Name="FriendsBadge" Grid.Column="2" Visibility="Collapsed" Background="{ThemeResource NavSelectedBrush}" CornerRadius="10" Padding="8,2"><TextBlock x:Name="FriendsBadgeCount" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource Accent}" Text="0"/></Border></Grid></Button>
+                    <Button x:Name="NavFriends" Tag="Friends" Click="Navigate_Click" Style="{StaticResource NavButtonStyle}" AutomationProperties.Name="Friends"><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE716;" FontSize="16"/><TextBlock Grid.Column="1" Text="Friends"/><Border x:Name="FriendsBadge" Grid.Column="2" Visibility="{x:Bind FriendsPage.HasUnread, Mode=OneWay}" Background="{ThemeResource NavSelectedBrush}" CornerRadius="10" Padding="8,2"><TextBlock x:Name="FriendsBadgeCount" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource Accent}" Text="{x:Bind FriendsPage.UnreadText, Mode=OneWay}"/></Border></Grid></Button>
                 </StackPanel>
                 <ScrollViewer x:Name="SidebarScroll" Grid.Row="2" VerticalScrollBarVisibility="Hidden" VerticalScrollMode="Enabled" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch" VerticalAnchorRatio="NaN" AutomationProperties.Name="Your playlists">
                     <StackPanel x:Name="SidebarPlaylists" Visibility="Collapsed" Spacing="2">
@@ -243,7 +243,7 @@
 
                 <ScrollViewer x:Name="RecommendationsPanel" Grid.RowSpan="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Spacing="22" Padding="0,0,4,16">
-                        <InfoBar x:Name="ReconnectForRecommendations" IsOpen="False" IsClosable="True" Severity="Informational" CornerRadius="14" Title="One more permission" Message="Reconnect Spotify in Settings so suggestions can use your top artists and recent plays.">
+                        <InfoBar x:Name="ReconnectForRecommendations" IsOpen="{x:Bind Recommendations.MissingScopes, Mode=TwoWay}" IsClosable="True" Severity="Informational" CornerRadius="14" Title="One more permission" Message="Reconnect Spotify in Settings so suggestions can use your top artists and recent plays.">
                             <InfoBar.ActionButton><Button Content="Open Settings" Tag="Settings" Click="Navigate_Click"/></InfoBar.ActionButton>
                         </InfoBar>
                         <Border Style="{StaticResource GlassCardStyle}" CornerRadius="22" Padding="22,18">
@@ -259,11 +259,11 @@
                                     </Grid>
                                 </StackPanel>
                                 <Button Grid.Column="1" Click="RefreshRecommendations_Click" Style="{StaticResource PillAccentButtonStyle}" VerticalAlignment="Center" AutomationProperties.Name="Refresh suggestions"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="14"/><TextBlock Text="Refresh" Style="{StaticResource ButtonLabelStyle}"/></StackPanel></Button>
-                                <TextBlock x:Name="RecommendationsStatus" Grid.Row="1" Grid.ColumnSpan="2" Foreground="{ThemeResource MutedText}" FontSize="12" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="RecommendationsStatus" Text="{x:Bind Recommendations.Status, Mode=OneWay}" Grid.Row="1" Grid.ColumnSpan="2" Foreground="{ThemeResource MutedText}" FontSize="12" TextWrapping="Wrap"/>
                             </Grid>
                         </Border>
-                        <TextBlock x:Name="RecommendationsEmpty" Foreground="{ThemeResource MutedText}" TextWrapping="Wrap" Margin="4,0"/>
-                        <ItemsRepeater ItemsSource="{x:Bind RecommendationShelves}" AutomationProperties.Name="Suggestions">
+                        <TextBlock x:Name="RecommendationsEmpty" Text="{x:Bind Recommendations.EmptyText, Mode=OneWay}" Visibility="{x:Bind Recommendations.IsEmpty, Mode=OneWay}" Foreground="{ThemeResource MutedText}" TextWrapping="Wrap" Margin="4,0"/>
+                        <ItemsRepeater ItemsSource="{x:Bind Recommendations.Shelves}" AutomationProperties.Name="Suggestions">
                             <ItemsRepeater.Layout><StackLayout Spacing="22"/></ItemsRepeater.Layout>
                             <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="models:RecommendationShelfView">
                                 <StackPanel Spacing="16">
@@ -304,7 +304,7 @@
                 </ScrollViewer>
 
                 <Grid x:Name="FriendsPanel" Grid.RowSpan="2" Visibility="Collapsed" Padding="0,0,4,16">
-                    <ScrollViewer x:Name="FriendsJoin" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer x:Name="FriendsJoin" Visibility="{x:Bind converters:BindingHelpers.VisibleWhenFalse(FriendsPage.IsJoined), Mode=OneWay}" VerticalScrollBarVisibility="Auto">
                         <Border Style="{StaticResource GlassCardStyle}" CornerRadius="22" Padding="28" MaxWidth="560" HorizontalAlignment="Left" VerticalAlignment="Top">
                             <StackPanel Spacing="12">
                                 <TextBlock Text="Join Cadenza Friends" Style="{StaticResource SectionTitleStyle}"/>
@@ -317,20 +317,20 @@
                             </StackPanel>
                         </Border>
                     </ScrollViewer>
-                    <Grid x:Name="FriendsMain" Visibility="Collapsed" ColumnSpacing="18">
+                    <Grid x:Name="FriendsMain" Visibility="{x:Bind FriendsPage.IsJoined, Mode=OneWay}" ColumnSpacing="18">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <Border Style="{StaticResource GlassCardStyle}" CornerRadius="22" Padding="16">
                             <Grid RowSpacing="12">
                                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                 <Grid>
-                                    <StackPanel Margin="0,0,80,0"><TextBlock x:Name="FriendsMeName" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock x:Name="FriendsStatus" Foreground="{ThemeResource MutedText}" FontSize="12"/></StackPanel>
+                                    <StackPanel Margin="0,0,80,0"><TextBlock x:Name="FriendsMeName" Text="{x:Bind FriendsPage.MeName, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock x:Name="FriendsStatus" Text="{x:Bind FriendsPage.Status, Mode=OneWay}" Foreground="{ThemeResource MutedText}" FontSize="12"/></StackPanel>
                                     <Button Click="CreateInvite_Click" HorizontalAlignment="Right" CornerRadius="16" Padding="12,4" AutomationProperties.Name="Create an invite code" ToolTipService.ToolTip="Create a single-use invite code for a friend"><TextBlock Text="Invite" Style="{StaticResource ButtonLabelStyle}"/></Button>
                                 </Grid>
                                 <Grid Grid.Row="1" ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <TextBox x:Name="AddFriendBox" PlaceholderText="Add by username" CharacterCasing="Lower" MaxLength="20" KeyDown="AddFriend_KeyDown" AutomationProperties.Name="Friend's username"/>
                                     <Button Grid.Column="1" Click="AddFriend_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Send friend request" ToolTipService.ToolTip="Send friend request"><FontIcon Glyph="&#xE8FA;" FontSize="14"/></Button>
                                 </Grid>
-                                <ItemsControl Grid.Row="2" ItemsSource="{x:Bind FriendRequests}">
+                                <ItemsControl Grid.Row="2" ItemsSource="{x:Bind FriendsPage.Requests}">
                                     <ItemsControl.ItemTemplate><DataTemplate x:DataType="social:SocialUser">
                                         <Grid ColumnSpacing="6" Padding="8,6" Margin="0,0,0,4" CornerRadius="12" Background="{ThemeResource GlassSurface}">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -340,7 +340,7 @@
                                         </Grid>
                                     </DataTemplate></ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <ListView x:Name="FriendsList" Grid.Row="3" ItemsSource="{x:Bind FriendsPeople}" SelectionMode="Single" SelectionChanged="FriendsList_SelectionChanged" AutomationProperties.Name="Friends">
+                                <ListView x:Name="FriendsList" Grid.Row="3" ItemsSource="{x:Bind FriendsPage.Friends}" SelectionMode="Single" SelectionChanged="FriendsList_SelectionChanged" AutomationProperties.Name="Friends">
                                     <ListView.ItemTemplate><DataTemplate x:DataType="social:SocialUser">
                                         <StackPanel Padding="0,6"><TextBlock Text="{x:Bind DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock Text="{x:Bind Username}" FontSize="12" Foreground="{ThemeResource MutedText}"/></StackPanel>
                                     </DataTemplate></ListView.ItemTemplate>
@@ -352,14 +352,14 @@
                             <Grid RowSpacing="12">
                                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                 <Grid>
-                                    <TextBlock x:Name="ChatTitle" Text="Pick a friend to start chatting" Style="{StaticResource SectionTitleStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,48,0"/>
+                                    <TextBlock x:Name="ChatTitle" Text="{x:Bind FriendsPage.ChatTitle, Mode=OneWay}" Style="{StaticResource SectionTitleStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,48,0"/>
                                     <Button x:Name="ChatMenuButton" HorizontalAlignment="Right" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Conversation options" ToolTipService.ToolTip="More">
                                         <FontIcon Glyph="&#xE712;" FontSize="14"/>
                                         <Button.Flyout><MenuFlyout><MenuFlyoutItem x:Name="UnfriendItem" Text="Remove friend" Click="Unfriend_Click"/><MenuFlyoutItem x:Name="BlockItem" Text="Block" Click="BlockFriend_Click"/><MenuFlyoutSeparator/><MenuFlyoutItem Text="Leave Cadenza Friends…" Click="LeaveFriends_Click"/></MenuFlyout></Button.Flyout>
                                     </Button>
                                 </Grid>
                                 <ScrollViewer x:Name="ChatScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                    <ItemsRepeater ItemsSource="{x:Bind ChatItems}" AutomationProperties.Name="Messages">
+                                    <ItemsRepeater ItemsSource="{x:Bind FriendsPage.Messages}" AutomationProperties.Name="Messages">
                                         <ItemsRepeater.Layout><StackLayout Spacing="8"/></ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="models:ChatItem">
                                             <Border HorizontalAlignment="{x:Bind Alignment}" MaxWidth="420" Padding="12,8" CornerRadius="16" Background="{ThemeResource GlassSurface}" BorderBrush="{ThemeResource GlassEdge}" BorderThickness="1">
@@ -379,7 +379,7 @@
                                         </DataTemplate></ItemsRepeater.ItemTemplate>
                                     </ItemsRepeater>
                                 </ScrollViewer>
-                                <Grid x:Name="Composer" Grid.Row="2" ColumnSpacing="8" IsHitTestVisible="False" Opacity="0.5">
+                                <Grid x:Name="Composer" Grid.Row="2" ColumnSpacing="8" IsHitTestVisible="{x:Bind FriendsPage.CanCompose, Mode=OneWay}" Opacity="{x:Bind converters:BindingHelpers.OpacityFor(FriendsPage.CanCompose), Mode=OneWay}">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <TextBox x:Name="ComposerBox" PlaceholderText="Message" MaxLength="2000" KeyDown="Composer_KeyDown" AutomationProperties.Name="Message"/>
                                     <Button Grid.Column="1" Click="ShareNowPlaying_Click" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Share what's playing" ToolTipService.ToolTip="Share what's playing"><FontIcon Glyph="&#xE72D;" FontSize="14"/></Button>
