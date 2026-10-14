@@ -138,7 +138,7 @@ Duplicates are welcome. The queue holds up to 500 tracks, and a bulk add that wo
 | `core/Recommendations/`, `core/Sprites/`, `core/Social/` | "For you" scoring, profile companion art, and the Friends client and contracts |
 | `native/` | Rust DLL and command/event contract |
 | `server/` | Optional Cadenza Friends server (ASP.NET Core + SQLite); see `server/DEPLOY-RASPBERRY-PI.md` |
-| `tests/` | Small entry point, with Suites, Fixtures, and Infrastructure folders |
+| `tests/` | MSTest + Moq unit and integration tests, with Fakes and Fixtures folders |
 
 Preferences live in a small JSON file for now. We?ll consider SQLite when the app has more data to keep between sessions. Spotify Web API data stays in C#; audio/session work belongs in Rust. Async functions do not cross the ABI: commands return promptly and C# Tasks complete when events arrive.
 
@@ -146,14 +146,14 @@ Preferences live in a small JSON file for now. We?ll consider SQLite when the ap
 
 ```powershell
 cargo test --locked --features playback --manifest-path native/Cargo.toml
-dotnet run --project tests/Cadenza.Tests.csproj -c Release
-# Build the DLL and expose it to the native checks:
+dotnet test tests/Cadenza.UnitTests.csproj -c Release -nodeReuse:false --filter "TestCategory!=Native"
+# Build the DLL and expose it to the Native tests (inconclusive without it):
 cargo build --locked --release --features playback --manifest-path native/Cargo.toml
 $env:PATH = (Join-Path $PWD "native\target\release") + ";" + $env:PATH
-dotnet run --project tests/Cadenza.Tests.csproj -c Release -- --native
+dotnet test tests/Cadenza.UnitTests.csproj -c Release -nodeReuse:false
 ```
 
-The Windows script handles DLL placement. On Linux, set `LD_LIBRARY_PATH` to `native/target/release` for the native checks. The Windows interface cannot be run on Linux.
+The Windows script handles DLL placement. On Linux, set `LD_LIBRARY_PATH` to `native/target/release` for the Native tests. The Windows interface cannot be run on Linux.
 
 ## Playback validation still required
 

@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace Cadenza.Tests.Fixtures;
+namespace Cadenza.UnitTests.Fixtures;
 
 /// <summary>Tiny, valid-looking music file headers built in code, so the tests need no binary files.</summary>
 internal static class MusicSamples
@@ -13,9 +13,7 @@ internal static class MusicSamples
         void TextFrame(string id, string value)
         {
             if (value.Length == 0)
-            {
                 return;
-            }
 
             var text = Encoding.Latin1.GetBytes(value);
             frames.AddRange(Encoding.ASCII.GetBytes(id));

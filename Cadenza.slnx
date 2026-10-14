@@ -9,6 +9,6 @@
     <Project Path="server/Cadenza.Server.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Cadenza.Tests.csproj" />
+    <Project Path="tests/Cadenza.UnitTests.csproj" />
   </Folder>
 </Solution>

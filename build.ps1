@@ -21,6 +21,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Build command failed with exit code $LASTEXITCODE" }
     }
     if ($UiOnly) {
+        Invoke-Checked { dotnet test tests/Cadenza.UnitTests.csproj -c Release -nodeReuse:false --filter "TestCategory!=Native" @restoreArguments }
         Invoke-Checked { dotnet build desktop/Cadenza.Desktop.csproj -c Release -p:Platform=x64 -p:BuildNativeAudio=false @restoreArguments @desktopArguments }
         Write-Host 'UI build complete. Playback requires the native audio engine.'
         Write-Host 'Launch: & .\desktop\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64\Cadenza.Desktop.exe'
@@ -29,9 +30,9 @@ try {
     Invoke-Checked { cargo fmt --manifest-path native/Cargo.toml --check }
     Invoke-Checked { cargo test --locked --features playback --manifest-path native/Cargo.toml }
     Invoke-Checked { cargo build --locked --release --features playback --manifest-path native/Cargo.toml }
-    Invoke-Checked { dotnet build tests/Cadenza.Tests.csproj -c Release @restoreArguments }
+    Invoke-Checked { dotnet build tests/Cadenza.UnitTests.csproj -c Release -nodeReuse:false @restoreArguments }
     Copy-Item native/target/release/cadenza_audio.dll tests/bin/Release/net10.0/ -Force
-    Invoke-Checked { dotnet run --project tests/Cadenza.Tests.csproj -c Release --no-build -- --native }
+    Invoke-Checked { dotnet test tests/Cadenza.UnitTests.csproj -c Release -nodeReuse:false --no-build }
     Invoke-Checked { dotnet build desktop/Cadenza.Desktop.csproj -c Release -p:Platform=x64 @restoreArguments @desktopArguments }
     if ($Publish) {
         # Publish into a clean directory so removed files cannot leak into a release.
