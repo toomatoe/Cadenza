@@ -2,12 +2,13 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Cadenza.Core.Interfaces;
 using Cadenza.Core.Models;
 using Cadenza.Core.Services.Catalog;
 using Cadenza.Core.Services.Playback;
-using Cadenza.Core.Services.Spotify;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;
+using Cadenza.Desktop.ViewModels;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -25,13 +26,14 @@ namespace Cadenza.Desktop.Views;
     Justification = "A WinUI Window is not IDisposable; owned resources are released in OnClosed.")]
 public sealed partial class MainWindow : Window
 {
-    private readonly CatalogModel _catalog = new();
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
-    private readonly ListeningQueue _queue = new();
+    private readonly ServiceConfiguration _services;
+    private readonly CatalogModel _catalog;
+    private readonly HttpClient _http;
+    private readonly ListeningQueue _queue;
     private readonly CancellationTokenSource _lifetime = new();
-    private readonly SpotifyAuth _auth;
-    private readonly SpotifyAuth _playbackAuth;
-    private readonly SpotifyApi _spotifyApi;
+    private readonly ISpotifyAuth _auth;
+    private readonly ISpotifyAuth _playbackAuth;
+    private readonly ISpotifyApi _spotifyApi;
     private readonly CatalogController _catalogController;
 
     private Preferences _preferences;
@@ -58,10 +60,15 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         _preferences = PreferencesStore.Load();
-        _auth = new SpotifyAuth(_http, new WindowsTokenStore());
-        _playbackAuth = new SpotifyAuth(_http, new WindowsTokenStore(), SpotifyAuth.PlaybackScope);
-        _spotifyApi = new SpotifyApi(_http, _auth);
-        _catalogController = new CatalogController(_spotifyApi, _catalog);
+        _services = new ServiceConfiguration();
+        _http = _services.Http;
+        _auth = _services.Auth;
+        _playbackAuth = _services.PlaybackAuth;
+        _spotifyApi = _services.SpotifyApi;
+        _catalog = _services.Catalog;
+        _catalogController = _services.CatalogController;
+        _queue = _services.Queue;
+        Recommendations = new RecommendationsViewModel(() => _services.Recommendations);
 
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
@@ -211,14 +218,10 @@ public sealed partial class MainWindow : Window
         }
         finally
         {
-            _similarArtists?.Dispose();
             if (_socialLive is not null)
                 await _socialLive.DisposeAsync();
 
-            _spotifyApi.Dispose();
-            _auth.Dispose();
-            _playbackAuth.Dispose();
-            _http.Dispose();
+            _services.Dispose();
             _lifetime.Dispose();
         }
     }

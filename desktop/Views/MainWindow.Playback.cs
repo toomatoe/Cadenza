@@ -161,19 +161,19 @@ public sealed partial class MainWindow
         {
             PlaybackLabel.Text = "Approve in browser…";
             Message("One-time step: approve Spotify playback in your browser, then return here.");
-            await _playbackAuth.ConnectAsync(SpotifyAuth.PlaybackClientId, cancellationToken, SpotifyAuth.PlaybackRedirectUri);
+            await _playbackAuth.ConnectAsync(SpotifyAuth.PlaybackClientId, SpotifyAuth.PlaybackRedirectUri, cancellationToken);
             Notice.IsOpen = false;
         }
 
         PlaybackLabel.Text = "Connecting…";
         try
         {
-            await engine.AuthenticateAsync(_playbackAuth.ClientId, await _playbackAuth.GetAccessTokenAsync(cancellationToken), cancellationToken);
+            await engine.AuthenticateAsync(_playbackAuth.ClientId, await _playbackAuth.GetAccessTokenAsync(forceRefresh: false, cancellationToken), cancellationToken);
         }
         catch (InvalidOperationException) when (!cancellationToken.IsCancellationRequested)
         {
             // A stale playback token is the common cause; refresh once before reporting failure.
-            var refreshed = await _playbackAuth.GetAccessTokenAsync(cancellationToken, forceRefresh: true);
+            var refreshed = await _playbackAuth.GetAccessTokenAsync(forceRefresh: true, cancellationToken);
             await engine.AuthenticateAsync(_playbackAuth.ClientId, refreshed, cancellationToken);
         }
     }

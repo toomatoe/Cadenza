@@ -243,7 +243,7 @@
 
                 <ScrollViewer x:Name="RecommendationsPanel" Grid.RowSpan="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Spacing="22" Padding="0,0,4,16">
-                        <InfoBar x:Name="ReconnectForRecommendations" IsOpen="False" IsClosable="True" Severity="Informational" CornerRadius="14" Title="One more permission" Message="Reconnect Spotify in Settings so suggestions can use your top artists and recent plays.">
+                        <InfoBar x:Name="ReconnectForRecommendations" IsOpen="{x:Bind Recommendations.MissingScopes, Mode=TwoWay}" IsClosable="True" Severity="Informational" CornerRadius="14" Title="One more permission" Message="Reconnect Spotify in Settings so suggestions can use your top artists and recent plays.">
                             <InfoBar.ActionButton><Button Content="Open Settings" Tag="Settings" Click="Navigate_Click"/></InfoBar.ActionButton>
                         </InfoBar>
                         <Border Style="{StaticResource GlassCardStyle}" CornerRadius="22" Padding="22,18">
@@ -259,11 +259,11 @@
                                     </Grid>
                                 </StackPanel>
                                 <Button Grid.Column="1" Click="RefreshRecommendations_Click" Style="{StaticResource PillAccentButtonStyle}" VerticalAlignment="Center" AutomationProperties.Name="Refresh suggestions"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="14"/><TextBlock Text="Refresh" Style="{StaticResource ButtonLabelStyle}"/></StackPanel></Button>
-                                <TextBlock x:Name="RecommendationsStatus" Grid.Row="1" Grid.ColumnSpan="2" Foreground="{ThemeResource MutedText}" FontSize="12" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="RecommendationsStatus" Text="{x:Bind Recommendations.Status, Mode=OneWay}" Grid.Row="1" Grid.ColumnSpan="2" Foreground="{ThemeResource MutedText}" FontSize="12" TextWrapping="Wrap"/>
                             </Grid>
                         </Border>
-                        <TextBlock x:Name="RecommendationsEmpty" Foreground="{ThemeResource MutedText}" TextWrapping="Wrap" Margin="4,0"/>
-                        <ItemsRepeater ItemsSource="{x:Bind RecommendationShelves}" AutomationProperties.Name="Suggestions">
+                        <TextBlock x:Name="RecommendationsEmpty" Text="{x:Bind Recommendations.EmptyText, Mode=OneWay}" Visibility="{x:Bind Recommendations.IsEmpty, Mode=OneWay}" Foreground="{ThemeResource MutedText}" TextWrapping="Wrap" Margin="4,0"/>
+                        <ItemsRepeater ItemsSource="{x:Bind Recommendations.Shelves}" AutomationProperties.Name="Suggestions">
                             <ItemsRepeater.Layout><StackLayout Spacing="22"/></ItemsRepeater.Layout>
                             <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="models:RecommendationShelfView">
                                 <StackPanel Spacing="16">

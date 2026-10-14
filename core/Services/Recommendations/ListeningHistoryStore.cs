@@ -1,3 +1,4 @@
+using Cadenza.Core.Interfaces;
 using System.Text.Json;
 using Cadenza.Core.Models.Recommendations;
 
@@ -7,7 +8,7 @@ namespace Cadenza.Core.Services.Recommendations;
 /// Cadenza's local listening events and recently suggested tracks, kept in one JSON file on this
 /// device. Bounded so it never grows without limit; never uploaded.
 /// </summary>
-public sealed class ListeningHistoryStore
+public sealed class ListeningHistoryStore : IListeningHistoryStore
 {
     public const int MaxEvents = 2000;
     public const int RememberedRefreshes = 3;

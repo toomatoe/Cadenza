@@ -1,68 +1,29 @@
-using System.Collections.ObjectModel;
 using Cadenza.Core.Models;
 using Cadenza.Core.Models.Recommendations;
-using Cadenza.Core.Services.Recommendations;
 using Cadenza.Desktop.Models;
 using Cadenza.Desktop.Services;
+using Cadenza.Desktop.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Cadenza.Desktop.Views;
 
+/// <summary>The "For you" page: thin glue between the controls and <see cref="RecommendationsViewModel"/>.</summary>
 public sealed partial class MainWindow
 {
     private const double SkipWindowMs = 30_000;
-    private const string SnapshotFile = "recommendations-last.json";
 
-    // Created on first use so the feature costs nothing until the "For you" page is opened.
-    private ListeningHistoryStore? _history;
-    private ListenBrainzSimilarArtists? _similarArtists;
-    private CachedTrackResolver? _artistTracks;
-    private RecommendationEngine? _recommendationEngine;
-    private bool _recommendationsLoaded;
-
-    private List<RecommendationCard> _recommendations = [];
-
-    public ObservableCollection<RecommendationShelfView> RecommendationShelves { get; } = [];
-
-    private ListeningHistoryStore History => _history ??= new ListeningHistoryStore(DataPath("listening-history.json"));
-
-    private static string DataPath(string fileName) =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cadenza", fileName);
+    public RecommendationsViewModel Recommendations { get; }
 
     private async Task ShowRecommendationsAsync(bool refresh)
     {
-        if (!_auth.IsConnected)
-        {
-            RecommendationsEmpty.Text = "Connect Spotify in Settings to get suggestions.";
-            UpdateRecommendationSurfaces();
-            return;
-        }
-
-        if (_recommendationsLoaded && !refresh)
-        {
-            UpdateRecommendationSurfaces();
-            return;
-        }
-
-        // Opening the page shows the last suggestions straight away; only Refresh recomputes them.
-        if (!refresh && RecommendationSnapshot.Load(DataPath(SnapshotFile), DateTimeOffset.UtcNow) is { } saved)
-        {
-            ShowRecommendations(saved.Result);
-            RecommendationsStatus.Text = $"Suggested {saved.MadeAt.ToLocalTime():t}. Refresh for new ones.";
-            return;
-        }
-
-        await RunAsync(LoadRecommendationsAsync);
+        var needsRefresh = Recommendations.Open(_auth.IsConnected);
+        if (_auth.IsConnected && (refresh || needsRefresh))
+            await RunAsync(LoadRecommendationsAsync);
     }
 
     private async Task LoadRecommendationsAsync(CancellationToken cancellationToken)
     {
-        _similarArtists ??= new ListenBrainzSimilarArtists(_http, DataPath("recommendation-cache.json"));
-        _artistTracks ??= new CachedTrackResolver(new SpotifyTrackResolver(_spotifyApi), DataPath("recommendation-tracks.json"));
-        _recommendationEngine ??= new RecommendationEngine(_similarArtists, _artistTracks);
-        RecommendationsStatus.Text = "Finding music for you…";
-        var (inputs, missingScopes) = await new TasteInputsLoader(_spotifyApi, History).LoadAsync(cancellationToken);
         var discovery = DiscoverySlider.Value / 100;
         if (Math.Abs(_preferences.Discovery - discovery) > 0.001)
         {
@@ -70,36 +31,7 @@ public sealed partial class MainWindow
             PreferencesStore.Save(_preferences);
         }
 
-        var profile = TasteProfile.Build(inputs, DateTimeOffset.UtcNow);
-        var result = await _recommendationEngine.RecommendAsync(profile, discovery, History.RecentlySuggested, cancellationToken);
-        History.RememberSuggestions(result.Items.Select(item => item.Track.Id));
-        RecommendationSnapshot.Save(DataPath(SnapshotFile), result, DateTimeOffset.UtcNow);
-
-        ShowRecommendations(result);
-        ReconnectForRecommendations.IsOpen = missingScopes;
-        RecommendationsStatus.Text = result.Warnings.Count > 0
-            ? result.Warnings[0] + " Showing what we could find."
-            : "Based on what you save and play. Nothing about you leaves this device except artist names.";
-    }
-
-    private static readonly (RecommendationShelf Shelf, string Title)[] _shelves =
-    [
-        (RecommendationShelf.MoreLikeYourFavourites, "More like your favourites"),
-        (RecommendationShelf.DeeperCuts, "Deeper cuts from artists you love"),
-        (RecommendationShelf.SomethingNew, "Something new"),
-    ];
-
-    private void UpdateRecommendationSurfaces()
-    {
-        RecommendationShelves.Clear();
-        foreach (var (shelf, title) in _shelves)
-        {
-            var cards = _recommendations.Where(card => card.Shelf == shelf).ToArray();
-            if (cards.Length > 0)
-                RecommendationShelves.Add(new RecommendationShelfView(title, cards));
-        }
-
-        RecommendationsEmpty.Visibility = ToVisibility(_recommendations.Count == 0);
+        await Recommendations.RefreshAsync(discovery, cancellationToken);
     }
 
     private async void RefreshRecommendations_Click(object sender, RoutedEventArgs e) => await ShowRecommendationsAsync(refresh: true);
@@ -109,9 +41,7 @@ public sealed partial class MainWindow
         if (((Button)sender).Tag is not RecommendationCard card)
             return;
 
-        History.Record(new ListeningEvent(ListeningEventKind.NotInterested, card.Track.Id, card.Track.LeadArtist, DateTimeOffset.UtcNow));
-        _recommendations.Remove(card);
-        UpdateRecommendationSurfaces();
+        Recommendations.NotInterested(card);
         Message($"Got it. Fewer suggestions like {card.Track.LeadArtist} from now on.");
     }
 
@@ -127,11 +57,11 @@ public sealed partial class MainWindow
             AddToQueue(card.Track);
     }
 
-    /// <summary>Records a listening signal for the playing track; a no-op until history exists or matters.</summary>
+    /// <summary>Records a listening signal for the playing track.</summary>
     private void RecordListening(ListeningEventKind kind, Track? track)
     {
         if (track is not null)
-            History.Record(new ListeningEvent(kind, track.Id, track.LeadArtist, DateTimeOffset.UtcNow));
+            Recommendations.RecordListening(kind, track);
     }
 
     /// <summary>"Next" within the first 30 seconds counts as a skip.</summary>
@@ -141,21 +71,5 @@ public sealed partial class MainWindow
             RecordListening(ListeningEventKind.Skipped, _playingTrack);
     }
 
-    private void ShowRecommendations(RecommendationResult result)
-    {
-        _recommendations = result.Items.Select(item => new RecommendationCard(item)).ToList();
-        _recommendationsLoaded = true;
-        RecommendationsEmpty.Text = "Listen to a few tracks and save some favourites, and suggestions will appear here.";
-        UpdateRecommendationSurfaces();
-    }
-
-    private void ForgetRecommendations()
-    {
-        History.Clear();
-        RecommendationSnapshot.Delete(DataPath(SnapshotFile));
-        _artistTracks?.Clear();
-        _recommendations.Clear();
-        RecommendationShelves.Clear();
-        _recommendationsLoaded = false;
-    }
+    private void ForgetRecommendations() => Recommendations.Forget();
 }

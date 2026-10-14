@@ -2,7 +2,7 @@ using System.Net;
 using Cadenza.Core.Exceptions;
 using Cadenza.Core.Models;
 using Cadenza.Core.Models.Recommendations;
-using Cadenza.Core.Services.Spotify;
+using Cadenza.Core.Interfaces;
 
 namespace Cadenza.Core.Services.Recommendations;
 
@@ -10,10 +10,10 @@ namespace Cadenza.Core.Services.Recommendations;
 public sealed class TasteInputsLoader
 {
     public const int SavedTrackLimit = 200;
-    private readonly SpotifyApi _api;
-    private readonly ListeningHistoryStore _history;
+    private readonly ISpotifyApi _api;
+    private readonly IListeningHistoryStore _history;
 
-    public TasteInputsLoader(SpotifyApi api, ListeningHistoryStore history)
+    public TasteInputsLoader(ISpotifyApi api, IListeningHistoryStore history)
     {
         _api = api;
         _history = history;

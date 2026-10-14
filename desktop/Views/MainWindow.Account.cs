@@ -27,7 +27,7 @@ public sealed partial class MainWindow
                 await _auth.DisconnectAsync(ct);
 
             var redirect = SpotifyAuth.ValidateRedirectUri(RedirectUriBox.Text).AbsoluteUri;
-            await _auth.ConnectAsync(clientId, ct, redirect);
+            await _auth.ConnectAsync(clientId, redirect, ct);
             _preferences = _preferences with { ClientId = clientId, RedirectUri = redirect };
             PreferencesStore.Save(_preferences);
             ConnectionLabel.Text = "Spotify connected";

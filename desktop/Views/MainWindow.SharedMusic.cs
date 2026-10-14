@@ -19,7 +19,7 @@ public sealed partial class MainWindow
     private readonly Dictionary<string, string> _libraryFormats = [];
     private LibraryCache? _libraryCache;
 
-    private LibraryCache SongCache => _libraryCache ??= new LibraryCache(DataPath("library-cache"));
+    private LibraryCache SongCache => _libraryCache ??= new LibraryCache(_services.DataPath("library-cache"));
 
     private async Task PlayLibraryTrackAsync(Track track, CancellationToken cancellationToken)
     {
