@@ -1,34 +1,56 @@
-# Native application structure
+# Architecture
 
-Cadenza remains C#/WinUI 3 with the existing Rust audio engine. There is no web frontend or new framework dependency.
+Cadenza is a C#/WinUI 3 app with a Rust audio engine and an optional ASP.NET Core Friends server. It has no web frontend and no UI framework beyond WinUI. Keeping it lightweight is a goal (see `AGENTS.md`), so the app has no DI container, MVVM toolkit or logging framework.
 
-The catalog follows MVC boundaries:
+Code rules are in [CODING-STANDARDS.md](CODING-STANDARDS.md). This file describes where things live.
 
-| Responsibility | Files | Rules |
+## Projects
+
+| Project | Folder | Role |
 | --- | --- | --- |
-| Domain models | `core/Models/Track.cs`, `Playlist.cs`, `QueueEntry.cs`, `Page.cs`, `Tokens.cs`, `ListeningQueue.cs`, `PlaybackState.cs`, `PlaybackUpdate.cs`, `TrackSource.cs` | Each model has its own file. Track/playlist values are immutable; the queue has bounded undo history and one reusable read-only view. |
-| Presentation model | `core/Models/CatalogModel.cs` | Stable observable collections and committed paging state, with a 500-item limit. |
-| Catalog controller | `core/Controllers/CatalogController.cs` | Selects the metadata request, checks cancellation before committing, replaces/appends pages, and enforces collection bounds. No WinUI references. |
-| Service contracts | `core/Services/Contracts/IMusicCatalog.cs`, `ITokenStore.cs` | Metadata and credential-storage contracts, separated from models and implementations. |
-| Spotify services | `core/Services/Spotify/SpotifyApi.cs`, `SpotifyAuth.cs` | HTTP, authentication retries, response parsing, and shared page size. The controller accepts a fake metadata service in tests. |
-| Native view | `desktop/Views/MainWindow.xaml` and its partial C# files | Controls, navigation, notifications, keyboard handling, rendering, and UI-thread dispatch. Catalog operations delegate to the controller. |
-| Preference models | `desktop/Models/Preferences.cs`, `AppearanceMode.cs` | Preference values only; Wallpaper is the appearance default, while old Solid preferences are retained. |
-| Windows services | `desktop/Services/PreferencesStore.cs`, `WindowsTokenStore.cs` | JSON persistence with atomic replacement and Windows Credential Manager access. Persistence does not live in models. |
-| Native playback services | `core/Services/Playback/NativeEngine.cs`, `PlaybackErrors.cs`, `native/` | Existing command/event ABI, bounded queues, request correlation, and native audio lifecycle. Playback state and update records live in Models. |
-| Recommendations | `core/Recommendations/` | Deterministic taste profile, ListenBrainz similarity lookups, scoring and diversity re-rank; documented in `docs/features/recommendations.md`. |
-| Friends | `core/Social/`, `server/` | Shared contracts and validation, the HTTP + WebSocket client, and the ASP.NET Core + SQLite server; documented in `docs/features/friends.md`. |
-| Supporting types | `core/Security/Pkce.cs`, `core/Exceptions/SpotifyApiException.cs`, `desktop/Converters/ArtworkConverter.cs` | Security helpers, exceptions, and XAML converters are separated from services, models, and views. |
+| `Cadenza.Core` | `core/` | Domain models, service interfaces and their implementations. No WinUI references, so it's fully unit-testable. |
+| `Cadenza.Desktop` | `desktop/` | The WinUI 3 app: window, XAML, controls, Windows-specific services. |
+| `Cadenza.Server` | `server/` | The optional Friends server: accounts, chat, the shared music library. |
+| `Cadenza.UnitTests` | `tests/` | MSTest + Moq tests for core and the server, including end-to-end server tests. |
+| `cadenza-audio` | `native/` | The Rust audio engine (librespot for Spotify, rodio/Symphonia for library files), called through a small C ABI. |
 
-`desktop/App.xaml` and `App.xaml.cs` remain at the project root as the WinUI application entry point. Files in `desktop/Views/` use the `Cadenza.Desktop.Views` namespace. The same folder-to-namespace convention applies to Models, Controllers, Services, Security, Exceptions, and Converters.
+## `core/` (`Cadenza.Core`)
 
-`desktop/Views/MainWindow.xaml.cs` contains composition and window lifecycle. Its `.Catalog.cs`, `.Account.cs`, `.Queue.cs`, `.Appearance.cs`, and `.Playback.cs` partials group the corresponding native-view responsibilities. Partial files share the same window instance; moving methods introduces no new runtime objects or event subscriptions.
+| Folder | Holds |
+| --- | --- |
+| `Interfaces/` | Service contracts: `IMusicCatalog`, `ITokenStore`, `ISimilarArtistProvider`, `ITrackResolver`, … |
+| `Models/` | `Track`, `Playlist`, `Page`, `QueueEntry`, `ListeningQueue`, `CatalogModel`, playback state and updates, `Tokens`. |
+| `Models/Social/` | Friends contracts, grouped by feature: `AccountModels`, `FriendModels`, `MessageModels`, `LibraryModels`. |
+| `Models/Recommendations/` | Taste inputs, listening events, recommendations and score breakdowns. |
+| `Services/Catalog/` | `CatalogController` (paging, cancellation and bounds for the track and playlist lists) and `QueuePlaybackController`. |
+| `Services/Spotify/` | `SpotifyApi`, `SpotifyAuth` (PKCE sign-in, token refresh) and `Pkce`. |
+| `Services/Playback/` | `NativeEngine` (the managed side of the Rust ABI) and `PlaybackErrors`. |
+| `Services/Recommendations/` | The "For you" engine: taste profile, ListenBrainz lookups, scoring, caches. See `docs/features/recommendations.md`. |
+| `Services/Social/` | The Friends client (`SocialClient`, `SocialConnection`), the library song cache, validation rules and music formats. |
+| `Services/Music/` | `MusicFileReader`: tags and duration from MP3/FLAC/Ogg files, with no extra libraries. |
+| `Services/Sprites/` | The profile companion's pixel art and composer. |
+| `Exceptions/` | `SpotifyApiException`, `SocialException`. |
 
-The working player orchestration remains in `MainWindow.Playback.cs`; this change does not claim a complete MVC rewrite of the playback lifecycle. The catalog controller is the first extracted application controller. Playback commands, session restoration, event handling, and queue progression were preserved when organizing the view code.
+## `desktop/` (`Cadenza.Desktop`)
 
-Catalog operations resume on the caller's UI synchronization context. Keep collection mutation serialized on that context. The view cancels superseded requests; the controller rejects a canceled result even when a metadata provider ignores cancellation. Do not update observable collections from a worker thread or add polling to synchronize the view.
+- `App.xaml` / `App.xaml.cs` are the WinUI entry point and theme resources.
+- `Views/MainWindow.xaml` is the single window. Its code-behind is split by feature into partials: `.Catalog`, `.Library`, `.Queue`, `.Playback`, `.Account`, `.Appearance`, `.Profile`, `.Recommendations`, `.Friends`, `.SharedMusic`. *Planned:* move page state and logic into `ViewModels/`, behind core interfaces, with a hand-written `ServiceConfiguration` composition root.
+- `Models/` holds desktop values (`Preferences`, `AppView`, `AppearanceMode`) and display items.
+- `Services/` holds Windows-only services: `PreferencesStore` (JSON with atomic replace) and `WindowsTokenStore` (Credential Manager).
+- `Controls/` (`PixelSprite`, `SquareArtwork`) and `Converters/` (`ArtworkConverter`) are UI building blocks.
+- UI rules are in `docs/UI-GUIDE.md`.
 
-The generated WinUI entry point is owned by the SDK. `tests/Program.cs` only selects named check suites and prints the result. Checks live in `tests/Suites/`, fake providers and test data in `tests/Fixtures/`, and the assertion runner in `tests/Infrastructure/`. Each fixture has its own file. The optional `--native` suite remains available without being required by managed controller checks.
+## `server/` (`Cadenza.Server`)
 
-## Coding conventions
+- `ServerApp.Build` creates the app with `AddCadenzaServer(configuration)`, `UseCadenzaServer()` and `MapCadenzaEndpoints()` (in `Extensions/`).
+- `Endpoints/` has one minimal-API group per feature (accounts, friends, messages, music) plus `AuthenticationFilter`.
+- `Interfaces/` (`ISocialStore`, `IMusicLibrary`, `IConnectionHub`) and `Services/` hold the SQLite store, the song files, the WebSocket hub and `TokenHasher`.
+- `Models/CadenzaServerOptions` is bound from the `Cadenza` configuration section. `Models/RateLimitPolicies` holds the rate limits.
+- Deployment is covered in `server/DEPLOY-RASPBERRY-PI.md`.
 
-The rules live in [CODING-STANDARDS.md](CODING-STANDARDS.md). They follow the Campaign Deputy team standards and cover language, formatting, naming, project structure, services, errors, docs and tests. `.editorconfig` and `Directory.Build.props` enforce what they can, and the build treats warnings as errors.
+## Threading and state
+
+- Catalog and Friends calls resume on the UI synchronization context. Observable collections change only on the UI thread, never from a worker thread.
+- The view cancels superseded requests. `CatalogController` rejects a cancelled result even when a provider ignores cancellation.
+- Native playback events arrive on a background thread and are dispatched to the UI thread. Async work doesn't cross the Rust ABI: commands return promptly, and C# tasks complete when the matching event arrives.
+- Feature services (recommendations, Friends, the library cache) are created on first use, so unused features cost nothing.

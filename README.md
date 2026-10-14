@@ -131,11 +131,10 @@ Duplicates are welcome. The queue holds up to 500 tracks, and a bulk add that wo
 | `desktop/Models/` | Desktop preference values |
 | `desktop/Services/` | Windows credential storage and preference persistence |
 | `desktop/Converters/` | XAML artwork conversion |
-| `core/Models/` | Track, playlist, paging, token, queue, and playback models |
-| `core/Controllers/` | Catalog request coordination and model updates |
-| `core/Services/` | Spotify services, playback bridge, and service contracts |
-| `core/Security/`, `core/Exceptions/` | PKCE helper and service exceptions |
-| `core/Recommendations/`, `core/Sprites/`, `core/Social/` | "For you" scoring, profile companion art, and the Friends client and contracts |
+| `core/Interfaces/` | Service contracts |
+| `core/Models/` | Track, playlist, paging, queue and playback models, plus `Social/` and `Recommendations/` models |
+| `core/Services/` | Implementations by feature: Catalog, Spotify, Playback, Recommendations, Social, Music, Sprites |
+| `core/Exceptions/` | Service exceptions |
 | `native/` | Rust DLL and command/event contract |
 | `server/` | Optional Cadenza Friends server (ASP.NET Core + SQLite); see `server/DEPLOY-RASPBERRY-PI.md` |
 | `tests/` | MSTest + Moq unit and integration tests, with Fakes and Fixtures folders |
