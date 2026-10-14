@@ -99,7 +99,7 @@ Project-specific layout:
 
 ## 9. Documentation
 
-- **XML doc comments on every public API** (`<summary>`, plus `<param>`/`<returns>`/`<exception>` where they add information). Add `<example>`/`<code>` where usage isn't obvious. The build enforces this: CS1591 is not suppressed.
+- **XML doc comments where they help, not on every member.** Document service interfaces, public entry points and anything whose behaviour, units or side effects aren't obvious from the name (`<summary>`, plus `<param>`/`<returns>`/`<exception>` when they add information). Self-explanatory members (simple properties, obvious methods) don't need one. The build doesn't require them (CS1591 is suppressed).
 - Feature behaviour belongs in `docs/features/<feature>.md`; UI rules in `docs/UI-GUIDE.md`.
 
 ## 10. Tests
