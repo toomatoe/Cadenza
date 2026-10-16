@@ -1,0 +1,26 @@
+# Bind mount keeps the database on the Pi outside the container.
+# Follow DEPLOY-DOCKER-PI.md to create /srv/cadenza/data with the correct owner.
+services:
+  friends:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    image: cadenza-friends:local
+    container_name: cadenza-friends
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      Cadenza__Database: /data/cadenza.db
+      Cadenza__MusicFolder: /data/music
+    volumes:
+      - /srv/cadenza/data:/data
+    # Local only until a reviewed HTTPS tunnel is configured.
+    ports:
+      - "127.0.0.1:5080:8080"
