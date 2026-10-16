@@ -2,6 +2,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+# Shared build settings enable implicit usings, nullable checks and analyzers.
+COPY Directory.Build.props ./
 COPY core/Cadenza.Core.csproj core/
 COPY server/Cadenza.Server.csproj server/
 RUN dotnet restore server/Cadenza.Server.csproj
