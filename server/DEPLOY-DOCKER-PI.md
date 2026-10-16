@@ -94,7 +94,7 @@ sudo systemctl start cadenza-backup.service
 
 ```bash
 sudo docker compose down
-sudo mkdir -p /srv/cadenza/recovery
+sudo install -d -m 0700 /srv/cadenza/recovery
 sudo cp -a /srv/cadenza/data/cadenza.db* /srv/cadenza/recovery/
 sudo ls -lh /srv/cadenza/backups/
 ```
