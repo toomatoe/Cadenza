@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=build /out/ ./
 
 ENV ASPNETCORE_ENVIRONMENT=Production \
-    ASPNETCORE_HTTP_PORTS=8080 \
+    Urls=http://0.0.0.0:8080 \
     Cadenza__Database=/data/cadenza.db \
     Cadenza__MusicFolder=/data/music
 
