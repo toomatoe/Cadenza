@@ -39,7 +39,21 @@ jobs:
           sudo install -d -m 0700 -o 1654 -g 1654 /srv/cadenza/data
           sudo install -d -m 0700 /srv/cadenza/backups
           docker compose -f server/compose.yaml up -d --no-build
-          curl --retry 30 --retry-delay 1 --retry-connrefused --fail --silent http://127.0.0.1:5080/health | grep -qx ok
+          # The server can take a moment to start. ASP.NET may encode a string as JSON.
+          healthy=false
+          for attempt in $(seq 1 30); do
+            response="$(curl --fail --silent http://127.0.0.1:5080/health || true)"
+            if [[ "$response" == "ok" || "$response" == '"ok"' ]]; then
+              healthy=true
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$healthy" != true ]]; then
+            echo "Health endpoint did not become ready; last response: $response"
+            docker compose -f server/compose.yaml logs --tail=100
+            exit 1
+          fi
           sudo test -f /srv/cadenza/data/cadenza.db
           docker compose -f server/compose.yaml down
 
