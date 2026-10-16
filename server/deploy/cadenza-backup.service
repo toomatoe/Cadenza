@@ -1,0 +1,14 @@
+[Unit]
+Description=Create and verify a Cadenza SQLite backup
+ConditionPathExists=/srv/cadenza/data/cadenza.db
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/local/sbin/cadenza-backup
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
