@@ -1,0 +1,35 @@
+name: Cadenza server container
+
+on:
+  pull_request:
+    paths:
+      - ".dockerignore"
+      - "core/**"
+      - "server/**"
+      - ".github/workflows/cadenza-server-container.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".dockerignore"
+      - "core/**"
+      - "server/**"
+      - ".github/workflows/cadenza-server-container.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate backup scripts
+        run: bash -n server/deploy/backup.sh server/deploy/install-backups.sh
+
+      - name: Validate Docker Compose
+        run: docker compose -f server/compose.yaml config --quiet
+
+      - name: Build production-only ASP.NET Core image
+        run: docker build --file server/Dockerfile --tag cadenza-friends:ci .
