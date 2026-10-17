@@ -124,6 +124,8 @@ df -h /srv/cadenza
 
 Data is stored outside the container; `docker compose down` does **not** delete it. **Never use `rm -rf /srv/cadenza/data` to clean up the service.** If you switch to an SSD later, move both the data directory and backup destination to appropriate mounted locations and adjust Compose and the backup script together.
 
-## 7. Before inviting users outside your home
+## 7. Connect securely without a domain
 
-Set up a stable HTTPS endpoint (domain or a supported `ts.net` Funnel address), confirm WebSocket connectivity, update the Cadenza client server URL, review the SQLite package security advisory in `Cadenza.Server.csproj`, and set up **off-device encrypted backups with a tested restore**. Keep the current loopback-only binding until then. No router port forwarding is required.
+Follow **[TAILSCALE.md](TAILSCALE.md)** to install Tailscale on the Pi and Windows, give the server a private HTTPS address with Tailscale Serve, and join your first Cadenza account. This does not require a domain or public router ports.
+
+Do not enable public Funnel access until you have reviewed authentication, rate limits, WebSocket handling, uploaded music storage, and security dependencies, and configured **off-device encrypted backups with a tested restore**. Keep the host binding on loopback even when the HTTPS proxy is active.
