@@ -1,0 +1,66 @@
+name: Cadenza server container
+
+on:
+  pull_request:
+    paths:
+      - ".dockerignore"
+      - "core/**"
+      - "server/**"
+      - ".github/workflows/cadenza-server-container.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".dockerignore"
+      - "core/**"
+      - "server/**"
+      - ".github/workflows/cadenza-server-container.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate backup scripts
+        run: bash -n server/deploy/backup.sh server/deploy/install-backups.sh
+
+      - name: Validate Docker Compose
+        run: docker compose -f server/compose.yaml config --quiet
+
+      - name: Build production-only ASP.NET Core image
+        run: docker build --file server/Dockerfile --tag cadenza-friends:local .
+
+      - name: Smoke-test runtime and SQLite persistence
+        run: |
+          sudo install -d -m 0700 -o 1654 -g 1654 /srv/cadenza/data
+          sudo install -d -m 0700 /srv/cadenza/backups
+          docker compose -f server/compose.yaml up -d --no-build
+          # The server can take a moment to start. ASP.NET may encode a string as JSON.
+          healthy=false
+          for attempt in $(seq 1 30); do
+            response="$(curl --fail --silent http://127.0.0.1:5080/health || true)"
+            if [[ "$response" == "ok" || "$response" == '"ok"' ]]; then
+              healthy=true
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$healthy" != true ]]; then
+            echo "Health endpoint did not become ready; last response: $response"
+            docker compose -f server/compose.yaml logs --tail=100
+            exit 1
+          fi
+          sudo test -f /srv/cadenza/data/cadenza.db
+          docker compose -f server/compose.yaml down
+
+      - name: Check online backup and database integrity
+        run: |
+          command -v sqlite3 || (sudo apt-get update -qq && sudo apt-get install -y sqlite3)
+          sudo bash server/deploy/backup.sh
+          backup="$(sudo find /srv/cadenza/backups -maxdepth 1 -name 'cadenza-*.db' -type f | head -n 1)"
+          test -n "$backup"
+          test "$(sudo sqlite3 "$backup" 'PRAGMA integrity_check;')" = "ok"

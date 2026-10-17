@@ -9,8 +9,11 @@ namespace Cadenza.Server;
 /// Builds the Cadenza Friends server: a small JSON API plus one WebSocket per device for live events.
 /// Kestrel listens on localhost only; Cloudflare Tunnel (or a reverse proxy) provides HTTPS.
 /// </summary>
-public static class ServerApp
+public static partial class ServerApp
 {
+    [LoggerMessage(1000, LogLevel.Warning, "No accounts yet. Join from Cadenza with invite code {Code}")]
+    private static partial void LogBootstrapCode(ILogger logger, string code);
+
     /// <summary>Builds the configured server. <paramref name="configure"/> lets tests adjust the builder.</summary>
     /// <example>
     /// <code>
@@ -41,6 +44,6 @@ public static class ServerApp
         if (code is null)
             return;
 
-        app.Logger.LogWarning("No accounts yet. Join from Cadenza with invite code {Code}", code);
+        LogBootstrapCode(app.Logger, code);
     }
 }
