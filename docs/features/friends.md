@@ -92,7 +92,7 @@ Phases 1–3 are built: accounts, friend lists, one-to-one chat, share cards, qu
 
 **Tests:** `tests/Suites/SocialChecks.cs` starts the real server on a random local port with a temporary database, and drives it with the real client and WebSocket. It covers invites, friend requests, live delivery, history paging, validation, reports, blocks, sign-out and account deletion.
 
-**Known caveat:** the bundled SQLite build (`SQLitePCLRaw` 2.1.11) is flagged for CVE-2025-6965, and no patched 2.x release exists yet. The bug needs attacker-controlled SQL to trigger, and this server only runs fixed, parameterized statements, so the advisory is suppressed with a note in the project file. Remove the suppression when a patched release ships. On the Pi, the system's `libsqlite3` could be used instead.
+**SQLite dependency:** the earlier 2.1.11 bundled SQLite package was flagged for CVE-2025-6965. The Pi deployment branch now uses `SQLitePCLRaw.bundle_e_sqlite3` 2.1.14, which is outside the advisory's affected version range, and removes the audit suppression. Keep NuGet audit enabled for future updates.
 
 ## Page design (follows docs/UI-GUIDE.md)
 
