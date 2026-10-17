@@ -7,8 +7,8 @@ if ! command -v sqlite3 >/dev/null; then
     echo "sqlite3 is required: sudo apt install sqlite3" >&2
     exit 1
 fi
-if [[ ! -f /srv/cadenza/data/cadenza.db ]]; then
-    echo "Start Cadenza first. Missing /srv/cadenza/data/cadenza.db" >&2
+if ! sudo test -f /srv/cadenza/data/cadenza.db; then
+    echo "Cadenza database not found at /srv/cadenza/data/cadenza.db. Verify the server is running and check its storage mount." >&2
     exit 1
 fi
 
