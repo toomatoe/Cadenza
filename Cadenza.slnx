@@ -11,4 +11,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Cadenza.UnitTests.csproj" />
   </Folder>
+  <Folder Name="/ui-tests/">
+    <Project Path="ui-tests/Cadenza.UI.Tests.csproj" />
+  </Folder>
 </Solution>

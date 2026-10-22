@@ -138,6 +138,7 @@ Duplicates are welcome. The queue holds up to 500 tracks, and a bulk add that wo
 | `native/` | Rust DLL and command/event contract |
 | `server/` | Optional Cadenza Friends server (ASP.NET Core + SQLite); see `server/DEPLOY-RASPBERRY-PI.md` |
 | `tests/` | MSTest + Moq unit and integration tests, with Fakes and Fixtures folders |
+| `ui-tests/` | End-to-end UI tests that drive the real app through Windows UI Automation (headless by default) |
 
 Preferences live in a small JSON file for now. We?ll consider SQLite when the app has more data to keep between sessions. Spotify Web API data stays in C#; audio/session work belongs in Rust. Async functions do not cross the ABI: commands return promptly and C# Tasks complete when events arrive.
 

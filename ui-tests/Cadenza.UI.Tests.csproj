@@ -1,0 +1,16 @@
+<Project Sdk="MSTest.Sdk/4.0.2">
+  <!--
+    End-to-end UI tests: start the real Cadenza.Desktop.exe and drive it through Windows UI Automation
+    (System.Windows.Automation, part of the Windows desktop runtime, so no extra packages). The app runs
+    off-screen without taking focus unless the "Headless" run setting is false; see ui-tests/README.md.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseVSTest>true</UseVSTest>
+    <!-- Test classes and methods are exempt from the public-API doc rule. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+</Project>

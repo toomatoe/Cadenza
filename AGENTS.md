@@ -26,6 +26,7 @@ Cadenza is a native Windows Spotify client: a WinUI 3 interface in C# (`desktop/
   - The interface: `powershell -File .\build.ps1 -UiOnly`.
   - With raw `dotnet build`, always pass `-nodeReuse:false`.
   - Tests: `dotnet test tests/Cadenza.UnitTests.csproj -c Release -nodeReuse:false --filter "TestCategory!=Native"` (drop the filter when the Rust DLL is built).
+  - UI tests (real app, off-screen): `dotnet test ui-tests/Cadenza.UI.Tests.csproj -c Release -nodeReuse:false --settings ui-tests/headless.runsettings`. See `ui-tests/README.md`.
   - The full app with audio needs Rust and the MSVC C++ tools, or the `Cadenza-windows-x64` artifact from GitHub Actions.
 - Warnings are errors; fix them rather than suppressing them.
 - One pull request per change into `main`; CI must pass before merging.
