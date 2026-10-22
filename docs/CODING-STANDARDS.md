@@ -109,6 +109,7 @@ Project-specific layout:
 - Arrange / act / assert separated by blank lines, without labels.
 - Tests that need the compiled Rust engine are `[TestCategory("Native")]`. CI runs them, and local runs can filter them out.
 - Integration tests (the Friends server) start the real server on a random local port with a temporary database, as `SocialServerTests` does.
+- **UI tests** live in `ui-tests/` (`Cadenza.UI.Tests`). They drive the real app through Windows UI Automation (Playwright can't control native WinUI), headless by default (off-screen, no focus). Write one `[TestClass]` per page, find elements by `x:Name` or `AutomationProperties.Name`, wait with `App.WaitUntil` (never sleep), and leave the user's state as you found it. See `ui-tests/README.md`.
 
 ## 11. Build and workflow
 

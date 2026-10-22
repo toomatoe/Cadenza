@@ -31,6 +31,21 @@ jobs:
           } else {
             ./build.ps1 -Publish
           }
+      - name: UI tests
+        shell: pwsh
+        env:
+          # Seeds a Spotify sign-in only when the secrets exist; without them, tests that need Spotify data are skipped.
+          CADENZA_UI_TEST_SEED: '1'
+          CADENZA_SPOTIFY_CLIENT_ID: ${{ secrets.CADENZA_SPOTIFY_CLIENT_ID }}
+          CADENZA_SPOTIFY_REFRESH_TOKEN: ${{ secrets.CADENZA_SPOTIFY_REFRESH_TOKEN }}
+        run: dotnet test ui-tests/Cadenza.UI.Tests.csproj -c Release -nodeReuse:false --settings ui-tests/headless.runsettings --logger trx --results-directory artifacts/ui-test-results
+      - name: Upload UI test screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: artifacts/ui-test-results
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: Cadenza-windows-x64

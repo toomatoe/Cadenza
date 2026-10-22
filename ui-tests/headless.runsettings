@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default settings for the UI tests. Pass this file to dotnet test with the settings option
+  (the full command is in ui-tests/README.md). Set Headless to false to watch the app on screen while debugging a test.
+-->
+<RunSettings>
+  <RunConfiguration>
+    <!-- One app window at a time: UI tests share the desktop session. -->
+    <MaxCpuCount>1</MaxCpuCount>
+  </RunConfiguration>
+  <TestRunParameters>
+    <!-- true: the app runs off-screen and never takes focus. false: it opens normally. -->
+    <Parameter name="Headless" value="true" />
+    <!-- Optional: full path to Cadenza.Desktop.exe. Empty uses the Release build in desktop/bin. -->
+    <Parameter name="AppPath" value="" />
+    <!-- Seconds to wait for the window and for each page to settle. -->
+    <Parameter name="TimeoutSeconds" value="30" />
+  </TestRunParameters>
+</RunSettings>
