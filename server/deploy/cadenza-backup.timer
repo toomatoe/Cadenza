@@ -1,0 +1,11 @@
+[Unit]
+Description=Back up the Cadenza database every six hours
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:00:00
+Persistent=true
+AccuracySec=1m
+Unit=cadenza-backup.service
+
+[Install]
+WantedBy=timers.target

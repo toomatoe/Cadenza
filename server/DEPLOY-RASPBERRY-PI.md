@@ -1,5 +1,7 @@
 # Deploying Cadenza Friends on a Raspberry Pi
 
+> **Using Docker on Raspberry Pi 5?** Follow [DEPLOY-DOCKER-PI.md](DEPLOY-DOCKER-PI.md) for the recommended production-only Compose deployment, persistent SQLite storage and six-hour backups. The instructions below describe the older, alternative systemd installation and should **not** be run alongside the Docker version.
+
 This runs the Friends server on a Raspberry Pi at home and makes it reachable over HTTPS through a **Cloudflare Tunnel**, so **no router ports are opened** and your home IP isn't exposed. It's sized for an invite-only group: the server only handles accounts, friend lists, chat and track IDs. Audio never passes through it.
 
 **What you need:**

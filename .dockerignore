@@ -1,0 +1,15 @@
+# Only the shared contracts and web service are needed in a production image.
+**
+!Directory.Build.props
+!core/
+!core/**
+!server/
+!server/**
+**/bin/
+**/obj/
+**/.env
+**/.env.*
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/TestResults/

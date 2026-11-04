@@ -6,8 +6,14 @@ using Cadenza.Server.Exceptions;
 namespace Cadenza.Server.Extensions;
 
 /// <summary>The Friends server's request pipeline and routes.</summary>
-public static class WebApplicationExtensions
+public static partial class WebApplicationExtensions
 {
+    [LoggerMessage(1001, LogLevel.Information, "Rejected a malformed request to {Path}")]
+    private static partial void LogMalformedRequest(ILogger logger, Exception exception, string path);
+
+    [LoggerMessage(1002, LogLevel.Information, "Inner exception for the malformed request to {Path}")]
+    private static partial void LogMalformedRequestInner(ILogger logger, Exception exception, string path);
+
     // Cloudflare closes idle connections after 100 seconds; keep-alives stay well inside that.
     private static readonly TimeSpan _keepAlive = TimeSpan.FromSeconds(30);
 
@@ -52,9 +58,10 @@ public static class WebApplicationExtensions
         catch (BadHttpRequestException error) when (!context.Response.HasStarted)
         {
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(WebApplicationExtensions));
-            logger.LogInformation(error, "Rejected a malformed request to {Path}", context.Request.Path);
+            var path = context.Request.Path.ToString();
+            LogMalformedRequest(logger, error, path);
             if (error.InnerException is { } inner)
-                logger.LogInformation(inner, "Inner exception for the malformed request to {Path}", context.Request.Path);
+                LogMalformedRequestInner(logger, inner, path);
 
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             await context.Response.WriteAsJsonAsync(new SocialError("That request wasn't understood."), SocialRules.Json, context.RequestAborted);
