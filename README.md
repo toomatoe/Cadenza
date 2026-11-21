@@ -10,6 +10,14 @@ If you prefer a portable copy, choose **Cadenza-windows-x64.zip**, use **Extract
 
 The download targets Windows 10 build 19041+ and Windows 11 on x64-compatible machines. Early builds are unsigned, so Windows may show a warning or block launch. Native playback is experimental, and Spotify setup still requires a developer Client ID; see [Connect your account](#connect-your-account).
 
+## Updating
+
+In a build containing the updater, open **Settings → Updates → Check for updates**, then
+choose **Download and install**. The app verifies the installer and opens the setup wizard.
+Preview releases are optional. Settings and sign-ins are kept; the session queue is not.
+Existing older builds need this updater-enabled release installed once. See
+[update behavior and release requirements](docs/features/updates.md).
+
 ## What works so far
 
 Here's what's in the app:

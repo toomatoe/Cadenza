@@ -79,6 +79,8 @@ public sealed partial class MainWindow : Window
         InitializeFriends();
 
         InitializeComponent();
+        AppVersionLabel.Text = $"Current version: {CurrentAppVersion}";
+        PreviewUpdates.IsChecked = CurrentAppVersion.Contains('-', StringComparison.Ordinal);
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         // Caption button foreground colors follow the theme and are set in ApplyAppearance.
