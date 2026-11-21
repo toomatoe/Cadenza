@@ -208,7 +208,7 @@
                             <ItemsRepeater x:Name="LibraryCards" ItemsSource="{x:Bind LibraryTracks}" AutomationProperties.Name="Library album covers">
                                 <ItemsRepeater.Layout><UniformGridLayout MinItemWidth="208" MinItemHeight="266" MinColumnSpacing="16" MinRowSpacing="16" ItemsStretch="None" ItemsJustification="Start" Orientation="Horizontal"/></ItemsRepeater.Layout>
 <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="core:Track">
-                        <Border Style="{StaticResource AlbumCardStyle}" CornerRadius="22">
+                        <Border Width="208" Height="266" Style="{StaticResource AlbumCardStyle}" CornerRadius="22">
                             <StackPanel>
                                 <controls:SquareArtwork Margin="12,12,12,10">
                                 <Border CornerRadius="14" Background="{StaticResource ArtTile}" BorderBrush="{StaticResource ArtEdge}" BorderThickness="1">

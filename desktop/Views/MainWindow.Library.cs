@@ -65,11 +65,17 @@ public sealed partial class MainWindow
             _librarySnapshot.AddRange(Tracks);
         }
 
-        LibraryTracks.Clear();
-        foreach (var track in _librarySnapshot.Where(track => !_likedOnly || _likedTrackIds.Contains(track.Id)))
-        {
-            LibraryTracks.Add(track);
-        }
+        var visible = _librarySnapshot.Where(track => !_likedOnly || _likedTrackIds.Contains(track.Id)).ToArray();
+        // Keep unchanged containers and artwork alive when another page arrives. Resetting the
+        // collection forces the repeater to rebuild its realized rows during wheel scrolling.
+        var common = 0;
+        while (common < LibraryTracks.Count && common < visible.Length && ReferenceEquals(LibraryTracks[common], visible[common]))
+            common++;
+
+        for (var index = LibraryTracks.Count - 1; index >= common; index--)
+            LibraryTracks.RemoveAt(index);
+        for (var index = common; index < visible.Length; index++)
+            LibraryTracks.Add(visible[index]);
 
         AllTracksChip.Background = AppearanceBrush(_likedOnly ? "GlassSurface" : "Ink");
         AllTracksChip.Foreground = AppearanceBrush(_likedOnly ? "Ink" : "SolidWindow");

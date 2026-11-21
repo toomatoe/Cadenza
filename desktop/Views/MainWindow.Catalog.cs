@@ -116,8 +116,6 @@ public sealed partial class MainWindow
 
         UpdatePinnedPlaylists();
         RefreshPlaylistDeck();
-        if (_view == AppView.Library)
-            ScrollLibraryToTop();
     }
 
     private void UpdatePinnedPlaylists() => SidebarPlaylists.Visibility = ToVisibility(PinnedPlaylists.Count > 0);
