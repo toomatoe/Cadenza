@@ -13,6 +13,14 @@ public sealed class SettingsTests : UiTestBase
     public void OpenSettings() => App.Navigate("Settings", "Settings");
 
     [TestMethod]
+    public void SettingsOffersOnDemandUpdates()
+    {
+        Assert.IsNotNull(App.ById("AppVersionLabel"));
+        Assert.IsNotNull(App.ById("CheckUpdateButton"));
+        Assert.IsNotNull(App.ById("PreviewUpdates"));
+    }
+
+    [TestMethod]
     public void SettingsShowsTheProfileEditor()
     {
         App.WaitUntil(() => App.Names().Contains("Profile"), "the Profile card");

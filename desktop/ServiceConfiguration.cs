@@ -4,6 +4,7 @@ using Cadenza.Core.Services.Catalog;
 using Cadenza.Core.Services.Recommendations;
 using Cadenza.Core.Services.Social;
 using Cadenza.Core.Services.Spotify;
+using Cadenza.Core.Services.Updates;
 using Cadenza.Desktop.Interfaces;
 using Cadenza.Desktop.Services;
 
@@ -19,12 +20,14 @@ public sealed class ServiceConfiguration : IDisposable
     private static readonly TimeSpan _httpTimeout = TimeSpan.FromSeconds(30);
     private readonly Lazy<RecommendationService> _recommendations;
     private readonly Lazy<SharedLibraryService> _sharedLibrary;
+    private readonly Lazy<IAppUpdateService> _updates;
 
     public ServiceConfiguration()
     {
         DataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cadenza");
         Preferences = new PreferencesStore(DataPath(PreferencesFile));
         Http = new HttpClient { Timeout = _httpTimeout };
+        _updates = new Lazy<IAppUpdateService>(() => new AppUpdateService(Http));
         Auth = new SpotifyAuth(Http, new WindowsTokenStore());
         PlaybackAuth = new SpotifyAuth(Http, new WindowsTokenStore(), SpotifyAuth.PlaybackScope);
         SpotifyApi = new SpotifyApi(Http, Auth);
@@ -63,6 +66,9 @@ public sealed class ServiceConfiguration : IDisposable
 
     /// <summary>The shared Cadenza library (uploads, search, playable files), created on first use.</summary>
     public ISharedLibraryService SharedLibrary => _sharedLibrary.Value;
+
+    /// <summary>Release checking, created only when the user requests it.</summary>
+    public IAppUpdateService Updates => _updates.Value;
 
     /// <summary>A file path inside <see cref="DataFolder"/>.</summary>
     public string DataPath(string fileName) => Path.Combine(DataFolder, fileName);
